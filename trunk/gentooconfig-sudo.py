@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import commands
 import gtk
 import sys
 import os
@@ -25,10 +26,12 @@ def sudo_start():
 	if dialog.run() == gtk.RESPONSE_OK:
 		pw = dialog.entered_password.get_text()
 		dialog.destroy()
-		(process_in, process_out) = os.popen2('sudo -p "" -S "%s/gentooconfig.py" --display "%s"' % (os.path.realpath(os.path.dirname(sys.argv[0])), os.environ['DISPLAY']))
-		process_out.close()
-		process_in.write(pw)
-		process_in.close()
+		sudo = os.popen('sudo -v -S', 'w') 
+		sudo.write(pw)
+		sudo.close() 
+		gentooconfig_path = commands.mkarg('%s/gentooconfig.py' % os.path.realpath(os.path.dirname(sys.argv[0])))
+		os.popen('sudo %s --display %s' % (gentooconfig_path, commands.mkarg(os.environ['DISPLAY']))).close()
+		os.popen('sudo -k').close()
 	else:
 		raise Exception('user aborted')
 
