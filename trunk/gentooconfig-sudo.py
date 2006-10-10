@@ -20,6 +20,7 @@ class PasswordDialog(gtk.Dialog):
 		self.entered_password.set_visibility(False)
 		hbox.pack_start(self.entered_password, False, False, 0)
 
+
 def sudo_start():
 	dialog = PasswordDialog()
 	dialog.show_all()
