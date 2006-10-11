@@ -65,36 +65,50 @@ class Filepart:
 		return self.textview.get_buffer()
 
 
-class CommonFilepart(Filepart):
-	def __init__(self, textview, position, text):
-		Filepart.__init__(self, textview, position, text)
-		self.hide()
-
+class Filepart_with_Button(Filepart):
 	def _setup_widgets(self, anchor):
-		button = gtk.Button('Hide this part')
-		button.connect('clicked', self.toggle_hide, None)
-		self.textview.add_child_at_anchor(button, anchor)
+		self.button = gtk.Button()
+		self.textview.add_child_at_anchor(self.button, anchor)
+
+	def _get_labeltext(self):
+		pass
 	
+	def _update_buttonlabel(self):
+		self.button.set_label(self._get_labeltext())
+
+
+class CommonFilepart(Filepart_with_Button):
+	def __init__(self, textview, position, text):
+		Filepart_with_Button.__init__(self, textview, position, text)
+		self.button.connect('clicked', self.toggle_hide, None)
+		self.hidden = False;
+		self.toggle_hide()
+
 	def _setup_tag_properties(self):
 		self.tag.set_property('editable', False)
+
+	def _get_labeltext(self):
+		if self.hidden:
+			return 'Show unchanged part'
+		else:
+			return 'Hide unchanged part'
 	
 	def hide(self):
-		self.hidden = True;
 		self.hiddentext = self.get_buffer().get_text(self.start_text_iter(), self.end_text_iter())
 		self.get_buffer().delete(self.start_text_iter(), self.end_text_iter())
 	
 	def show(self):
-		self.hidden = False;
 		self.get_buffer().insert(self.start_text_iter(), self.hiddentext)
 		self.hiddentext = None
 		self._reapply_tags()
 	
 	def toggle_hide(self, widget=None, data=None):
+		self.hidden = not self.hidden
+		self._update_buttonlabel()
 		if self.hidden:
-			self.show()
-		else:
 			self.hide()
-
+		else:
+			self.show()
 
 
 class OldFilepart(Filepart):
