@@ -15,6 +15,7 @@ class Filepart:
 
 		buffer = self.get_buffer()
 		self.tag = buffer.create_tag(None)
+
 		self.start_mark = buffer.create_mark(None, position, True)
 		anchor = buffer.create_child_anchor(position)
 		buffer.insert(position, '\n')
@@ -23,7 +24,8 @@ class Filepart:
 		buffer.insert(position, text[:-1])
 		end_text_mark = buffer.create_mark(None, position, True)
 		buffer.insert(position,'\n')
-		self.end_text_mark = buffer.create_mark(None, buffer.get_iter_at_mark(end_text_mark))
+		self.end_text_mark = buffer.create_mark(None, buffer.get_iter_at_mark(end_text_mark), False)
+
 		buffer.delete_mark(end_text_mark)
 		self.end_mark = buffer.create_mark(None, position, True)
 
@@ -42,9 +44,10 @@ class Filepart:
 		buffer.remove_all_tags(self.start_iter(), self.end_iter())
 		# HACK Widgettag shouldnt be anonymous
 		widgettag = buffer.create_tag(None, editable = False, background = 'grey', weight = pango.WEIGHT_BOLD)
+		endtag = buffer.create_tag(None, editable = False)
 		buffer.apply_tag(widgettag, self.start_iter(), self.start_text_iter())
-		buffer.apply_tag(self.tag, self.start_text_iter(), self.end_text_iter())
-		buffer.apply_tag(widgettag, self.end_text_iter(), self.end_iter())
+		buffer.apply_tag(self.tag, self.start_text_iter(), self.end_iter())
+		buffer.apply_tag(endtag, self.end_text_iter(), self.end_iter())
 	
 	def start_iter(self):
 		return self.get_buffer().get_iter_at_mark(self.start_mark)
@@ -60,13 +63,12 @@ class Filepart:
 
 	def get_buffer(self):
 		return self.textview.get_buffer()
-		
+
 
 class CommonFilepart(Filepart):
 	def __init__(self, textview, position, text):
 		Filepart.__init__(self, textview, position, text)
-		#self.hide()
-		self.hidden = False
+		self.hide()
 
 	def _setup_widgets(self, anchor):
 		button = gtk.Button('Hide this part')
@@ -96,23 +98,43 @@ class CommonFilepart(Filepart):
 
 
 class OldFilepart(Filepart):
+	def __init__(self, textview, position, text):
+		Filepart.__init__(self, textview, position, text)
+		self.remove = False
+
 	def _setup_widgets(self, anchor):
 		button = gtk.Button('Remove this part')
+		button.connect('clicked', self.toggle_remove)
 		self.textview.add_child_at_anchor(button, anchor)
 	
 	def _setup_tag_properties(self):
 		self.tag.set_property('editable', True)
 		self.tag.set_property('foreground', 'green')
+	
+	def toggle_remove(self, widget=None, data=None):
+		self.remove = not self.remove
+		self.tag.set_property('strikethrough', self.remove)
+				
 
 class NewFilepart(Filepart):
+	def __init__(self, textview, position, text):
+		Filepart.__init__(self, textview, position, text)
+		self.insert = False
+
 	def _setup_widgets(self, anchor):
 		button = gtk.Button('Include this part')
+		button.connect('clicked', self.toggle_insert)
 		self.textview.add_child_at_anchor(button, anchor)
 	
 	def _setup_tag_properties(self):
 		self.tag.set_property('editable', True)
 		self.tag.set_property('foreground', 'red')
 		self.tag.set_property('strikethrough', True)
+
+	def toggle_insert(self, widget=None, data=None):
+		self.insert = not self.insert
+		self.tag.set_property('strikethrough', not self.insert)
+
 
 class MergeToolbar(gtk.Toolbar):
 	def __init__(self):
@@ -175,12 +197,9 @@ class MergeWindow:
 		self.window.add(vbox)
 		context = self.statusbar.get_context_id('statusbar')
 		self.statusbar.push(context, 'Merging file /etc/._cfg000_make.conf')
-		self.textview.get_buffer().insert(self.textview.get_buffer().get_start_iter(),'a')
-		#self.textview.set_editable(False)
 		CommonFilepart(self.textview, self.textview.get_buffer().get_end_iter(), 'USE="-*"\n\n')
 		OldFilepart(self.textview, self.textview.get_buffer().get_end_iter(), 'ACCEPTED_KEYWORDS="~x86"\n# No risk, no fun!\n')
 		NewFilepart(self.textview, self.textview.get_buffer().get_end_iter(), 'ACCEPTED_KEYWORDS="x86"\n# Play it safe.\n')
-		self.textview.get_buffer().insert(self.textview.get_buffer().get_end_iter(),'a')
 		self.window.show_all()
 
 
