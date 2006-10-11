@@ -111,42 +111,50 @@ class CommonFilepart(Filepart_with_Button):
 			self.show()
 
 
-class OldFilepart(Filepart):
+class OldFilepart(Filepart_with_Button):
 	def __init__(self, textview, position, text):
-		Filepart.__init__(self, textview, position, text)
+		Filepart_with_Button.__init__(self, textview, position, text)
+		self.button.connect('clicked', self.toggle_remove)
 		self.remove = False
+		self._update_buttonlabel()
 
-	def _setup_widgets(self, anchor):
-		button = gtk.Button('Remove this part')
-		button.connect('clicked', self.toggle_remove)
-		self.textview.add_child_at_anchor(button, anchor)
-	
 	def _setup_tag_properties(self):
 		self.tag.set_property('editable', True)
 		self.tag.set_property('foreground', 'green')
 	
+	def _get_labeltext(self):
+		if self.remove:
+			return 'Dont remove this part'
+		else:
+			return 'Remove this part'
+
 	def toggle_remove(self, widget=None, data=None):
 		self.remove = not self.remove
+		self._update_buttonlabel()
 		self.tag.set_property('strikethrough', self.remove)
 				
 
-class NewFilepart(Filepart):
+class NewFilepart(Filepart_with_Button):
 	def __init__(self, textview, position, text):
-		Filepart.__init__(self, textview, position, text)
+		Filepart_with_Button.__init__(self, textview, position, text)
+		self.button.connect('clicked', self.toggle_insert)
 		self.insert = False
-
-	def _setup_widgets(self, anchor):
-		button = gtk.Button('Include this part')
-		button.connect('clicked', self.toggle_insert)
-		self.textview.add_child_at_anchor(button, anchor)
+		self._update_buttonlabel()
 	
 	def _setup_tag_properties(self):
 		self.tag.set_property('editable', True)
 		self.tag.set_property('foreground', 'red')
 		self.tag.set_property('strikethrough', True)
 
+	def _get_labeltext(self):
+		if self.insert:
+			return 'Dont insert this part'
+		else:
+			return 'Insert this part'
+
 	def toggle_insert(self, widget=None, data=None):
 		self.insert = not self.insert
+		self._update_buttonlabel()
 		self.tag.set_property('strikethrough', not self.insert)
 
 
