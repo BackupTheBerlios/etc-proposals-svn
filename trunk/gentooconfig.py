@@ -45,21 +45,27 @@ class Filepart:
 		# HACK Widgettag shouldnt be anonymous
 		widgettag = buffer.create_tag(None, editable = False, background = 'grey', weight = pango.WEIGHT_BOLD)
 		endtag = buffer.create_tag(None, editable = False)
-		buffer.apply_tag(widgettag, self.start_iter(), self.start_text_iter())
-		buffer.apply_tag(self.tag, self.start_text_iter(), self.end_iter())
-		buffer.apply_tag(endtag, self.end_text_iter(), self.end_iter())
+		buffer.apply_tag(widgettag, self.start_iter(), self._start_text_iter())
+		buffer.apply_tag(self.tag, self._start_text_iter(), self.end_iter())
+		buffer.apply_tag(endtag, self._end_text_iter(), self.end_iter())
 	
 	def start_iter(self):
 		return self.get_buffer().get_iter_at_mark(self.start_mark)
 
-	def start_text_iter(self):
+	def _start_text_iter(self):
 		return self.get_buffer().get_iter_at_mark(self.start_text_mark)
 
-	def end_text_iter(self):
+	def _end_text_iter(self):
 		return self.get_buffer().get_iter_at_mark(self.end_text_mark)
 	
 	def end_iter(self):
 		return self.get_buffer().get_iter_at_mark(self.end_mark)
+
+	def _containing_text(self):
+		return self.get_buffer().get_text(self._start_text_iter(), self._end_text_iter())
+	
+	def file_text(self):
+		return self._containing_text() + '\n'
 
 	def get_buffer(self):
 		return self.textview.get_buffer()
@@ -68,6 +74,7 @@ class Filepart:
 class Filepart_with_Button(Filepart):
 	def _setup_widgets(self, anchor):
 		self.button = gtk.Button()
+		self.button.connect('clicked', self.on_button_clicked, None)
 		self.textview.add_child_at_anchor(self.button, anchor)
 
 	def _get_labeltext(self):
@@ -76,13 +83,15 @@ class Filepart_with_Button(Filepart):
 	def _update_buttonlabel(self):
 		self.button.set_label(self._get_labeltext())
 
+	def on_button_clicked(self, widget=None, data=None):
+		pass
+
 
 class CommonFilepart(Filepart_with_Button):
 	def __init__(self, textview, position, text):
 		Filepart_with_Button.__init__(self, textview, position, text)
-		self.button.connect('clicked', self.toggle_hide, None)
 		self.hidden = False;
-		self.toggle_hide()
+		self.on_button_clicked()
 
 	def _setup_tag_properties(self):
 		self.tag.set_property('editable', False)
@@ -94,15 +103,15 @@ class CommonFilepart(Filepart_with_Button):
 			return 'Hide unchanged part'
 	
 	def hide(self):
-		self.hiddentext = self.get_buffer().get_text(self.start_text_iter(), self.end_text_iter())
-		self.get_buffer().delete(self.start_text_iter(), self.end_text_iter())
+		self.hiddentext = self._containing_text()
+		self.get_buffer().delete(self._start_text_iter(), self._end_text_iter())
 	
 	def show(self):
-		self.get_buffer().insert(self.start_text_iter(), self.hiddentext)
+		self.get_buffer().insert(self._start_text_iter(), self.hiddentext)
 		self.hiddentext = None
 		self._reapply_tags()
 	
-	def toggle_hide(self, widget=None, data=None):
+	def on_button_clicked(self, widget=None, data=None):
 		self.hidden = not self.hidden
 		self._update_buttonlabel()
 		if self.hidden:
@@ -114,7 +123,6 @@ class CommonFilepart(Filepart_with_Button):
 class OldFilepart(Filepart_with_Button):
 	def __init__(self, textview, position, text):
 		Filepart_with_Button.__init__(self, textview, position, text)
-		self.button.connect('clicked', self.toggle_remove)
 		self.remove = False
 		self._update_buttonlabel()
 
@@ -128,7 +136,7 @@ class OldFilepart(Filepart_with_Button):
 		else:
 			return 'Remove this part'
 
-	def toggle_remove(self, widget=None, data=None):
+	def on_button_clicked(self, widget=None, data=None):
 		self.remove = not self.remove
 		self._update_buttonlabel()
 		self.tag.set_property('strikethrough', self.remove)
@@ -137,7 +145,6 @@ class OldFilepart(Filepart_with_Button):
 class NewFilepart(Filepart_with_Button):
 	def __init__(self, textview, position, text):
 		Filepart_with_Button.__init__(self, textview, position, text)
-		self.button.connect('clicked', self.toggle_insert)
 		self.insert = False
 		self._update_buttonlabel()
 	
@@ -152,7 +159,7 @@ class NewFilepart(Filepart_with_Button):
 		else:
 			return 'Insert this part'
 
-	def toggle_insert(self, widget=None, data=None):
+	def on_button_clicked(self, widget=None, data=None):
 		self.insert = not self.insert
 		self._update_buttonlabel()
 		self.tag.set_property('strikethrough', not self.insert)
