@@ -2,6 +2,7 @@
 
 import getopt
 import gtk
+import pango
 import sys
 
 def bak(obj):
@@ -23,7 +24,7 @@ class Filepart:
 		self.end_mark = buffer.create_mark(None, position, False)
 
 		# HACK Widgettag shouldnt be anonymous
-		widgettag = buffer.create_tag(None, editable = False)
+		widgettag = buffer.create_tag(None, editable = False, background = 'grey', justification = gtk.JUSTIFY_CENTER, weight = pango.WEIGHT_BOLD)
 		buffer.apply_tag(widgettag, self.start_iter(), self.start_text_iter())
 		buffer.apply_tag(self.tag, self.start_text_iter(), self.end_iter())
 
@@ -31,7 +32,7 @@ class Filepart:
 		self._setup_tag_properties()
 
 	def _setup_widgets(self, anchor):
-		self.textview.add_child_at_anchor(gtk.Label('Unchanged part'), anchor)
+		pass
 	
 	def _setup_tag_properties(self):
 		pass
@@ -48,7 +49,9 @@ class Filepart:
 
 class CommonFilepart(Filepart):
 	def _setup_widgets(self, anchor):
-		self.textview.add_child_at_anchor(gtk.Button('Hide this part'), anchor)
+		button = gtk.Button('Hide this part')
+		button.set_size_request(800, -1)
+		self.textview.add_child_at_anchor(button, anchor)
 	
 	def _setup_tag_properties(self):
 		self.tag.set_property('editable', False)
@@ -56,7 +59,9 @@ class CommonFilepart(Filepart):
 
 class OldFilepart(Filepart):
 	def _setup_widgets(self, anchor):
-		self.textview.add_child_at_anchor(gtk.Button('Remove this part'), anchor)
+		button = gtk.Button('Remove this part')
+		button.set_size_request(800, -1)
+		self.textview.add_child_at_anchor(button, anchor)
 	
 	def _setup_tag_properties(self):
 		self.tag.set_property('editable', True)
@@ -64,7 +69,9 @@ class OldFilepart(Filepart):
 
 class NewFilepart(Filepart):
 	def _setup_widgets(self, anchor):
-		self.textview.add_child_at_anchor(gtk.Button('Include this part'), anchor)
+		button = gtk.Button('Include this part')
+		button.set_size_request(800, -1)
+		self.textview.add_child_at_anchor(button, anchor)
 	
 	def _setup_tag_properties(self):
 		self.tag.set_property('editable', True)
@@ -133,7 +140,7 @@ class MergeWindow:
 		context = self.statusbar.get_context_id('statusbar')
 		self.statusbar.push(context, 'Merging file /etc/._cfg000_make.conf')
 		#self.textview.set_editable(False)
-		Filepart(self.textview, self.textview.get_buffer().get_end_iter(), 'USE="-*"\n\n')
+		CommonFilepart(self.textview, self.textview.get_buffer().get_end_iter(), 'USE="-*"\n\n')
 		OldFilepart(self.textview, self.textview.get_buffer().get_end_iter(), 'ACCEPTED_KEYWORDS="~x86"\n# No risk, no fun!\n')
 		NewFilepart(self.textview, self.textview.get_buffer().get_end_iter(), 'ACCEPTED_KEYWORDS="x86"\n# Play it safe.\n')
 		self.window.show_all()
