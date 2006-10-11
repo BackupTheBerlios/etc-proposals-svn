@@ -13,54 +13,91 @@ class Filepart:
 	def __init__(self, textview, position, text):
 		self.textview = textview
 
-		buffer = self.textview.get_buffer()
+		buffer = self.get_buffer()
 		self.tag = buffer.create_tag(None)
 		self.start_mark = buffer.create_mark(None, position, True)
 		anchor = buffer.create_child_anchor(position)
 		buffer.insert(position, '\n')
 
 		self.start_text_mark = buffer.create_mark(None, position, True)
-		buffer.insert(position, text)
-		self.end_mark = buffer.create_mark(None, position, False)
-
-		# HACK Widgettag shouldnt be anonymous
-		widgettag = buffer.create_tag(None, editable = False, background = 'grey', justification = gtk.JUSTIFY_CENTER, weight = pango.WEIGHT_BOLD)
-		buffer.apply_tag(widgettag, self.start_iter(), self.start_text_iter())
-		buffer.apply_tag(self.tag, self.start_text_iter(), self.end_iter())
+		buffer.insert(position, text[:-1])
+		end_text_mark = buffer.create_mark(None, position, True)
+		buffer.insert(position,'\n')
+		self.end_text_mark = buffer.create_mark(None, buffer.get_iter_at_mark(end_text_mark))
+		buffer.delete_mark(end_text_mark)
+		self.end_mark = buffer.create_mark(None, position, True)
 
 		self._setup_widgets(anchor)
 		self._setup_tag_properties()
+		self._reapply_tags()
 
 	def _setup_widgets(self, anchor):
 		pass
 	
 	def _setup_tag_properties(self):
 		pass
+
+	def _reapply_tags(self):
+		buffer = self.get_buffer()
+		buffer.remove_all_tags(self.start_iter(), self.end_iter())
+		# HACK Widgettag shouldnt be anonymous
+		widgettag = buffer.create_tag(None, editable = False, background = 'grey', weight = pango.WEIGHT_BOLD)
+		buffer.apply_tag(widgettag, self.start_iter(), self.start_text_iter())
+		buffer.apply_tag(self.tag, self.start_text_iter(), self.end_text_iter())
+		buffer.apply_tag(widgettag, self.end_text_iter(), self.end_iter())
 	
 	def start_iter(self):
-		return self.textview.get_buffer().get_iter_at_mark(self.start_mark)
+		return self.get_buffer().get_iter_at_mark(self.start_mark)
 
 	def start_text_iter(self):
-		return self.textview.get_buffer().get_iter_at_mark(self.start_text_mark)
+		return self.get_buffer().get_iter_at_mark(self.start_text_mark)
 
+	def end_text_iter(self):
+		return self.get_buffer().get_iter_at_mark(self.end_text_mark)
+	
 	def end_iter(self):
-		return self.textview.get_buffer().get_iter_at_mark(self.end_mark)
+		return self.get_buffer().get_iter_at_mark(self.end_mark)
 
+	def get_buffer(self):
+		return self.textview.get_buffer()
+		
 
 class CommonFilepart(Filepart):
+	def __init__(self, textview, position, text):
+		Filepart.__init__(self, textview, position, text)
+		#self.hide()
+		self.hidden = False
+
 	def _setup_widgets(self, anchor):
 		button = gtk.Button('Hide this part')
-		button.set_size_request(800, -1)
+		button.connect('clicked', self.toggle_hide, None)
 		self.textview.add_child_at_anchor(button, anchor)
 	
 	def _setup_tag_properties(self):
 		self.tag.set_property('editable', False)
+	
+	def hide(self):
+		self.hidden = True;
+		self.hiddentext = self.get_buffer().get_text(self.start_text_iter(), self.end_text_iter())
+		self.get_buffer().delete(self.start_text_iter(), self.end_text_iter())
+	
+	def show(self):
+		self.hidden = False;
+		self.get_buffer().insert(self.start_text_iter(), self.hiddentext)
+		self.hiddentext = None
+		self._reapply_tags()
+	
+	def toggle_hide(self, widget=None, data=None):
+		if self.hidden:
+			self.show()
+		else:
+			self.hide()
+
 
 
 class OldFilepart(Filepart):
 	def _setup_widgets(self, anchor):
 		button = gtk.Button('Remove this part')
-		button.set_size_request(800, -1)
 		self.textview.add_child_at_anchor(button, anchor)
 	
 	def _setup_tag_properties(self):
@@ -70,7 +107,6 @@ class OldFilepart(Filepart):
 class NewFilepart(Filepart):
 	def _setup_widgets(self, anchor):
 		button = gtk.Button('Include this part')
-		button.set_size_request(800, -1)
 		self.textview.add_child_at_anchor(button, anchor)
 	
 	def _setup_tag_properties(self):
@@ -139,10 +175,12 @@ class MergeWindow:
 		self.window.add(vbox)
 		context = self.statusbar.get_context_id('statusbar')
 		self.statusbar.push(context, 'Merging file /etc/._cfg000_make.conf')
+		self.textview.get_buffer().insert(self.textview.get_buffer().get_start_iter(),'a')
 		#self.textview.set_editable(False)
 		CommonFilepart(self.textview, self.textview.get_buffer().get_end_iter(), 'USE="-*"\n\n')
 		OldFilepart(self.textview, self.textview.get_buffer().get_end_iter(), 'ACCEPTED_KEYWORDS="~x86"\n# No risk, no fun!\n')
 		NewFilepart(self.textview, self.textview.get_buffer().get_end_iter(), 'ACCEPTED_KEYWORDS="x86"\n# Play it safe.\n')
+		self.textview.get_buffer().insert(self.textview.get_buffer().get_end_iter(),'a')
 		self.window.show_all()
 
 
