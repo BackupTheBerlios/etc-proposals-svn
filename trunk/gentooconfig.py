@@ -99,14 +99,20 @@ class CommonFilepart(Filepart_with_Button):
 	def _get_labeltext(self):
 		if self.hidden:
 			return 'Show unchanged part'
-		else:
-			return 'Hide unchanged part'
+		return 'Hide unchanged part'
+	
+	def file_text(self):
+		if self.hidden:
+			return self.hiddentext + '\n'
+		return self._containing_text() + '\n'
 	
 	def hide(self):
 		self.hiddentext = self._containing_text()
 		self.get_buffer().delete(self._start_text_iter(), self._end_text_iter())
+		self.get_buffer().insert(self._start_text_iter(),'[...]')
 	
 	def show(self):
+		self.get_buffer().delete(self._start_text_iter(), self._end_text_iter())
 		self.get_buffer().insert(self._start_text_iter(), self.hiddentext)
 		self.hiddentext = None
 		self._reapply_tags()
@@ -132,9 +138,13 @@ class OldFilepart(Filepart_with_Button):
 	
 	def _get_labeltext(self):
 		if self.remove:
-			return 'Dont remove this part'
-		else:
-			return 'Remove this part'
+			return 'Dont remove this part from local config'
+		return 'Remove this part from local config'
+
+	def file_text(self):
+		if self.remove:
+			return ''
+		return self._containing_text() + '\n'
 
 	def on_button_clicked(self, widget=None, data=None):
 		self.remove = not self.remove
@@ -153,11 +163,15 @@ class NewFilepart(Filepart_with_Button):
 		self.tag.set_property('foreground', 'red')
 		self.tag.set_property('strikethrough', True)
 
+	def file_text(self):
+		if self.insert:
+			return self._containing_text() + '\n'
+		return ''
+
 	def _get_labeltext(self):
 		if self.insert:
-			return 'Dont insert this part'
-		else:
-			return 'Insert this part'
+			return 'Dont insert this part from package config'
+		return 'Insert this part from package config'
 
 	def on_button_clicked(self, widget=None, data=None):
 		self.insert = not self.insert
