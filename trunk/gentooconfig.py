@@ -9,7 +9,15 @@ def bak(obj):
 	print 'Toolbar Button pressed!'
 	print obj
 
-class Filepart:
+class Singleton(object):
+	__instance = None
+	@classmethod
+	def get_instance(cls):
+		if cls.__instance == None:
+			__instance = GentooconfigApplication()
+		return __instance
+
+class Filepart(object):
 	def __init__(self, textview, position, text):
 		self.textview = textview
 
@@ -138,8 +146,8 @@ class OldFilepart(Filepart_with_Button):
 	
 	def _get_labeltext(self):
 		if self.remove:
-			return 'Dont remove this part from local config'
-		return 'Remove this part from local config'
+			return 'Dont remove this part found in local config'
+		return 'Remove this part found in local config'
 
 	def file_text(self):
 		if self.remove:
@@ -170,13 +178,31 @@ class NewFilepart(Filepart_with_Button):
 
 	def _get_labeltext(self):
 		if self.insert:
-			return 'Dont insert this part from package config'
-		return 'Insert this part from package config'
+			return 'Dont insert this part found in package config'
+		return 'Insert this part found in package config'
 
 	def on_button_clicked(self, widget=None, data=None):
 		self.insert = not self.insert
 		self._update_buttonlabel()
 		self.tag.set_property('strikethrough', not self.insert)
+
+class UIFactory(gtk.UIManager):
+	__instance = None
+	def __init__(self):
+		gtk.UIManager.__init__(self)
+		ag = gtk.ActionGroup('Actions')
+		quit = gtk.Action('Quit', 'Quit', 'Quit the App', gtk.STOCK_QUIT)
+		ag.add_action(quit)
+		quit = gtk.Action('File', 'File', 'File', None)
+		ag.add_action(quit)
+		self.insert_action_group(ag,0)
+		self.add_ui_from_file('./gentooconfig_ui.xml')
+	
+	@classmethod
+	def get_instance(cls):
+		if cls.__instance == None:
+			__instance = UIFactory()
+		return __instance
 
 
 class MergeToolbar(gtk.Toolbar):
@@ -224,29 +250,40 @@ class MergeToolbar(gtk.Toolbar):
 		image = gtk.Image()
 		image.set_from_stock(gtk.STOCK_QUIT, gtk.ICON_SIZE_LARGE_TOOLBAR)
 		self.append_item('Quit', 'Quit editing this file', 'Quit', image, bak)
+	
 
-class MergeWindow:
+class MergeWindow(gtk.Window):
 	def __init__(self):
-		self.window = gtk.Window()
+		gtk.Window.__init__(self)
 		vbox = gtk.VBox()
-		self.title = gtk.Label('/etc/make.conf')
+		self.menubar = UIFactory.get_instance().get_widget('/MenuBar')
 		self.toolbar = MergeToolbar()
 		self.textview = gtk.TextView()
 		self.statusbar = gtk.Statusbar()
-		vbox.pack_start(self.title, False, False);
+		vbox.pack_start(self.menubar, False, False);
 		vbox.pack_start(self.toolbar, False, False);
 		vbox.pack_start(self.textview);
 		vbox.pack_start(self.statusbar, False, False);
-		self.window.add(vbox)
+		self.add(vbox)
 		context = self.statusbar.get_context_id('statusbar')
 		self.statusbar.push(context, 'Merging file /etc/._cfg000_make.conf')
 		CommonFilepart(self.textview, self.textview.get_buffer().get_end_iter(), 'USE="-*"\n\n')
 		OldFilepart(self.textview, self.textview.get_buffer().get_end_iter(), 'ACCEPTED_KEYWORDS="~x86"\n# No risk, no fun!\n')
 		NewFilepart(self.textview, self.textview.get_buffer().get_end_iter(), 'ACCEPTED_KEYWORDS="x86"\n# Play it safe.\n')
-		self.window.show_all()
+		self.show_all()
+
+class GentooconfigApplication(Singleton):
+	def __init__(self):
+		window = MergeWindow()
+		gtk.main()
+	
+	def get_actiongroup(self):
+		actiongroup = gtk.ActionGroup()
+		actionlist =[
+			('Quit', 'Quit', 'Quit', None)
+		]
+		return actiongroup.add_actions(actionlist)
 
 
-window = MergeWindow()
-gtk.main()
-
+GentooconfigApplication.get_instance()
 # vim:ts=4 sw=4 noet:
