@@ -51,7 +51,9 @@ class Filepart(object):
 		buffer = self.get_buffer()
 		buffer.remove_all_tags(self.start_iter(), self.end_iter())
 		buffer.apply_tag_by_name('start_filepart', self.start_iter(), self._start_text_iter())
-		buffer.apply_tag(self.tag, self._start_text_iter(), self.end_iter())
+		start_txt_iter = self._start_text_iter()
+		start_txt_iter.backward_char()
+		buffer.apply_tag(self.tag, start_txt_iter, self.end_iter())
 		buffer.apply_tag_by_name('end_filepart', self._end_text_iter(), self.end_iter())
 	
 	def start_iter(self):
@@ -188,6 +190,10 @@ class NewFilepart(Filepart_with_Button):
 class MergeTextview(gtk.TextView):
 	def __init__(self):
 		gtk.TextView.__init__(self)	
+		self.fileparts = []
+		self._setup_global_tags()
+
+	def _setup_global_tags(self):
 		buffer = self.get_buffer()
 		self.start_filepart_tag = buffer.create_tag('start_filepart', editable = False, background = 'grey', weight = pango.WEIGHT_BOLD)
 		self.end_filepart_tag = buffer.create_tag('end_filepart', editable = False)
