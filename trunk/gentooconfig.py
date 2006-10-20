@@ -50,12 +50,9 @@ class Filepart(object):
 	def _reapply_tags(self):
 		buffer = self.get_buffer()
 		buffer.remove_all_tags(self.start_iter(), self.end_iter())
-		# HACK Widgettag shouldnt be anonymous
-		widgettag = buffer.create_tag(None, editable = False, background = 'grey', weight = pango.WEIGHT_BOLD)
-		endtag = buffer.create_tag(None, editable = False)
-		buffer.apply_tag(widgettag, self.start_iter(), self._start_text_iter())
+		buffer.apply_tag_by_name('start_filepart', self.start_iter(), self._start_text_iter())
 		buffer.apply_tag(self.tag, self._start_text_iter(), self.end_iter())
-		buffer.apply_tag(endtag, self._end_text_iter(), self.end_iter())
+		buffer.apply_tag_by_name('end_filepart', self._end_text_iter(), self.end_iter())
 	
 	def start_iter(self):
 		return self.get_buffer().get_iter_at_mark(self.start_mark)
@@ -118,6 +115,7 @@ class CommonFilepart(Filepart_with_Button):
 		self.hiddentext = self._containing_text()
 		self.get_buffer().delete(self._start_text_iter(), self._end_text_iter())
 		self.get_buffer().insert(self._start_text_iter(),'[...]')
+		self.get_buffer().apply_tag_by_name('hidden_text_proxy', self._start_text_iter(), self.end_iter())
 	
 	def show(self):
 		self.get_buffer().delete(self._start_text_iter(), self._end_text_iter())
@@ -190,12 +188,10 @@ class NewFilepart(Filepart_with_Button):
 class MergeTextview(gtk.TextView):
 	def __init__(self):
 		gtk.TextView.__init__(self)	
-
-
-class UIFactory(gtk.UIManager):
-	def __init__(self):
-		gtk.UIManager.__init__(self)
-		self.add_ui_from_file('./gentooconfig_ui.xml')
+		buffer = self.get_buffer()
+		self.start_filepart_tag = buffer.create_tag('start_filepart', editable = False, background = 'grey', weight = pango.WEIGHT_BOLD)
+		self.end_filepart_tag = buffer.create_tag('end_filepart', editable = False)
+		self.hidden_text_proxy = buffer.create_tag('hidden_text_proxy', editable = False)
 	
 
 class MergeWindow(gtk.Window):
@@ -225,6 +221,12 @@ class MergeWindow(gtk.Window):
 		factory.insert_action_group(GentooconfigApplication.get_instance().actiongroup, 0)
 		self.menubar = factory.get_widget('/MenuBar')
 		self.toolbar = factory.get_widget('/ToolBar') 
+
+
+class UIFactory(gtk.UIManager):
+	def __init__(self):
+		gtk.UIManager.__init__(self)
+		self.add_ui_from_file('./gentooconfig_ui.xml')
 
 
 class GentooconfigApplication(Singleton):
