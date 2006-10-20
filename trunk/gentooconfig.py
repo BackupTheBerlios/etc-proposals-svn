@@ -10,11 +10,11 @@ def bak(obj):
 	print obj
 
 class Singleton(object):
-	__instance = None
+	__instance = None 
 	@classmethod
 	def get_instance(cls):
 		if cls.__instance == None:
-			__instance = GentooconfigApplication()
+			__instance = cls()
 		return __instance
 
 class Filepart(object):
@@ -186,85 +186,33 @@ class NewFilepart(Filepart_with_Button):
 		self._update_buttonlabel()
 		self.tag.set_property('strikethrough', not self.insert)
 
+
+class MergeTextview(gtk.TextView):
+	def __init__(self):
+		gtk.TextView.__init__(self)	
+
+
 class UIFactory(gtk.UIManager):
-	__instance = None
 	def __init__(self):
 		gtk.UIManager.__init__(self)
-		ag = gtk.ActionGroup('Actions')
-		quit = gtk.Action('Quit', 'Quit', 'Quit the App', gtk.STOCK_QUIT)
-		ag.add_action(quit)
-		quit = gtk.Action('File', 'File', 'File', None)
-		ag.add_action(quit)
-		self.insert_action_group(ag,0)
 		self.add_ui_from_file('./gentooconfig_ui.xml')
-	
-	@classmethod
-	def get_instance(cls):
-		if cls.__instance == None:
-			__instance = UIFactory()
-		return __instance
-
-
-class MergeToolbar(gtk.Toolbar):
-	def __init__(self):
-		gtk.Toolbar.__init__(self)
-		self.set_style(gtk.TOOLBAR_ICONS)
-		self.set_tooltips(True)
-
-		self.append_widget(gtk.Label('Change'),'These buttons affect a single change', 'Change')
-		image = gtk.Image()
-		image.set_from_stock(gtk.STOCK_GOTO_TOP, gtk.ICON_SIZE_LARGE_TOOLBAR)
-		self.append_item('Start', 'Go to start of file', 'Start', image, bak)
-		image = gtk.Image()
-		image.set_from_stock(gtk.STOCK_GO_UP, gtk.ICON_SIZE_LARGE_TOOLBAR)
-		self.append_item('Previous change', 'Go up to previous change', 'Previous', image, bak)
-		image = gtk.Image()
-		image.set_from_stock(gtk.STOCK_GO_DOWN, gtk.ICON_SIZE_LARGE_TOOLBAR)
-		self.append_item('Next change', 'Go down to next change', 'Next', image, bak)
-		image = gtk.Image()
-		image.set_from_stock(gtk.STOCK_GOTO_BOTTOM, gtk.ICON_SIZE_LARGE_TOOLBAR)
-		self.append_item('End', 'Go to end of file', 'End', image, bak)
-
-		self.append_space()
-		self.append_widget(gtk.Label('Changeset'),'These buttons affect the changeset', 'Changeset')
-
-		image = gtk.Image()
-		image.set_from_stock(gtk.STOCK_UNDO, gtk.ICON_SIZE_LARGE_TOOLBAR)
-		self.append_item('Undo', 'Undo', 'Undo all changes and go back to last change', image, bak)
-		image = gtk.Image()
-		image.set_from_stock(gtk.STOCK_REFRESH, gtk.ICON_SIZE_LARGE_TOOLBAR)
-		self.append_item('Restart', 'Restart editing this change', 'Restart', image, bak)
-		image = gtk.Image()
-		image.set_from_stock(gtk.STOCK_EDIT, gtk.ICON_SIZE_LARGE_TOOLBAR)
-		self.append_item('Edit All', 'Enable editing of unchnaged parts of file', 'Edit', image, bak)
-		image = gtk.Image()
-		image.set_from_stock(gtk.STOCK_APPLY, gtk.ICON_SIZE_LARGE_TOOLBAR)
-		self.append_item('Apply', 'Apply this and go to next change', 'Apply', image, bak)
-
-		self.append_space()
-		self.append_widget(gtk.Label('Configuration file'),'These buttons affect configuration file', 'Changeset')
-
-		image = gtk.Image()
-		image.set_from_stock(gtk.STOCK_CANCEL, gtk.ICON_SIZE_LARGE_TOOLBAR)
-		self.append_item('Cancel', 'Undo all changes and quit', 'Cancel', image, bak)
-		image = gtk.Image()
-		image.set_from_stock(gtk.STOCK_QUIT, gtk.ICON_SIZE_LARGE_TOOLBAR)
-		self.append_item('Quit', 'Quit editing this file', 'Quit', image, bak)
 	
 
 class MergeWindow(gtk.Window):
 	def __init__(self):
 		gtk.Window.__init__(self)
 		vbox = gtk.VBox()
-		self.menubar = UIFactory.get_instance().get_widget('/MenuBar')
-		self.toolbar = MergeToolbar()
-		self.textview = gtk.TextView()
+		
+		self._setup_factory_widgets()
+		self.textview = MergeTextview()
 		self.statusbar = gtk.Statusbar()
-		vbox.pack_start(self.menubar, False, False);
-		vbox.pack_start(self.toolbar, False, False);
-		vbox.pack_start(self.textview);
-		vbox.pack_start(self.statusbar, False, False);
+		vbox.pack_start(self.menubar, False, False)
+		vbox.pack_start(self.toolbar, False, False)
+		vbox.pack_start(self.textview)
+		vbox.pack_start(self.statusbar, False, False)
 		self.add(vbox)
+		
+		#test code
 		context = self.statusbar.get_context_id('statusbar')
 		self.statusbar.push(context, 'Merging file /etc/._cfg000_make.conf')
 		CommonFilepart(self.textview, self.textview.get_buffer().get_end_iter(), 'USE="-*"\n\n')
@@ -272,18 +220,41 @@ class MergeWindow(gtk.Window):
 		NewFilepart(self.textview, self.textview.get_buffer().get_end_iter(), 'ACCEPTED_KEYWORDS="x86"\n# Play it safe.\n')
 		self.show_all()
 
+	def _setup_factory_widgets(self):
+		factory = UIFactory()
+		factory.insert_action_group(GentooconfigApplication.get_instance().actiongroup, 0)
+		self.menubar = factory.get_widget('/MenuBar')
+		self.toolbar = factory.get_widget('/ToolBar') 
+
+
 class GentooconfigApplication(Singleton):
 	def __init__(self):
+		self.actiongroup = gtk.ActionGroup('ag')
+		self.actiongroup.add_actions(self._get_actionlist())
+
+	def __call__(self):
 		window = MergeWindow()
 		gtk.main()
 	
-	def get_actiongroup(self):
-		actiongroup = gtk.ActionGroup()
-		actionlist =[
-			('Quit', 'Quit', 'Quit', None)
+	def _get_actionlist(self):
+		return [
+			('Apply', gtk.STOCK_APPLY, 'Apply', None),
+			('Bottom', gtk.STOCK_GOTO_BOTTOM, 'Bottom', None),
+			('EditAll', gtk.STOCK_EDIT, 'Edit All', None),
+			('Edit', gtk.STOCK_EDIT, 'Edit', None),
+			('File', gtk.STOCK_FILE, 'File', None),
+			('Go', gtk.STOCK_GO_FORWARD, 'Go', None),
+			('NextChange', gtk.STOCK_GO_DOWN, 'Next Change', None),
+			('PreviousChange', gtk.STOCK_GO_UP, 'Previous Change', None),
+			('Quit', gtk.STOCK_QUIT, 'Quit', None),
+			('Save', gtk.STOCK_SAVE, 'Save And Edit Next', None),
+			('Top', gtk.STOCK_GOTO_TOP, 'Top', None),
+			('UndoFile', gtk.STOCK_REFRESH, 'Undo Changes To This File', None),
+			('UndoAll', gtk.STOCK_UNDO, 'Undo All Changes To All File', None)
 		]
-		return actiongroup.add_actions(actionlist)
 
 
-GentooconfigApplication.get_instance()
+
+GentooconfigApplication.get_instance()()
+
 # vim:ts=4 sw=4 noet:
