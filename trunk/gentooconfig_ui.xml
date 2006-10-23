@@ -1,0 +1,37 @@
+<ui>
+	<menubar name="MenuBar">
+		<menu action="File">
+			<menuitem action="UndoFile"/>
+			<menuitem action="UndoAll"/>
+			<menuitem action="Save"/>
+			<separator/>
+			<menuitem action="Quit"/>
+		</menu>
+		<menu action="Edit">
+			<menuitem action="EditAll"/>
+			<menuitem action="UndoFile"/>
+			<menuitem action="Apply"/>
+		</menu>
+		<menu action="Go">
+			<menuitem action="PreviousChange"/>
+			<menuitem action="NextChange"/>
+			<separator/>
+			<menuitem action="Top"/>
+			<menuitem action="Bottom"/>
+		</menu>
+	</menubar>
+	<toolbar name="ToolBar">
+		<toolitem action="UndoAll"/>
+		<toolitem action="Save"/>
+		<toolitem action="Quit"/>
+		<separator/>
+		<toolitem action="UndoFile"/>
+		<toolitem action="EditAll"/>
+		<toolitem action="Apply"/>
+		<separator/>
+		<toolitem action="Top"/>
+		<toolitem action="PreviousChange"/>
+		<toolitem action="NextChange"/>
+		<toolitem action="Bottom"/>
+	</toolbar>
+</ui>
