@@ -227,7 +227,7 @@ class EtcProposal(object):
 					pass
 
     def _get_state_url(self):
-        return 'state://' + os.path.join(self.path, '%4d' % self.get_revision())
+        return 'changedecisions://' + os.path.join(self.path, '%4d' % self.get_revision())
 
     def _get_file_content(self, filepath):
         fd = open(filepath)
