@@ -6,10 +6,12 @@
 # etc-proposals - a tool to integrate modified configs, post-emerge
 
 __author__ = 'Björn Michaelsen' 
-__version__ = '0.9.20061114'
-__date__ = '2006-11-14'
+__version__ = '0.91.20070103'
+__date__ = '2007-01-03'
 
-import ConfigParser, cPickle, difflib, os, os.path, portage, re, shutil
+import ConfigParser, anydbm, shelve, difflib, os, os.path, portage, re, shutil
+
+STATEFILE = '/var/lib/etcproposals.state'
 
 class OpcodeMismatchException(Exception):
     "happens when a state file is loaded, that does not match the proposal"
@@ -134,7 +136,7 @@ class EtcProposal(object):
             pass
         self.base_lines = None
         self._changes = None
-        for filename in [self.path, self._get_state_path()]:
+        for filename in [self.path, self._get_state_url()]:
             try:
                 os.unlink(filename)
             except OSError:
@@ -203,34 +205,29 @@ class EtcProposal(object):
     def on_changed(self):
         "Event, should be fired, if the proposal changes"
         self._assure_changes_exists()
-        statefile = open(self._get_state_path(),'w')
-        pickler = cPickle.Pickler(statefile)
+		undecorated_changes = list()
         for change in self._changes:
             undecorated_change = EtcProposalChange(change.opcode, None)
             undecorated_change.copystatefrom(change)
-            pickler.dump(undecorated_change)
-        statefile.close()
+            undecorated_changes.append(undecorated_change)
+		EtcProposalsState()[self._get_state_url()] = undecorated_changes	
         self.proposals.on_proposal_changed(self)
 
     def _assure_changes_exists(self):
         if self._changes is None:
             self._changes = [self._create_change(opcode) for opcode in self._get_opcodes()]
-            try:
-                statefile = open(self._get_state_path(), 'r')
-                unpickler = cPickle.Unpickler(statefile)
+			state = EtcProposalsState()
+			if state.has_key(self._get_state_url()):
+				undecorated_changes = EtcProposalsState()[self._get_state_url()]
                 try:
-                    [change.copystatefrom(unpickler.load()) for change in self._changes]
+                    [change.copystatefrom(undecorated_changes.pop(0)) for change in self._changes]
                 except OpcodeMismatchException:
                     pass
-                statefile.close()
-            except IOError:
-                pass
+				except IndexError:
+					pass
 
-    def _get_state_path(self):
-        return os.path.join(
-                os.path.dirname(self.path),
-                '._cfgstate%04d_%s' % (self.get_revision(),
-                    os.path.basename(self.get_file_path())))
+    def _get_state_url(self):
+        return 'state://' + os.path.join(self.path, '%4d' % self.get_revision())
 
     def _get_file_content(self, filepath):
         fd = open(filepath)
@@ -373,6 +370,9 @@ class EtcProposalsConfig(object):
         except Exception:
             return []
 
+class EtcProposalsState(shelve.Shelf):
+	def __init__(self):
+		shelve.Shelf.__init__(self, anydbm.open(STATEFILE, 'rwc'))
 
 __all__ = ['EtcProposalChange', 'EtcProposal', 'EtcProposals', 'EtcProposalsConfig']
 
