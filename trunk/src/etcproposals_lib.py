@@ -372,7 +372,7 @@ class EtcProposalsConfig(object):
 
 class EtcProposalsState(shelve.Shelf):
     def __init__(self):
-        shelve.Shelf.__init__(self, anydbm.open(STATEFILE, 'rwc'))
+        shelve.Shelf.__init__(self, anydbm.open(STATEFILE, 'c'))
 
 __all__ = ['EtcProposalChange', 'EtcProposal', 'EtcProposals', 'EtcProposalsConfig']
 
