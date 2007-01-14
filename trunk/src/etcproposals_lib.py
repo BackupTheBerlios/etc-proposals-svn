@@ -205,26 +205,26 @@ class EtcProposal(object):
     def on_changed(self):
         "Event, should be fired, if the proposal changes"
         self._assure_changes_exists()
-		undecorated_changes = list()
+        undecorated_changes = list()
         for change in self._changes:
             undecorated_change = EtcProposalChange(change.opcode, None)
             undecorated_change.copystatefrom(change)
             undecorated_changes.append(undecorated_change)
-		EtcProposalsState()[self._get_state_url()] = undecorated_changes	
+        EtcProposalsState()[self._get_state_url()] = undecorated_changes    
         self.proposals.on_proposal_changed(self)
 
     def _assure_changes_exists(self):
         if self._changes is None:
             self._changes = [self._create_change(opcode) for opcode in self._get_opcodes()]
-			state = EtcProposalsState()
-			if state.has_key(self._get_state_url()):
-				undecorated_changes = EtcProposalsState()[self._get_state_url()]
+            state = EtcProposalsState()
+            if state.has_key(self._get_state_url()):
+                undecorated_changes = EtcProposalsState()[self._get_state_url()]
                 try:
                     [change.copystatefrom(undecorated_changes.pop(0)) for change in self._changes]
                 except OpcodeMismatchException:
                     pass
-				except IndexError:
-					pass
+                except IndexError:
+                    pass
 
     def _get_state_url(self):
         return 'changedecisions://' + os.path.join(self.path, '%4d' % self.get_revision())
@@ -371,8 +371,8 @@ class EtcProposalsConfig(object):
             return []
 
 class EtcProposalsState(shelve.Shelf):
-	def __init__(self):
-		shelve.Shelf.__init__(self, anydbm.open(STATEFILE, 'rwc'))
+    def __init__(self):
+        shelve.Shelf.__init__(self, anydbm.open(STATEFILE, 'rwc'))
 
 __all__ = ['EtcProposalChange', 'EtcProposal', 'EtcProposals', 'EtcProposalsConfig']
 

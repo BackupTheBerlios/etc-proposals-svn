@@ -6,7 +6,7 @@
 # etc-proposals - a little shell to integrate modified configs, post-emerge
 
 __author__ = 'Björn Michaelsen' 
-__version__ = '0.9.20061114'
+__version__ = '0.91.20070103'
 __date__ = '2006-11-14'
 
 import cmd, difflib, os, os.path, re, tempfile
