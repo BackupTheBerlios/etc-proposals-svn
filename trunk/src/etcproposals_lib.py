@@ -136,11 +136,11 @@ class EtcProposal(object):
             pass
         self.base_lines = None
         self._changes = None
-        for filename in [self.path, self._get_state_url()]:
-            try:
-                os.unlink(filename)
-            except OSError:
-                pass
+        try:
+            os.unlink(self.path)
+        except OSError:
+            pass
+        del EtcProposalsState()[self._get_state_url()]
 
     def clear_cache(self):
         "clears all state data"
@@ -250,6 +250,7 @@ class EtcProposal(object):
         "identifies a proposal filename"
         return re.compile('^\._cfg[0-9]{4}_(.*)')
 
+    # deprecated old style statefile
     @staticmethod
     def state_regexp():
         "identifies a proposal state filename"
@@ -269,6 +270,7 @@ class EtcProposals(list):
 
     def clear_all_states(self):
         "this is pretty much 'undo all' but it also removes orphaned state files"
+        # removing deprecated old style statefile
         for dir in portage.settings['CONFIG_PROTECT'].split(' '):
             self._remove_statefiles(dir)
         self.refresh()
@@ -341,6 +343,7 @@ class EtcProposals(list):
             for (path, dirs, files) in os.walk(dir) for file in files
             if up_regexp.match(file) ))
 
+    # removing deprecated old style statefile
     def _remove_statefiles(self, dir):
         state_regexp = EtcProposal.state_regexp()
         [os.unlink(os.path.join(path, file)) 
