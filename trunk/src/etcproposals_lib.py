@@ -9,7 +9,16 @@ __author__ = 'Björn Michaelsen'
 __version__ = '0.91.20070103'
 __date__ = '2007-01-03'
 
-import ConfigParser, anydbm, shelve, difflib, os, os.path, portage, re, shutil
+import ConfigParser, anydbm, shelve, difflib, os, os.path, re, shutil
+try:
+    import portage
+    class PortageInterface(object):
+        @staticmethod
+        def get_config_protect():
+            return portage.settings['CONFIG_PROTECT'].split(' ')
+except ImportError:
+    from portage_stubs import PortageInterface
+    
 
 STATEFILE = '/var/lib/etcproposals.state'
 
@@ -264,14 +273,14 @@ class EtcProposals(list):
     def refresh(self):
         "clears and repopulates the list from the filesystem"
         del self[:] 
-        for dir in portage.settings['CONFIG_PROTECT'].split(' '):
+        for dir in PortageInterface.get_config_protect():
             self._add_update_proposals(dir)
         self.sort()
 
     def clear_all_states(self):
         "this is pretty much 'undo all' but it also removes orphaned state files"
         # removing deprecated old style statefile
-        for dir in portage.settings['CONFIG_PROTECT'].split(' '):
+        for dir in PortageInterface.get_config_protect():
             self._remove_statefiles(dir)
         self.refresh()
 

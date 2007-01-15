@@ -17,11 +17,12 @@ try:
     from output import colorize
     from output import nocolor
 except ImportError:
-    print 'portage.output module not found, color output disabled.'
+    import portage_stubs
     def colorize(color_key, text):
-        return text
+        portage_stubs.PortageInterface.colorize(color_key, text)
     def nocolor():
-        pass
+        portage_stubs.PortageInterface.nocolor()
+        
 
 class NotOnChangeException(Exception):
     "happens when a operation needs a current change and there is None"
@@ -662,7 +663,7 @@ DESCRIPTION:
         self.current_change = None
         self.change_iter = self.proposals.get_all_changes().__iter__()
         msg = ['*** You reached the end of the changelist.',
-        	'*** You might want to check your changes with the list command.',
+            '*** You might want to check your changes with the list command.',
             '*** If you are satisfied, type "apply".']
         print colorize('green', '\n'.join(msg))
 
@@ -674,7 +675,7 @@ DESCRIPTION:
 
     # helpers
     def hop_on_and_show(self, args):
-        if args.strip() in ['', 'change', 'file', 'dir']:	
+        if args.strip() in ['', 'change', 'file', 'dir']:   
             self.next_change()
             self.update_prompt()
         try:

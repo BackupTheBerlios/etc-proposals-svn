@@ -91,7 +91,7 @@ colorizer = CmdLineColorizer()
 class PortageInterface(object):
     @staticmethod
     def get_config_protect():
-		return PortageUtils.get_config_protect()
+        return PortageUtils.get_config_protect()
 
     @staticmethod
     def colorize(color_key, text):
