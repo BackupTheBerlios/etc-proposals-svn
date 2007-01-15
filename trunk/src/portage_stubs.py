@@ -16,77 +16,10 @@ MAKE_CONF_FILE          = "/etc/make.conf"
 MAKE_GLOBALS_FILE       = "/etc/make.globals"
 MAKE_DEFAULTS_FILE      = PROFILE_PATH + "/make.defaults"
 
-# color output stuff
-
-class CmdLineColorizer(object):
-    def __init__(self):
-        ESC_SEQ = "\x1b["
-        self.colorcodes ={ "reset": ESC_SEQ + "39;49;00m",
-            "bold" : ESC_SEQ + "01m",
-            "faint" : ESC_SEQ + "02m",
-            "standout" : ESC_SEQ + "03m",
-            "underline" : ESC_SEQ + "04m",
-            "blink" : ESC_SEQ + "05m",
-            "overline" : ESC_SEQ + "06m"}
-
-        def AnsiColorCodeGenerator(start, stop, ZeroOne = False):
-            for x in xrange(start, stop):
-                yield "%im" % x
-                yield "%i;01m" % x
-        ansi_color_codes = AnsiColorCodeGenerator(30, 38)
-
-        rgb_ansi_colors = ['0x000000', '0x555555', '0xAA0000', '0xFF5555', '0x00AA00',
-            '0x55FF55', '0xAA5500', '0xFFFF55', '0x0000AA', '0x5555FF', '0xAA00AA',
-            '0xFF55FF', '0x00AAAA', '0x55FFFF', '0xAAAAAA', '0xFFFFFF']
-
-        for rgb_ansi_color in rgb_ansi_colors:
-            self.colorcodes[rgb_ansi_color] = ESC_SEQ + ansi_color_codes.next()
-
-        self.colorcodes["black"]     = self.colorcodes["0x000000"]
-        self.colorcodes["darkgray"]  = self.colorcodes["0x555555"]
-        self.colorcodes["red"]       = self.colorcodes["0xFF5555"]
-        self.colorcodes["darkred"]   = self.colorcodes["0xAA0000"]
-        self.colorcodes["green"]     = self.colorcodes["0x55FF55"]
-        self.colorcodes["darkgreen"] = self.colorcodes["0x00AA00"]
-        self.colorcodes["yellow"]    = self.colorcodes["0xFFFF55"]
-        self.colorcodes["brown"]     = self.colorcodes["0xAA5500"]
-        self.colorcodes["blue"]      = self.colorcodes["0x5555FF"]
-        self.colorcodes["darkblue"]  = self.colorcodes["0x0000AA"]
-        self.colorcodes["fuchsia"]   = self.colorcodes["0xFF55FF"]
-        self.colorcodes["purple"]    = self.colorcodes["0xAA00AA"]
-        self.colorcodes["turquoise"] = self.colorcodes["0x55FFFF"]
-        self.colorcodes["teal"]      = self.colorcodes["0x00AAAA"]
-        self.colorcodes["white"]     = self.colorcodes["0xFFFFFF"]
-        self.colorcodes["lightgray"] = self.colorcodes["0xAAAAAA"]
-        self.colorcodes["darkyellow"] = self.colorcodes["brown"]
-        self.colorcodes["fuscia"]     = self.colorcodes["fuchsia"]
-        self.colorcodes["white"]      = self.colorcodes["bold"]
-        print self.colorcodes
-        self.use_colors = True
-
-    def colorize(self, color_key, text):
-        if self.use_colors:
-            return self.colorcodes[color_key] + text + self.colorcodes["reset"]
-        else:
-            return text
-
-colorcodes = CmdLineColorizer()
-
-
-class PortageInterface(object):
+# portage utils stuff
+class PortageUtils(object):
     @staticmethod
-    def get_config_protect():
-        make_conf_settings = PortageInterface._portage_utils_getconfig(MAKE_CONF_FILE)
-        make_globals_settings = PortageInterface._portage_utils_getconfig(MAKE_GLOBALS_FILE)
-        make_defaults_settings = PortageInterface._portage_utils_getconfig(MAKE_DEFAULTS_FILE)
-        config_protect = os.environ['CONFIG_PROTECT']
-        for config_settings in [make_defaults_settings, make_globals_settings, make_conf_settings]:
-            if config_settings.has_key('CONFIG_PROTECT'):
-                config_protect = config_protect + ' ' + config_settings['CONFIG_PROTECT'][1:-1]
-        return config_protect.split()
-
-    @staticmethod
-    def _portage_utils_getconfig(mycfg):
+    def getconfig(mycfg):
         def parser_state_generator():
             while True:
                 for state in ['key', 'equals', 'value']:
@@ -107,13 +40,65 @@ class PortageInterface(object):
             if parser_state == 'value':
                 mykeys[key]=token.replace("\\\n","")
         return mykeys
-    
+
+    @staticmethod
+    def get_config_protect():
+        make_conf_settings = PortageUtils.getconfig(MAKE_CONF_FILE)
+        make_globals_settings = PortageUtils.getconfig(MAKE_GLOBALS_FILE)
+        make_defaults_settings = PortageUtils.getconfig(MAKE_DEFAULTS_FILE)
+        config_protect = os.environ['CONFIG_PROTECT']
+        for config_settings in [make_defaults_settings, make_globals_settings, make_conf_settings]:
+            if config_settings.has_key('CONFIG_PROTECT'):
+                config_protect = config_protect + ' ' + config_settings['CONFIG_PROTECT'][1:-1]
+        return config_protect.split()
+
+
+# color output stuff
+class CmdLineColorizer(object):
+    def __init__(self):
+        ESC_SEQ = "\x1b["
+        self.colorcodes ={ 'reset': ESC_SEQ + '39;49;00m'}
+        def AnsiColorCodeGenerator(start, stop, formatstring = '%02im'):
+            for x in xrange(start, stop + 1):
+                yield ESC_SEQ + formatstring % x
+
+        generated_codes = AnsiColorCodeGenerator(1,6)
+        for colorcode in ['bold', 'faint', 'standout', 'underline', 'blink', 'overline']:
+            self.colorcodes[colorcode] = generated_codes.next()
+        generated_codes = AnsiColorCodeGenerator(30,37)
+        for colorcode in ['0x000000', '0xAA0000', '0x00AA00', '0xAA5500', '0x0000AA', '0xAA00AA', '0x00AAAA', '0xAAAAAA']:
+            self.colorcodes[colorcode] = generated_codes.next()
+        generated_codes = AnsiColorCodeGenerator(30,37, '%02i;01m')
+        for colorcode in ['0x555555', '0xFF5555', '0x55FF55', '0xFFFF55', '0x5555FF', '0xFF55FF', '0x55FFFF', '0xFFFFFF']:
+            self.colorcodes[colorcode] = generated_codes.next()
+        for alias in {'black' : '0x000000', 'darkgray' : '0x555555', 'red' : '0xFF5555', 'darkred' : '0xAAAAAA',
+            'green' : '0x55FF55', 'darkgreen' : '0x00AA00', 'yellow' : '0xFF5555', 'brown' : '0xAA5500',
+            'blue' : '0x5555FF', 'darkblue' : '0x0000AA', 'fuchsia' : '0xFF55FF', 'purple' : '0xAA00AA',
+            'turquoise' : '0x55FFFF', 'teal' : '0x00AAAA', 'white' : '0xFFFFFF', 'lightgray' : '0xAAAAAA',
+            'darkyellow' : 'brown', 'fuscia' : 'fuchsia'}.iteritems():
+            self.colorcodes[alias[0]] = self.colorcodes[alias[1]]
+        self.use_colors = True
+
+    def colorize(self, color_key, text):
+        if self.use_colors:
+            return self.colorcodes[color_key] + text + self.colorcodes["reset"]
+        else:
+            return text
+
+colorizer = CmdLineColorizer()
+
+
+class PortageInterface(object):
+    @staticmethod
+    def get_config_protect():
+		return PortageUtils.get_config_protect()
+
     @staticmethod
     def colorize(color_key, text):
-        return colorcodes.colorize(color_key, text)
+        return colorizer.colorize(color_key, text)
 
     @staticmethod
     def nocolor():
-        colorcodes.use_colors = False
+        colorizer.use_colors = False
 
 __all__ = ['PortageInterface']
