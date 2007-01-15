@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #! -*- coding: utf-8 -*-
-# Copyright 2006 Björn Michaelsen
+# Copyright 2006, 2007 Björn Michaelsen
 # Distributed under the terms of the GNU General Public License v2
 
 # etc-proposals - a little shell to integrate modified configs, post-emerge
