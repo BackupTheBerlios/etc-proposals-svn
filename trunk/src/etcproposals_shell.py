@@ -13,16 +13,6 @@ import cmd, difflib, os, os.path, re, tempfile
 from etcproposals.etcproposals_lib import *
 from etcproposals.etcproposals_lib import __version__ as __libversion__
 
-try:
-    from output import colorize
-    from output import nocolor
-except ImportError:
-    import portage_stubs
-    def colorize(color_key, text):
-        portage_stubs.PortageInterface.colorize(color_key, text)
-    def nocolor():
-        portage_stubs.PortageInterface.nocolor()
-        
 
 class NotOnChangeException(Exception):
     "happens when a operation needs a current change and there is None"
@@ -33,49 +23,81 @@ class UnknownChangeException(Exception):
     pass
 
 
+class CmdLineColorizer(object):
+    def __init__(self):
+        ESC_SEQ = "\x1b["
+        self.colorcodes ={ 'reset': ESC_SEQ + '39;49;00m'}
+        def AnsiColorCodeGenerator(start, stop, formatstring = '%02im'):
+            for x in xrange(start, stop + 1):
+                yield ESC_SEQ + formatstring % x
+
+        generated_codes = AnsiColorCodeGenerator(1,6)
+        for colorcode in ['bold', 'faint', 'standout', 'underline', 'blink', 'overline']:
+            self.colorcodes[colorcode] = generated_codes.next()
+        generated_codes = AnsiColorCodeGenerator(30,37)
+        for colorcode in ['0x000000', '0xAA0000', '0x00AA00', '0xAA5500', '0x0000AA', '0xAA00AA', '0x00AAAA', '0xAAAAAA']:
+            self.colorcodes[colorcode] = generated_codes.next()
+        generated_codes = AnsiColorCodeGenerator(30,37, '%02i;01m')
+        for colorcode in ['0x555555', '0xFF5555', '0x55FF55', '0xFFFF55', '0x5555FF', '0xFF55FF', '0x55FFFF', '0xFFFFFF']:
+            self.colorcodes[colorcode] = generated_codes.next()
+        for alias in {'black' : '0x000000', 'darkgray' : '0x555555', 'red' : '0xFF5555', 'darkred' : '0xAAAAAA',
+            'green' : '0x55FF55', 'darkgreen' : '0x00AA00', 'yellow' : '0xFF5555', 'brown' : '0xAA5500',
+            'blue' : '0x5555FF', 'darkblue' : '0x0000AA', 'fuchsia' : '0xFF55FF', 'purple' : '0xAA00AA',
+            'turquoise' : '0x55FFFF', 'teal' : '0x00AAAA', 'white' : '0xFFFFFF', 'lightgray' : '0xAAAAAA',
+            'darkyellow' : 'brown', 'fuscia' : 'fuchsia'}.iteritems():
+            self.colorcodes[alias[0]] = self.colorcodes[alias[1]]
+        self.use_colors = True
+
+    def colorize(self, color_key, text):
+        if self.use_colors:
+            return self.colorcodes[color_key] + text + self.colorcodes["reset"]
+        else:
+            return text
+
+
 class EtcProposalChangeShellDecorator(EtcProposalChange):
-    def get_status_description(self):
+    def get_status_description(self, colorizer):
         if not self.touched:
             return '---'
-        return {True : colorize('green','use'), False : colorize('red','zap')}[self.merge]
+        return {True : colorizer.colorize('green','use'), False : colorizer.colorize('red','zap')}[self.merge]
 
-    def get_ws_cvs_description(self):
+    def get_ws_cvs_description(self, colorizer):
         ws_text = {True : 'WSp', False : ''}[self.is_whitespace_only()]
         cvs_text = {True : 'CVS', False : ''}[self.is_cvsheader()]
-        return colorize('turquoise', ''.join([ws_text, cvs_text]).center(3))
+        return colorizer.colorize('turquoise', ''.join([ws_text, cvs_text]).center(3))
 
-    def get_listing_description(self):
+    def get_listing_description(self, colorizer):
         return '(%s) (%s) %s' % (
-            self.get_status_description(),
+            self.get_status_description(colorizer),
             self.get_ws_cvs_description().center(3),
-            self.get_prompt_description())
+            self.get_id())
 
-    def get_prompt_description(self):
+    def get_id(self):
         return '%s:%d-%d(%d)' % (
             self.get_file_path(),
             self.opcode[1]+1,
             self.opcode[2]+1,
             self.get_revision())
         
-    def get_complete_description(self):
+    def get_complete_description(self, colorizer):
         result = list()
-        result.append('\n-------- %s\n' % self.get_listing_description())
+        result.append('\n-------- %s\n' % self.get_listing_description(colorizer))
         result.append('This change proposes to %s content at lines %d-%d in file %s\n' % 
                 (self.opcode[0], self.opcode[1]+1, self.opcode[2]+1, self.get_file_path()))
         result.extend(self._get_colored_differ_lines())
-        result.append('-------- %s' % self.get_listing_description())
+        result.append('-------- %s' % self.get_listing_description(colorizer))
         return ''.join(result)
 
-    def _get_colored_differ_lines(self):
+    def _get_colored_differ_lines(self, colorizer):
         differ = difflib.Differ()
         differ_lines = list()
         for line in differ.compare(self.get_base_content(), self.get_proposed_content()):
             if line.startswith('+'):
-                differ_lines.append(colorize('green', line))
+                differ_lines.append(colorizer.colorize('green', line))
             elif line.startswith('-'):
-                differ_lines.append(colorize('red', line))
+                differ_lines.append(colorizer.colorize('red', line))
             elif line.startswith('?'):
-                differ_lines.append(colorize('faint', ' ' + line[1:]))
+                differ_lines.append(colorizer.colorize('faint', ' ' + line[1:]))
         return differ_lines
 
 
@@ -93,6 +115,9 @@ class EtcProposalShellDecorator(EtcProposal):
 
 
 class EtcProposalsShellDecorator(EtcProposals):
+    def __init__(self, cmdline):
+        self.cmdline = cmdline
+
     # Being picky, we only want decorated Proposals
     def _create_proposal(self, proposal_path):
         return EtcProposalShellDecorator(proposal_path, self)
@@ -133,9 +158,10 @@ class EtcProposalsConfigShellDecorator(EtcProposalsConfig):
 class EtcProposalsCmdLine(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
+        self.colorizer = CmdLineColorizer()
         self.config = EtcProposalsConfigShellDecorator()
         if not self.config.Colorize():
-           nocolor()
+            self.colorizer.use_colors = False;
         self.reload()
         self.intro = """Welcome to etc-proposals, a shell for gentoo configuration updates
         shell version: %s
@@ -182,13 +208,13 @@ VOCABULARY:
     def list_changes(self):
         print 'proposed changes:'
         for change in self.proposals.get_all_changes():
-            print change.get_listing_description()
+            print change.get_listing_description(self.colorizer)
         print
 
     def list_proposals(self):
         print 'update proposals:'
         for proposal in self.proposals:
-            print proposal.get_listing_description()
+            print proposal.get_listing_description(self.colorizer)
         print
     
     def list_files(self):
@@ -278,7 +304,7 @@ DESCRIPTION:
         self.update_prompt()
 
     def show_changes(self, changes):
-        print '\n'.join([change.get_complete_description() for change in changes])
+        print '\n'.join([change.get_complete_description(self.colorizer) for change in changes])
 
     def show_change(self):
         self.assure_on_change()
@@ -450,7 +476,7 @@ DESCRIPTION:
         self.update_prompt()
 
     def reload(self):
-        self.proposals = EtcProposalsShellDecorator()
+        self.proposals = EtcProposalsShellDecorator(self)
         self.current_change = None
         self.change_iter = self.proposals.get_all_changes().__iter__()
         self.update_prompt()
@@ -565,7 +591,7 @@ NOTE:
         search_iter = self.proposals.get_all_changes().__iter__()
         try:
             current_search_item = search_iter.next()
-            while current_search_item.get_prompt_description() != changepromptname:
+            while current_search_item.get_id() != changepromptname:
                 current_search_item = search_iter.next()
         except StopIteration:
             raise UnknownChangeException
@@ -576,7 +602,7 @@ NOTE:
         try:
             part_to_complete = re.match('goto\s*(.*)',line).groups()[0]
             len_to_complete = len(part_to_complete)
-            changenames = (change.get_prompt_description()
+            changenames = (change.get_id()
                 for change in self.proposals.get_all_changes())
             matches =  self.complete_from_list(part_to_complete, changenames)
             return [ text + match[len_to_complete:] for match in matches]
@@ -665,13 +691,13 @@ DESCRIPTION:
         msg = ['*** You reached the end of the changelist.',
             '*** You might want to check your changes with the list command.',
             '*** If you are satisfied, type "apply".']
-        print colorize('green', '\n'.join(msg))
+        print self.colorizer.colorize('green', '\n'.join(msg))
 
     def update_prompt(self):
         if self.current_change is None:
             self.prompt = 'etc-proposals> '
         else:
-            self.prompt = '%s> ' % self.current_change.get_prompt_description()
+            self.prompt = '%s> ' % self.current_change.get_id()
 
     # helpers
     def hop_on_and_show(self, args):

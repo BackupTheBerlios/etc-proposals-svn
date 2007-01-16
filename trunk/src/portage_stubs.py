@@ -53,52 +53,10 @@ class PortageUtils(object):
         return config_protect.split()
 
 
-# color output stuff
-class CmdLineColorizer(object):
-    def __init__(self):
-        ESC_SEQ = "\x1b["
-        self.colorcodes ={ 'reset': ESC_SEQ + '39;49;00m'}
-        def AnsiColorCodeGenerator(start, stop, formatstring = '%02im'):
-            for x in xrange(start, stop + 1):
-                yield ESC_SEQ + formatstring % x
-
-        generated_codes = AnsiColorCodeGenerator(1,6)
-        for colorcode in ['bold', 'faint', 'standout', 'underline', 'blink', 'overline']:
-            self.colorcodes[colorcode] = generated_codes.next()
-        generated_codes = AnsiColorCodeGenerator(30,37)
-        for colorcode in ['0x000000', '0xAA0000', '0x00AA00', '0xAA5500', '0x0000AA', '0xAA00AA', '0x00AAAA', '0xAAAAAA']:
-            self.colorcodes[colorcode] = generated_codes.next()
-        generated_codes = AnsiColorCodeGenerator(30,37, '%02i;01m')
-        for colorcode in ['0x555555', '0xFF5555', '0x55FF55', '0xFFFF55', '0x5555FF', '0xFF55FF', '0x55FFFF', '0xFFFFFF']:
-            self.colorcodes[colorcode] = generated_codes.next()
-        for alias in {'black' : '0x000000', 'darkgray' : '0x555555', 'red' : '0xFF5555', 'darkred' : '0xAAAAAA',
-            'green' : '0x55FF55', 'darkgreen' : '0x00AA00', 'yellow' : '0xFF5555', 'brown' : '0xAA5500',
-            'blue' : '0x5555FF', 'darkblue' : '0x0000AA', 'fuchsia' : '0xFF55FF', 'purple' : '0xAA00AA',
-            'turquoise' : '0x55FFFF', 'teal' : '0x00AAAA', 'white' : '0xFFFFFF', 'lightgray' : '0xAAAAAA',
-            'darkyellow' : 'brown', 'fuscia' : 'fuchsia'}.iteritems():
-            self.colorcodes[alias[0]] = self.colorcodes[alias[1]]
-        self.use_colors = True
-
-    def colorize(self, color_key, text):
-        if self.use_colors:
-            return self.colorcodes[color_key] + text + self.colorcodes["reset"]
-        else:
-            return text
-
-colorizer = CmdLineColorizer()
-
-
 class PortageInterface(object):
     @staticmethod
     def get_config_protect():
         return PortageUtils.get_config_protect()
 
-    @staticmethod
-    def colorize(color_key, text):
-        return colorizer.colorize(color_key, text)
-
-    @staticmethod
-    def nocolor():
-        colorizer.use_colors = False
 
 __all__ = ['PortageInterface']
