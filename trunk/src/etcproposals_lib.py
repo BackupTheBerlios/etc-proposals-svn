@@ -6,8 +6,8 @@
 # etc-proposals - a tool to integrate modified configs, post-emerge
 
 __author__ = 'Björn Michaelsen' 
-__version__ = '0.91.20070103'
-__date__ = '2007-01-03'
+__version__ = '1.0'
+__date__ = '2007-01-25'
 
 import ConfigParser, anydbm, shelve, difflib, os, os.path, re, shutil
 try:
@@ -290,7 +290,7 @@ class EtcProposalConfigFile(object):
         "records the md5 if it matches the one of the file in the fs"
         if expected_md5 == self.md5hexdigest():
             EtcProposalsState()[self._get_state_url()] = expected_md5 
-        else
+        else:
             self.clear_untouched()
 
     def _get_state_url(self):
@@ -371,6 +371,10 @@ class EtcProposals(list):
     def get_cvsheader_changes(self):
         "returns a list of changes only changing CVS-Header"
         return [change for change in self.get_all_changes() if change.is_cvsheader()]
+    
+    def get_untouched_changes(self):
+        "returns a list of changes of untouched files"
+        return [change for change in self.get_all_changes() if change.is_untouched()]
 
     def get_previous_proposal(self, proposal):
         "returns the previous revision for a config file"

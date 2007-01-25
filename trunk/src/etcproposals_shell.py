@@ -6,8 +6,8 @@
 # etc-proposals - a little shell to integrate modified configs, post-emerge
 
 __author__ = 'Björn Michaelsen' 
-__version__ = '0.91.20070103'
-__date__ = '2006-11-14'
+__version__ = '1.0'
+__date__ = '2007-01-25'
 
 import cmd, difflib, os, os.path, re, tempfile
 from etcproposals.etcproposals_lib import *
@@ -64,7 +64,8 @@ class EtcProposalChangeShellDecorator(EtcProposalChange):
     def get_ws_cvs_description(self, colorizer):
         ws_text = {True : 'WSp', False : ''}[self.is_whitespace_only()]
         cvs_text = {True : 'CVS', False : ''}[self.is_cvsheader()]
-        return colorizer.colorize('turquoise', ''.join([ws_text, cvs_text]).center(3))
+        untouched_text = {True : '!mod', False : ''}[self.is_cvsheader()]
+        return colorizer.colorize('turquoise', ' '.join([ws_text, cvs_text]).center(8))
 
     def get_listing_description(self, colorizer):
         return '(%s) (%s) %s' % (
@@ -166,7 +167,7 @@ class EtcProposalsCmdLine(cmd.Cmd):
         self.intro = """Welcome to etc-proposals, a shell for gentoo configuration updates
         shell version: %s
         lib version: %s
-        copyright 2006 Björn Michaelsen, GPL v2
+        copyright 2006, 2007 Björn Michaelsen, GPL v2
         Type '?' or 'help' to get help or
         type 'n' to start iterating through proposed changes.
 """ % (__version__, __libversion__)
@@ -311,14 +312,14 @@ DESCRIPTION:
         self.show_changes([self.current_change]) 
 
     def complete_show(self, text, line, begidx, endidx):
-        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir', 'all', 'whitespace', 'cvsheader'])
+        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir', 'all', 'whitespace', 'cvsheader', 'untouched'])
 
     def help_show(self):
         print self.do_show.__doc__
 
     def do_show(self, args):
         """SYNOPSIS:
-    show change | proposal | file | dir | all | whitespace | cvsheader
+    show change | proposal | file | dir | all | whitespace | cvsheader | untouched
     show
 
 DESCRIPTION:
@@ -332,7 +333,8 @@ DESCRIPTION:
                 'dir' : lambda: self.show_changes(self.get_current_dir_changes()),
                 'all' : lambda: self.show_changes(self.proposals.get_all_changes()),
                 'whitespace' : lambda: self.show_changes(self.proposals.get_whitespace_changes()),
-                'cvsheader' : lambda: self.show_changes(self.proposals.get_cvsheader_changes())}
+                'cvsheader' : lambda: self.show_changes(self.proposals.get_cvsheader_changes()),
+                'untouched' : lambda: self.show_changes(self.proposals.get_untouched_changes())}
         try:
             show_cmds[args.strip()]()
         except KeyError:
@@ -354,16 +356,16 @@ DESCRIPTION:
         self.do_zap(args)
 
     def complete_zap (self, text, line, begidx, endidx):
-        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir', 'all', 'whitespace', 'cvsheader'])
+        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir', 'all', 'whitespace', 'cvsheader', 'untouched'])
 
     def help_zap(self):
         print self.do_zap.__doc__
 
     def do_zap(self, args):
         """SYNOPSIS:
-    zap change | proposal | file | dir | all | whitespace | cvsheader
+    zap change | proposal | file | dir | all | whitespace | cvsheader | untouched
     zap
-    z change | proposal | file | dir | all | whitespace | cvsheader
+    z change | proposal | file | dir | all | whitespace | cvsheader | untouched
     z
 
 DESCRIPTION:
@@ -378,7 +380,8 @@ DESCRIPTION:
                 'dir' : lambda: self.zap_changes(self.get_current_dir_changes()),
                 'all' : lambda: self.zap_changes(self.proposals.get_all_changes()),
                 'whitespace' : lambda: self.zap_changes(self.proposals.get_whitespace_changes()),
-                'cvsheader' : lambda: self.zap_changes(self.proposals.get_cvsheader_changes())}
+                'cvsheader' : lambda: self.zap_changes(self.proposals.get_cvsheader_changes()),
+                'untouched' : lambda: self.zap_changes(self.proposals.get_untouched_changes())}
         try:
             zap_cmds[args.strip()]()
         except KeyError:
@@ -403,16 +406,16 @@ DESCRIPTION:
         self.do_use(args)
 
     def complete_use (self, text, line, begidx, endidx):
-        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir', 'all', 'whitespace', 'cvsheader'])
+        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir', 'all', 'whitespace', 'cvsheader', 'untouched'])
 
     def help_use(self):
         print self.do_use.__doc__
 
     def do_use(self, args):
         """SYNOPSIS:
-    use change | proposal | file | dir | all | whitespace | cvsheader
+    use change | proposal | file | dir | all | whitespace | cvsheader | untouched
     use
-    u change | proposal | file | dir | all | whitespace | cvsheader
+    u change | proposal | file | dir | all | whitespace | cvsheader | untouched
     u
 
 DESCRIPTION:
@@ -427,7 +430,8 @@ DESCRIPTION:
                 'dir' : lambda: self.use_changes(self.get_current_dir_changes()),
                 'all' : lambda: self.use_changes(self.proposals.get_all_changes()),
                 'whitespace' : lambda: self.use_changes(self.proposals.get_whitespace_changes()),
-                'cvsheader' : lambda: self.use_changes(self.proposals.get_cvsheader_changes())}
+                'cvsheader' : lambda: self.use_changes(self.proposals.get_cvsheader_changes()),
+                'cvsheader' : lambda: self.use_changes(self.proposals.get_untouched_changes())}
         try:
             use_cmds[args.strip()]()
         except KeyError:
@@ -446,14 +450,14 @@ DESCRIPTION:
         [change.undo() for change in changes]
 
     def complete_undo(self, text, line, begidx, endidx):
-        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir', 'all', 'whitespace', 'cvsheader'])
+        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir', 'all', 'whitespace', 'cvsheader', 'untouched'])
     
     def help_undo(self):
         print self.do_undo.__doc__
 
     def do_undo(self, args):
         """SYNOPSIS:
-    undo change | proposal | file | dir | all |whitespace | cvsheader
+    undo change | proposal | file | dir | all |whitespace | cvsheader | untouched
 
 DESCRIPTION:
     The undo command resets the selections made to 'use' or 'zap' the
@@ -467,7 +471,8 @@ DESCRIPTION:
                 'dir' : lambda: self.undo_changes(self.get_current_dir_changes()),
                 'all' : lambda: self.proposals.clear_all_states(),
                 'whitespace' : lambda: self.undo_changes(self.proposals.get_whitespace_changes()),
-                'cvsheader' : lambda: self.undo_changes(self.proposals.get_cvsheader_changes())} 
+                'cvsheader' : lambda: self.undo_changes(self.proposals.get_cvsheader_changes()),
+                'untouched' : lambda: self.undo_changes(self.proposals.get_untouched_changes())} 
         try:
             undo_cmds[args.strip()]()
         except KeyError:
