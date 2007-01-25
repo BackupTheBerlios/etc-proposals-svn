@@ -97,6 +97,10 @@ class EtcProposalChange(object):
     def is_cvsheader(self):
         "True, if the change only modifies a CVS header"
         return self._contains_only_matching_lines('^# .Header:.*$')
+
+    def is_untouched(self):
+        "True, if the change should change a config file, which has not been changed (its the same as the one provided with the package"
+        return EtcProposalConfigFile(self.proposal.get_file_path()).is_untouched()
     
     def on_changed(self):
         "Event, should be fired, if the change changes ;-)"
@@ -236,13 +240,10 @@ class EtcProposal(object):
                     pass
 
     def _get_state_url(self):
-        return 'changedecisions://' + os.path.join(self.path, '%4d' % self.get_revision())
+        return 'EtcProposal://' + self.path
 
     def _get_file_content(self, filepath):
-        fd = open(filepath)
-        content = fd.readlines()
-        fd.close()
-        return content
+        return open(filepath).readlines()
 
     def _get_opcodes(self):
         return difflib.SequenceMatcher(
@@ -265,6 +266,33 @@ class EtcProposal(object):
         "identifies a proposal state filename"
         return re.compile('^\._cfgstate[0-9]{4}_(.*)')
 
+
+class EtcProposalConfigFile(object):
+    def __init__(self, path):
+        self.path = path
+
+    def md5hexdigest(self):
+        return md5.md5(open(self.path).read()).hexdigest()
+    
+    def is_untouched(self):
+        try:
+            return (EtcProposalsState()[self._get_state_url()] == self.md5hexdigest())
+        except IOError, KeyError:
+            return False
+
+    def clear_untouched(self):
+        del EtcProposalsState()[self._get_state_url()]
+
+    def update_untouched(self, expected_md5):
+        if expected_md5 == self.md5hexdigest():
+            EtcProposalsState()[self._get_state_url()] = expected_md5 
+        else
+            self.clear_untouched()
+
+    def _get_state_url(self):
+        return 'EtcProposalConfigFile://' + self.path
+
+
 class EtcProposals(list):
     def __init__(self):
         list.__init__(self)
@@ -284,9 +312,11 @@ class EtcProposals(list):
             self._remove_statefiles(dir)
         self.refresh()
 
-    def apply(self, check_untouched_files=False):
+    def apply(self, update_untouched=False):
         "merges all finished proposals"
         [proposal.apply() for proposal in self if proposal.is_finished()]
+        if update_untouched:
+            self.update_untouched()
         self.refresh()
 
     def get_files(self):
@@ -296,10 +326,14 @@ class EtcProposals(list):
         configpaths.sort()
         return configpaths
     
-    def get_untouched_finished_files(self):
+    def update_untouched(self):
         "returns the files that have the content as recorded in the vdb-database"
-        return PortageInterface.get_pkgparts((proposal.get_file_path()
-            for proposal in self if proposal.is_finished()))
+        finished_filepaths = set((proposal.get_file_path() for proposal in self if proposal.is_finished()))
+        expected_md5s =  PortageInterface.get_md5_from_vdb(finished_filepaths)
+        for (path, expected_md5) in expected_md5.iteritems():
+            EtcProposalConfigFile(path).update_untouched(expected_md5)
+        for path in (finished_filepaths - set(expected_md5.keys())):
+            EtcProposalConfigFile(path).clear_untouched()
 
     def get_file_changes(self, file_path):
         "returns a list of changes for a config file"
