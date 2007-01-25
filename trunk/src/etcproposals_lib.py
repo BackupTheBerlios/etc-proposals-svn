@@ -272,18 +272,22 @@ class EtcProposalConfigFile(object):
         self.path = path
 
     def md5hexdigest(self):
+        "calculates the md5sum of the file in the fs"
         return md5.md5(open(self.path).read()).hexdigest()
     
     def is_untouched(self):
+        "True, if the file in the fs has the same md5 as recorded"
         try:
             return (EtcProposalsState()[self._get_state_url()] == self.md5hexdigest())
         except IOError, KeyError:
             return False
 
     def clear_untouched(self):
+        "clears the memory about this config file"
         del EtcProposalsState()[self._get_state_url()]
 
     def update_untouched(self, expected_md5):
+        "records the md5 if it matches the one of the file in the fs"
         if expected_md5 == self.md5hexdigest():
             EtcProposalsState()[self._get_state_url()] = expected_md5 
         else
