@@ -284,11 +284,10 @@ class EtcProposals(list):
             self._remove_statefiles(dir)
         self.refresh()
 
-    def apply(self, refresh=True):
+    def apply(self, check_untouched_files=False):
         "merges all finished proposals"
         [proposal.apply() for proposal in self if proposal.is_finished()]
-        if refresh:
-            self.refresh()
+        self.refresh()
 
     def get_files(self):
         "returns a list of config files which have update proposals"
