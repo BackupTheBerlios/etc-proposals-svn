@@ -1,0 +1,4 @@
+- Liste der unverändert übernommenen Dateien erstellen, md5 bestimmen
+- Durch /var/lib/db/*/*/CONTENTS iterieren, wenn Datei in der Liste der
+  unverändert übernommenen Dateien, bei übereinstimmender md5 als "unchanged"
+  markieren, ansonsten Markierung löschen.
