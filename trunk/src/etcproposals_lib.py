@@ -9,18 +9,22 @@ __author__ = 'Björn Michaelsen'
 __version__ = '1.0'
 __date__ = '2007-01-25'
 
-import ConfigParser, anydbm, shelve, difflib, os, os.path, re, shutil
+import ConfigParser, anydbm, shelve, difflib, os, os.path, re, shutil, md5
 try:
     import portage
+    import etcproposals.portage_stubs
     class PortageInterface(object):
         @staticmethod
         def get_config_protect():
             return portage.settings['CONFIG_PROTECT'].split(' ')
+        @staticmethod
+        def get_md5_from_vdb(files):
+            return etcproposals.portage_stubs.PortageInterface.get_md5_from_vdb(files)
 except ImportError:
-    from portage_stubs import PortageInterface
+    from etcproposals.portage_stubs import PortageInterface
     
 
-STATEFILE = '/var/lib/etcproposals.state'
+STATEFILE = '/var/state/etcproposals.state'
 
 class OpcodeMismatchException(Exception):
     "happens when a state file is loaded, that does not match the proposal"
@@ -320,9 +324,10 @@ class EtcProposals(list):
 
     def apply(self, update_untouched=False):
         "merges all finished proposals"
-        [proposal.apply() for proposal in self if proposal.is_finished()]
+        finished_proposals = [proposal for proposal in self if proposal.is_finished()]
+        [proposal.apply() for proposal in finished_proposals]
         if update_untouched:
-            self.update_untouched()
+            self.update_untouched(finished_proposals)
         self.refresh()
 
     def get_files(self):
@@ -332,13 +337,13 @@ class EtcProposals(list):
         configpaths.sort()
         return configpaths
     
-    def update_untouched(self):
-        "returns the files that have the content as recorded in the vdb-database"
-        finished_filepaths = set((proposal.get_file_path() for proposal in self if proposal.is_finished()))
+    def update_untouched(self, finished_proposals):
+        "records the md5 if it matches the one of the file in the fs"
+        finished_filepaths = set((proposal.get_file_path() for proposal in finished_proposals))
         expected_md5s =  PortageInterface.get_md5_from_vdb(finished_filepaths)
-        for (path, expected_md5) in expected_md5.iteritems():
+        for (path, expected_md5) in expected_md5s.iteritems():
             EtcProposalConfigFile(path).update_untouched(expected_md5)
-        for path in (finished_filepaths - set(expected_md5.keys())):
+        for path in (finished_filepaths - set(expected_md5s.keys())):
             EtcProposalConfigFile(path).clear_untouched()
 
     def get_file_changes(self, file_path):

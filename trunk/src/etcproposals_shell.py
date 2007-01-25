@@ -64,8 +64,8 @@ class EtcProposalChangeShellDecorator(EtcProposalChange):
     def get_ws_cvs_description(self, colorizer):
         ws_text = {True : 'WSp', False : ''}[self.is_whitespace_only()]
         cvs_text = {True : 'CVS', False : ''}[self.is_cvsheader()]
-        untouched_text = {True : '!mod', False : ''}[self.is_cvsheader()]
-        return colorizer.colorize('turquoise', ' '.join([ws_text, cvs_text]).center(8))
+        untouched_text = {True : '!mod', False : ''}[self.is_untouched()]
+        return colorizer.colorize('turquoise', ' '.join([ws_text, cvs_text, untouched_text]).center(8))
 
     def get_listing_description(self, colorizer):
         return '(%s) (%s) %s' % (
@@ -432,7 +432,7 @@ DESCRIPTION:
                 'all' : lambda: self.use_changes(self.proposals.get_all_changes()),
                 'whitespace' : lambda: self.use_changes(self.proposals.get_whitespace_changes()),
                 'cvsheader' : lambda: self.use_changes(self.proposals.get_cvsheader_changes()),
-                'cvsheader' : lambda: self.use_changes(self.proposals.get_untouched_changes())}
+                'untouched' : lambda: self.use_changes(self.proposals.get_untouched_changes())}
         try:
             use_cmds[args.strip()]()
         except KeyError:
@@ -479,6 +479,8 @@ DESCRIPTION:
         except KeyError:
             print 'undo: Sorry, I dont know "%s".' % args
             return
+        except NotOnChangeException:
+            print 'undo: Sorry, no change to undo selected.'
         self.update_prompt()
 
     def reload(self):
@@ -653,7 +655,7 @@ NOTE:
     to either 'zap' or 'use'. If you just want one change from a proposal,
     use the command 'use' on it and then use the command 'zap proposal' to
     discard all other changes from that proposal."""
-        self.proposals.apply()
+        self.proposals.apply(True)
         self.current_change = None
         self.change_iter = self.proposals.get_all_changes().__iter__()
         self.update_prompt()
