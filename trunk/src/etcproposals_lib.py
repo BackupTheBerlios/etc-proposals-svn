@@ -153,7 +153,9 @@ class EtcProposal(object):
             os.unlink(self.path)
         except OSError:
             pass
-        del EtcProposalsState()[self._get_state_url()]
+        if EtcProposalsState().has_key(self._get_state_url()):
+            del EtcProposalsState()[self._get_state_url()]
+            
 
     def clear_cache(self):
         "clears all state data"

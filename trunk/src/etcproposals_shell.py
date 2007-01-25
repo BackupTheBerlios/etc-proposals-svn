@@ -70,7 +70,7 @@ class EtcProposalChangeShellDecorator(EtcProposalChange):
     def get_listing_description(self, colorizer):
         return '(%s) (%s) %s' % (
             self.get_status_description(colorizer),
-            self.get_ws_cvs_description().center(3),
+            self.get_ws_cvs_description(colorizer).center(8),
             self.get_id())
 
     def get_id(self):
@@ -85,7 +85,7 @@ class EtcProposalChangeShellDecorator(EtcProposalChange):
         result.append('\n-------- %s\n' % self.get_listing_description(colorizer))
         result.append('This change proposes to %s content at lines %d-%d in file %s\n' % 
                 (self.opcode[0], self.opcode[1]+1, self.opcode[2]+1, self.get_file_path()))
-        result.extend(self._get_colored_differ_lines())
+        result.extend(self._get_colored_differ_lines(colorizer))
         result.append('-------- %s' % self.get_listing_description(colorizer))
         return ''.join(result)
 
@@ -107,7 +107,7 @@ class EtcProposalShellDecorator(EtcProposal):
         self._assure_changes_exists()
         return {True : '(finished)', False : '(        )'}[self.is_finished()]
 
-    def get_listing_description(self):
+    def get_listing_description(self, colorizer):
         return '%s %s(%d)' % (self.get_status_description(),self.get_file_path(), self.get_revision())
 
     # Being picky, we only want decorated Changes
@@ -117,6 +117,7 @@ class EtcProposalShellDecorator(EtcProposal):
 
 class EtcProposalsShellDecorator(EtcProposals):
     def __init__(self, cmdline):
+        EtcProposals.__init__(self)
         self.cmdline = cmdline
 
     # Being picky, we only want decorated Proposals
@@ -221,7 +222,7 @@ VOCABULARY:
     def list_files(self):
         print 'List of files with update proposals:'
         for filename in self.proposals.get_files():
-            print colorize('white', filename)
+            print self.colorizer.colorize('white', filename)
         print
 
     def complete_list(self, text, line, begidx, endidx):
