@@ -284,10 +284,11 @@ class EtcProposals(list):
             self._remove_statefiles(dir)
         self.refresh()
 
-    def apply(self):
+    def apply(self, refresh=True):
         "merges all finished proposals"
         [proposal.apply() for proposal in self if proposal.is_finished()]
-        self.refresh()
+        if refresh:
+            self.refresh()
 
     def get_files(self):
         "returns a list of config files which have update proposals"
@@ -295,6 +296,11 @@ class EtcProposals(list):
             proposal.get_file_path() for proposal in self)))
         configpaths.sort()
         return configpaths
+    
+    def get_untouched_finished_files(self):
+        "returns the files that have the content as recorded in the vdb-database"
+        return PortageInterface.get_pkgparts((proposal.get_file_path()
+            for proposal in self if proposal.is_finished()))
 
     def get_file_changes(self, file_path):
         "returns a list of changes for a config file"

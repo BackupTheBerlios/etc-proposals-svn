@@ -73,17 +73,6 @@ class PortagePkgPartObject(PortagePkgPart):
         (self.path, self.md5, mtimestring) = templine[1].rsplit(' ', 2)     
         self.mtime = int(mtimestring)
     
-    def is_md5_unchanged_in_fs(self):
-        try:
-            fd = open(self.path)
-            content = fd.read()
-            fd.close()
-            if md5.md5(content).hexdigest() == self.md5:
-                return True
-            return False
-        except IOError:
-            return False
-        
 
 class InstalledPkg(object):
     def __init__(self, dbpath):
@@ -118,13 +107,14 @@ class PortageInterface(object):
         return PortageUtils.get_config_protect()
 
     @staticmethod
-    def get_pkgparts(files):
+    def get_md5_from_vdb(files):
+        "returns a dict containing the md5s that were recorded in the vdb for the given files"
         def allpkgcontents_generator():
             for pkgdbpath in InstalledPkgDB().installed_pkgs_dbpaths():
                 for pkgpart in InstalledPkg(pkgdbpath).contents():
                     yield pkgpart
         files_to_check = set(files)
-        pkgparts = list()
+        pkgparts = dict()
         allpkgcontents = allpkgcontents_generator()
         while len(files_to_check) > 0:
             try:
@@ -133,9 +123,8 @@ class PortageInterface(object):
                 break
             if not pkgpart.path in files_to_check:
                 continue
-            if pkgpart.is_md5_unchanged_in_fs():
-                pkgparts.append(pkgpart)
-                files_to_check.discard(pkgpart.path)
+            pkgparts[pkgpart.path] = pkgpart.md5
+            files_to_check.discard(pkgpart.path)
         return pkgparts
 
 
