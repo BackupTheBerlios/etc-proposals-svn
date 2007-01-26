@@ -283,9 +283,11 @@ class EtcProposalConfigFile(object):
     
     def is_untouched(self):
         "True, if the file in the fs has the same md5 as recorded"
+        if not EtcProposalsState().has_key(self._get_state_url()):
+            return False
         try:
             return (EtcProposalsState()[self._get_state_url()] == self.md5hexdigest())
-        except IOError, KeyError:
+        except IOError:
             return False
 
     def clear_untouched(self):
