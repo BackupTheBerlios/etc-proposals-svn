@@ -157,9 +157,12 @@ class EtcProposal(object):
             os.unlink(self.path)
         except OSError:
             pass
-        if EtcProposalsState().has_key(self._get_state_url()):
-            del EtcProposalsState()[self._get_state_url()]
-            
+        self.clear_state()
+    
+    def clear_state(self):
+        state = EtcProposalsState()
+        if state.has_key(self._get_state_url()):
+            del state[self._get_state_url()]
 
     def clear_cache(self):
         "clears all state data"
@@ -283,16 +286,19 @@ class EtcProposalConfigFile(object):
     
     def is_untouched(self):
         "True, if the file in the fs has the same md5 as recorded"
-        if not EtcProposalsState().has_key(self._get_state_url()):
+        state = EtcProposalsState()
+        if not state.has_key(self._get_state_url()):
             return False
         try:
-            return (EtcProposalsState()[self._get_state_url()] == self.md5hexdigest())
+            return (state[self._get_state_url()] == self.md5hexdigest())
         except IOError:
             return False
 
     def clear_untouched(self):
         "clears the memory about this config file"
-        del EtcProposalsState()[self._get_state_url()]
+        state = EtcProposalsState()
+        if state.has_key(self._get_state_url()):
+            del state[self._get_state_url()]
 
     def update_untouched(self, expected_md5):
         "records the md5 if it matches the one of the file in the fs"
