@@ -84,6 +84,22 @@ class TestEtcProposalsLib(unittest.TestCase):
         self.failUnless(os.path.exists(TESTCONFIGPROPOSALFILENAME), 'Proposal was removed.')
         self._clear_testfiles()
 
+    def test_whitespaceonly(self):
+        self._assure_no_proposals()
+        self._write_testfiles()
+        proposals = etcproposals_lib.EtcProposals()
+        whitespacechanges = [change for change in proposals.get_all_changes() if change.is_whitespace_only()]
+        self.failUnless(len(whitespacechanges) == 1, 'Whitespace recognition failed.')
+        self._clear_testfiles()
+
+    def test_cvsheader(self):
+        self._assure_no_proposals()
+        self._write_testfiles()
+        proposals = etcproposals_lib.EtcProposals()
+        cvsheaderchanges = [change for change in proposals.get_all_changes() if change.is_cvsheader()]
+        self.failUnless(len(cvsheaderchanges) == 1, 'CVS-Header recognition failed.')
+        self._clear_testfiles()
+
     def _assure_no_proposals(self):
         changes = [change for change in etcproposals_lib.EtcProposals().get_all_changes()]
         self.failUnless(len(changes) == 0, 'This test can only run if there are no proposals on your system.')
