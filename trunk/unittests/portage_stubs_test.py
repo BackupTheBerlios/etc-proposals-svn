@@ -3,8 +3,9 @@ import unittest
 from etcproposals.portage_stubs import PortageInterface
 import portage
 
-class TestPortageStubs(unittest.TestCase):
-    def test_get_md5_from_vdb(self):
+class Test_get_md5_from_vdb(unittest.TestCase):
+    def runTest(self):
+        """Testing vdb access."""
         nonexsistantfile = '/some nonexsistant file'
         issue = '/etc/issue'
         hostname = '/etc/conf.d/hostname'
@@ -14,10 +15,15 @@ class TestPortageStubs(unittest.TestCase):
         self.failUnless(md5s.has_key(issue), 'Didnt find an entry in the pkgdb: "%s"' % issue)
         self.failUnless(md5s.has_key(hostname), 'Didnt find an entry in the pkgdb: "%s"' % hostname)
     
-    def test_get_config_protect(self):
+class Test_get_config_protect(unittest.TestCase):
+    def runTest(self):
+        """Testing CONFIG_PROTECT calculation."""
         portage_config_protect = set(portage.settings['CONFIG_PROTECT'].split(' '))
         stubs_config_protect = set(PortageInterface.get_config_protect())
         self.failUnless(stubs_config_protect == portage_config_protect, 'Calculated CONFIG_PROTECT differs from the one calculated by portage.')
+
+alltests = [Test_get_config_protect(), Test_get_md5_from_vdb()]
+alltestssuite = unittest.TestSuite(alltests)
 
 if __name__ == '__main__':
     unittest.main()

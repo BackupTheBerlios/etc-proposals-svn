@@ -45,59 +45,10 @@ MODCONTENT = """#  Header: fdskjkljfsdkjdsfkkj
 class TestEtcProposalsLib(unittest.TestCase):
     def setUp(self):
         self._assure_etc_in_config_protect()
+        self._assure_no_proposals()
+        self._write_testfiles()
 
     def tearDown(self):
-        self._clear_testfiles()
-
-    def test_useall(self):
-        self._assure_no_proposals()
-        self._write_testfiles()
-        proposals = etcproposals_lib.EtcProposals()
-        for change in proposals.get_all_changes():
-            change.use()
-        proposals.apply()
-        self.failUnless(self._has_filecontent(TESTCONFIGFILENAME, MODCONTENT), 'Filecontent is wrong.')
-        self.failIf(os.path.exists(TESTCONFIGPROPOSALFILENAME), 'Proposal wasnt removed.')
-        self._clear_testfiles()
-
-    def test_zapall(self):
-        self._assure_no_proposals()
-        self._write_testfiles()
-        proposals = etcproposals_lib.EtcProposals()
-        for change in proposals.get_all_changes():
-            change.zap()
-        proposals.apply()
-        self.failUnless(self._has_filecontent(TESTCONFIGFILENAME, BASECONTENT), 'Filecontent changed.')
-        self.failIf(os.path.exists(TESTCONFIGPROPOSALFILENAME), 'Proposal wasnt removed.')
-        self._clear_testfiles()
-
-    def test_undoall(self):
-        self._assure_no_proposals()
-        self._write_testfiles()
-        proposals = etcproposals_lib.EtcProposals()
-        for change in proposals.get_all_changes():
-            change.use()
-        for change in proposals.get_all_changes():
-            change.undo()
-        proposals.apply()
-        self.failUnless(self._has_filecontent(TESTCONFIGFILENAME, BASECONTENT), 'Filecontent changed.')
-        self.failUnless(os.path.exists(TESTCONFIGPROPOSALFILENAME), 'Proposal was removed.')
-        self._clear_testfiles()
-
-    def test_whitespaceonly(self):
-        self._assure_no_proposals()
-        self._write_testfiles()
-        proposals = etcproposals_lib.EtcProposals()
-        whitespacechanges = [change for change in proposals.get_all_changes() if change.is_whitespace_only()]
-        self.failUnless(len(whitespacechanges) == 1, 'Whitespace recognition failed.')
-        self._clear_testfiles()
-
-    def test_cvsheader(self):
-        self._assure_no_proposals()
-        self._write_testfiles()
-        proposals = etcproposals_lib.EtcProposals()
-        cvsheaderchanges = [change for change in proposals.get_all_changes() if change.is_cvsheader()]
-        self.failUnless(len(cvsheaderchanges) == 1, 'CVS-Header recognition failed.')
         self._clear_testfiles()
 
     def _assure_no_proposals(self):
@@ -121,5 +72,56 @@ class TestEtcProposalsLib(unittest.TestCase):
             except OSError:
                 pass
 
+
+class TestUseAll(TestEtcProposalsLib):
+    def runTest(self):
+        """Testing if applying all changes works"""
+        proposals = etcproposals_lib.EtcProposals()
+        for change in proposals.get_all_changes():
+            change.use()
+        proposals.apply()
+        self.failUnless(self._has_filecontent(TESTCONFIGFILENAME, MODCONTENT), 'Filecontent is wrong.')
+        self.failIf(os.path.exists(TESTCONFIGPROPOSALFILENAME), 'Proposal wasnt removed.')
+
+class TestZapAll(TestEtcProposalsLib):
+    def runTest(self):
+        """Testing if not applying all changes works"""
+        proposals = etcproposals_lib.EtcProposals()
+        for change in proposals.get_all_changes():
+            change.zap()
+        proposals.apply()
+        self.failUnless(self._has_filecontent(TESTCONFIGFILENAME, BASECONTENT), 'Filecontent changed.')
+        self.failIf(os.path.exists(TESTCONFIGPROPOSALFILENAME), 'Proposal wasnt removed.')
+
+class TestUndoAll(TestEtcProposalsLib):
+    def runTest(self):
+        """Testing if undoing all changes works"""
+        proposals = etcproposals_lib.EtcProposals()
+        for change in proposals.get_all_changes():
+            change.use()
+        for change in proposals.get_all_changes():
+            change.undo()
+        proposals.apply()
+        self.failUnless(self._has_filecontent(TESTCONFIGFILENAME, BASECONTENT), 'Filecontent changed.')
+        self.failUnless(os.path.exists(TESTCONFIGPROPOSALFILENAME), 'Proposal was removed.')
+
+class TestWhitespaceonly(TestEtcProposalsLib):
+    def runTest(self):
+        """Testing if whitespace recognition works"""
+        proposals = etcproposals_lib.EtcProposals()
+        whitespacechanges = [change for change in proposals.get_all_changes() if change.is_whitespace_only()]
+        self.failUnless(len(whitespacechanges) == 1, 'Whitespace recognition failed.')
+
+class TestCVSHeader(TestEtcProposalsLib):
+    def runTest(self):
+        """Testing if cvs header recognition works"""
+        proposals = etcproposals_lib.EtcProposals()
+        cvsheaderchanges = [change for change in proposals.get_all_changes() if change.is_cvsheader()]
+        self.failUnless(len(cvsheaderchanges) == 1, 'CVS-Header recognition failed.')
+
+alltests = [TestUseAll(), TestZapAll(), TestUndoAll(), TestWhitespaceonly(), TestCVSHeader()]
+alltestssuite = unittest.TestSuite(alltests)
+
 if __name__ == '__main__':
+    #unittest.TextTestRunner(descriptions=10, verbosity=10).run(alltestssuite)
     unittest.main()
