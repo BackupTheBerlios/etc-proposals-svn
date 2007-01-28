@@ -102,9 +102,9 @@ class EtcProposalChange(object):
         "True, if the change only modifies a CVS header"
         return self._contains_only_matching_lines('^# .Header:.*$')
 
-    def is_untouched(self):
+    def is_unmodified(self):
         "True, if the change should change a config file, which has not been changed (its the same as the one provided with the package"
-        return EtcProposalConfigFile(self.proposal.get_file_path()).is_untouched()
+        return EtcProposalConfigFile(self.proposal.get_file_path()).is_unmodified()
     
     def on_changed(self):
         "Event, should be fired, if the change changes ;-)"
@@ -284,7 +284,7 @@ class EtcProposalConfigFile(object):
         "calculates the md5sum of the file in the fs"
         return md5.md5(open(self.path).read()).hexdigest()
     
-    def is_untouched(self):
+    def is_unmodified(self):
         "True, if the file in the fs has the same md5 as recorded"
         state = EtcProposalsState()
         if not state.has_key(self._get_state_url()):
@@ -294,18 +294,18 @@ class EtcProposalConfigFile(object):
         except IOError:
             return False
 
-    def clear_untouched(self):
+    def clear_unmodified(self):
         "clears the memory about this config file"
         state = EtcProposalsState()
         if state.has_key(self._get_state_url()):
             del state[self._get_state_url()]
 
-    def update_untouched(self, expected_md5):
+    def update_unmodified(self, expected_md5):
         "records the md5 if it matches the one of the file in the fs"
         if expected_md5 == self.md5hexdigest():
             EtcProposalsState()[self._get_state_url()] = expected_md5 
         else:
-            self.clear_untouched()
+            self.clear_unmodified()
 
     def _get_state_url(self):
         return 'EtcProposalConfigFile://' + self.path
@@ -330,12 +330,12 @@ class EtcProposals(list):
             self._remove_statefiles(dir)
         self.refresh()
 
-    def apply(self, update_untouched=False):
+    def apply(self, update_unmodified=False):
         "merges all finished proposals"
         finished_proposals = [proposal for proposal in self if proposal.is_finished()]
         [proposal.apply() for proposal in finished_proposals]
-        if update_untouched:
-            self.update_untouched(finished_proposals)
+        if update_unmodified:
+            self.update_unmodified(finished_proposals)
         self.refresh()
 
     def get_files(self):
@@ -345,14 +345,14 @@ class EtcProposals(list):
         configpaths.sort()
         return configpaths
     
-    def update_untouched(self, finished_proposals):
+    def update_unmodified(self, finished_proposals):
         "records the md5 if it matches the one of the file in the fs"
         finished_filepaths = set((proposal.get_file_path() for proposal in finished_proposals))
         expected_md5s =  PortageInterface.get_md5_from_vdb(finished_filepaths)
         for (path, expected_md5) in expected_md5s.iteritems():
-            EtcProposalConfigFile(path).update_untouched(expected_md5)
+            EtcProposalConfigFile(path).update_unmodified(expected_md5)
         for path in (finished_filepaths - set(expected_md5s.keys())):
-            EtcProposalConfigFile(path).clear_untouched()
+            EtcProposalConfigFile(path).clear_unmodified()
 
     def get_file_changes(self, file_path):
         "returns a list of changes for a config file"
@@ -387,9 +387,9 @@ class EtcProposals(list):
         "returns a list of changes only changing CVS-Header"
         return [change for change in self.get_all_changes() if change.is_cvsheader()]
     
-    def get_untouched_changes(self):
-        "returns a list of changes of untouched files"
-        return [change for change in self.get_all_changes() if change.is_untouched()]
+    def get_unmodified_changes(self):
+        "returns a list of changes of unmodified files"
+        return [change for change in self.get_all_changes() if change.is_unmodified()]
 
     def get_previous_proposal(self, proposal):
         "returns the previous revision for a config file"
