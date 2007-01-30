@@ -3,5 +3,6 @@ scripts/etc-proposals
 src/__init__.py
 src/etcproposals_lib.py
 src/etcproposals_shell.py
+src/etcproposals_gtk.py
 src/portage_stubs.py
 data/etc-proposals.conf

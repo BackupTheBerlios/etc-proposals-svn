@@ -13,7 +13,7 @@ LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS="~x86 ~amd64"
 
-DEPEND=">=sys-apps/portage-2.1"
+DEPEND=">=dev-lang/python-2.4.3"
 
 pkg_preinst(){
 	mkdir ${D}/usr/sbin
