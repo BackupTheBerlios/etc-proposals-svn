@@ -11,7 +11,7 @@ __date__ = '2007-01-25'
 
 import gtk
 
-class EtcProposalChangeStatusRow(gtk.HBox):
+class EtcProposalChangeTypeGtk(gtk.HBox):
     def __init__(self, change):
         gtk.HBox.__init__(self)
         self.labelstatus = [

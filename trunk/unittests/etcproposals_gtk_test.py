@@ -3,7 +3,7 @@ import unittest
 import pygtk
 pygtk.require('2.0')
 import gtk
-from etcproposals.etcproposals_gtk import EtcProposalChangeStatusRow
+from etcproposals.etcproposals_gtk import EtcProposalChangeTypeGtk
 
 
 class GUITestFailedError(Exception):
@@ -45,20 +45,20 @@ class TestGtk(unittest.TestCase):
         self.Failed = True
 
 
-class TestStatusRow(TestGtk):
+class TestChangeTypeGtk(TestGtk):
     def runTest(self):
     	"""Testing GTK display of changestatus"""
         false_change = EtcProposalsChangeStub(False)
         true_change = EtcProposalsChangeStub()
-        true_row = EtcProposalChangeStatusRow(true_change)
-        false_row = EtcProposalChangeStatusRow(false_change)
+        true_row = EtcProposalChangeTypeGtk(true_change)
+        false_row = EtcProposalChangeTypeGtk(false_change)
         self.testbox.pack_start(false_row, False, False, 1)
         self.testbox.pack_start(true_row, False, False, 1)
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
 
 
-alltests = [TestStatusRow()]
+alltests = [TestChangeTypeGtk()]
 alltestssuite = unittest.TestSuite(alltests)
 
 if __name__ == '__main__':
