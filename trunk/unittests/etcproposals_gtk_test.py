@@ -12,8 +12,13 @@ class GUITestFailedError(Exception):
     pass
 
 class EtcProposalsChangeStub(object):
+    def get_file_path(self):
+        return '/etc/make.conf'
+    def get_revision(self):
+        return 0
     def __init__(self, value=True):
         self.value = value
+        self.opcode = ['insert', 2, 5, 2, 2]
     def is_whitespace_only(self):
         return self.value
     def is_cvsheader(self):
@@ -50,7 +55,7 @@ class TestGtk(unittest.TestCase):
     def gtk_passed(self):
         self.window.destroy()
         gtk.main_quit()
-		
+        
 
 class TestChangeTypeGtk(TestGtk):
     def runTest(self):
