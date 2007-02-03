@@ -7,6 +7,7 @@ from etcproposals.etcproposals_gtk import EtcProposalChangeTypeGtk
 from etcproposals.etcproposals_gtk import EtcProposalChangeTitleGtk
 from etcproposals.etcproposals_gtk import EtcProposalChangeLabelGtk
 from etcproposals.etcproposals_gtk import EtcProposalChangeStatusGtk
+from etcproposals.etcproposals_gtk import EtcProposalChangeDecoratorGtk
 
 
 class GUITestFailedError(Exception):
@@ -108,7 +109,17 @@ class TestChangeLabelGtk(TestGtk):
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
 
-alltests = [TestChangeTypeGtk(), TestChangeTitleGtk(), TestChangeLabelGtk()]
+
+class TestChangeDecoratorGtk(TestGtk):
+    def runTest(self):
+        """Testing GTK display of a change"""
+        change = EtcProposalsChangeStub()
+        changeGTK = EtcProposalChangeDecoratorGtk(change)
+        self.testbox.pack_start(changeGTK, False, False, 1)
+        gtk.main()
+        self.failIf(self.Failed, 'Test failed.')
+
+alltests = [TestChangeTypeGtk(), TestChangeTitleGtk(), TestChangeStatusGtk(), TestChangeLabelGtk(), TestChangeDecoratorGtk()]
 alltestssuite = unittest.TestSuite(alltests)
 
 if __name__ == '__main__':
