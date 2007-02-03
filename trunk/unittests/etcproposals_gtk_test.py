@@ -6,6 +6,7 @@ import gtk
 from etcproposals.etcproposals_gtk import EtcProposalChangeTypeGtk
 from etcproposals.etcproposals_gtk import EtcProposalChangeTitleGtk
 from etcproposals.etcproposals_gtk import EtcProposalChangeLabelGtk
+from etcproposals.etcproposals_gtk import EtcProposalChangeStatusGtk
 
 
 class GUITestFailedError(Exception):
@@ -19,12 +20,20 @@ class EtcProposalsChangeStub(object):
     def __init__(self, value=True):
         self.value = value
         self.opcode = ['insert', 2, 5, 2, 2]
+        (self.touched, self.merge) = (False, False)
     def is_whitespace_only(self):
         return self.value
     def is_cvsheader(self):
         return self.value
     def is_unchanged(self):
         return self.value
+    def use(self):
+        (self.touched, self.merge) = (True, True)
+    def zap(self):
+        (self.touched, self.merge) = (True, False)
+    def undo(self):
+        (self.touched, self.merge) = (False, False)
+        
 
 class TestGtk(unittest.TestCase):
     def setUp(self):
@@ -78,6 +87,17 @@ class TestChangeTitleGtk(TestGtk):
         self.testbox.pack_start(titlelabel, False, False, 1)
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
+
+
+class TestChangeStatusGtk(TestGtk):
+    def runTest(self):
+        """Testing GTK display of change status"""
+        change = EtcProposalsChangeStub()
+        changestatus = EtcProposalChangeStatusGtk(change)
+        self.testbox.pack_start(changestatus, False, False, 1)
+        gtk.main()
+        self.failIf(self.Failed, 'Test failed.')
+
 
 class TestChangeLabelGtk(TestGtk):
     def runTest(self):
