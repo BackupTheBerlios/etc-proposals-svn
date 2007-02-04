@@ -100,16 +100,19 @@ class EtcProposalChangeStatusGtk(gtk.VBox):
             self.change.undo()
 
 
-class EtcProposalChangeLabelGtk(gtk.HBox):
+class EtcProposalChangeLabelGtk(gtk.Frame):
     def __init__(self, change):
-        gtk.HBox.__init__(self)
+        gtk.Frame.__init__(self)
         self.change = change
         self.title = EtcProposalChangeTitleGtk(change)
         self.type = EtcProposalChangeTypeGtk(change)
         self.status = EtcProposalChangeStatusGtk(change)
-        self.pack_start(self.status, False, False, 10)
-        self.pack_start(self.title, True, True, 10)
-        self.pack_start(self.type, False, False, 10)
+        box = gtk.HBox()
+        box.pack_start(self.status, False, False, 10)
+        box.pack_start(self.title, True, True, 10)
+        box.pack_start(self.type, False, False, 10)
+        box.show()
+        self.add(box)
         self.show()
     
     def update_change(self):
@@ -134,18 +137,23 @@ class EtcProposalChangeContentGtk(gtk.VBox):
             textview.show()
         self.header.show()
         self.pack_start(self.header, False, False, 2)
-        self.pack_start(self.removetextview, True, True, 2)
-        self.pack_start(self.inserttextview, True, True, 2)
-        self.show()
         self.update_change()
+        self.show()
     
     def update_change(self):
         headertext = 'This change proposes to %s content at lines %d-%d in the file %s' % (
             self.change.opcode[0],
-            self.change.opcode[1],
-            self.change.opcode[2],
+            self.change.opcode[1]+1,
+            self.change.opcode[2]+1,
             self.change.get_file_path())
         self.header.set_text(headertext)
+        for textview in [self.removetextview, self.inserttextview]:
+            if not textview.parent == None:
+                self.remove(textview)
+        if self.change.opcode[0] in ['remove', 'replace']:
+            self.pack_start(self.removetextview, False, False, 2)
+        if self.change.opcode[0] in ['insert', 'replace']:
+            self.pack_start(self.inserttextview, False, False, 2)
         self.removetextview.get_buffer().set_text(self.change.get_base_content())
         self.inserttextview.get_buffer().set_text(self.change.get_proposed_content())
 
@@ -157,8 +165,9 @@ class EtcProposalChangeDecoratorGtk(gtk.Expander):
         label = gtk.Label('%s:%s-%s(%d)' % (self.change.get_file_path(), self.change.opcode[1]+1, self.change.opcode[2]+1, self.change.get_revision()))
         label.show()
         self.set_label_widget(label)
-        frame = gtk.Frame()
-        frame.add(EtcProposalChangeLabelGtk(change))
-        frame.show()
-        self.add(frame)
+        box = gtk.VBox()
+        box.pack_start(EtcProposalChangeLabelGtk(change), False, False, 2)
+        box.pack_start(EtcProposalChangeContentGtk(change), False, False, 2)
+        box.show()
+        self.add(box)
         self.show()
