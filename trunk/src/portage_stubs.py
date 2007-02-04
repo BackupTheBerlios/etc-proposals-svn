@@ -5,6 +5,12 @@
 # Distributed under the terms of the GNU General Public License v2
 
 import shlex, string, os, md5
+portage_available = False
+try:
+    import portage
+    portage_available = True
+except ImportError:
+    pass
 
 # portage constants
 
@@ -104,6 +110,8 @@ class InstalledPkgDB(object):
 class PortageInterface(object):
     @staticmethod
     def get_config_protect():
+        if portage_available:
+            return portage.settings['CONFIG_PROTECT'].split(' ')
         return PortageUtils.get_config_protect()
 
     @staticmethod

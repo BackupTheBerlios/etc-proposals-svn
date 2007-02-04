@@ -10,18 +10,7 @@ __version__ = '1.0'
 __date__ = '2007-01-25'
 
 import ConfigParser, anydbm, shelve, difflib, os, os.path, re, shutil, md5
-try:
-    import portage
-    import etcproposals.portage_stubs
-    class PortageInterface(object):
-        @staticmethod
-        def get_config_protect():
-            return portage.settings['CONFIG_PROTECT'].split(' ')
-        @staticmethod
-        def get_md5_from_vdb(files):
-            return etcproposals.portage_stubs.PortageInterface.get_md5_from_vdb(files)
-except ImportError:
-    from etcproposals.portage_stubs import PortageInterface
+from etcproposals.portage_stubs import PortageInterface
     
 
 STATEFILE = '/var/state/etcproposals.state'
