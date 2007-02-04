@@ -449,7 +449,7 @@ class EtcProposalsState(shelve.Shelf):
     def clear_orphaned(self, current_proposals):
         self.clear_orphaned_proposals(current_proposals)
     
-    def clear_orphaned_proposals(self, current_proposals)
+    def clear_orphaned_proposals(self, current_proposals):
         stateproposalsfiles = set(self.get_proposals())
         fsproposalsfiles = set(current_proposals)
         for proposal in (stateproposalsfiles-fsproposalsfiles):
@@ -459,6 +459,10 @@ class EtcProposalsState(shelve.Shelf):
         for stateconfigfile in self.get_configfiles():
             if not os.path.exists(stateconfigfile.replace('EtcProposalConfigFile://','',1)):
                 del self[stateconfigfile]
+    
+    def clear_all(self):
+        for key in self.keys():
+            del self[key]
         
 
 __all__ = ['EtcProposalChange', 'EtcProposal', 'EtcProposals', 'EtcProposalsConfig']

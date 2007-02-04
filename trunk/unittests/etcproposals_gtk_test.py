@@ -110,7 +110,7 @@ class TestChangeStatusGtk(TestGtk):
 
 class TestChangeLabelGtk(TestGtk):
     def runTest(self):
-        """Testing GTK display of change title"""
+        """Testing GTK display of change label"""
         change = EtcProposalsChangeStub()
         label = EtcProposalChangeLabelGtk(change)
         self.testbox.pack_start(label, False, False, 1)
