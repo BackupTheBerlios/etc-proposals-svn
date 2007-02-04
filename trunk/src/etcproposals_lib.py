@@ -438,11 +438,6 @@ class EtcProposalsConfig(object):
             print e
             return []
 
-    def StartupCommands(self):
-        try:
-            return self.parser.get('General', 'StartupCommands').split(';')
-        except Exception:
-            return []
 
 class EtcProposalsState(shelve.Shelf):
     def __init__(self):

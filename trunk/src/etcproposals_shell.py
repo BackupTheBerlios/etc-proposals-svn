@@ -156,6 +156,12 @@ class EtcProposalsConfigShellDecorator(EtcProposalsConfig):
         except Exception:
             return 'diff -u "%(file1)s" "%(file2)s"'
 
+    def StartupCommands(self):
+        try:
+            return self.parser.get('Shell', 'StartupCommands').split(';')
+        except Exception:
+            return []
+
 
 class EtcProposalsCmdLine(cmd.Cmd):
     def __init__(self):
@@ -567,8 +573,8 @@ DESCRIPTION:
 
     def edit(self):
         linenumber = self.current_change.opcode[3]+1
-        proposalpath = self.current_change.get_proposal_path()
-        os.system(self.config.EditCommand() % {'linenumber' :  linenumber, 'filename' : proposalpath})
+        filepath = self.current_change.get_file_path()
+        os.system(self.config.EditCommand() % {'linenumber' :  linenumber, 'filename' : filepath})
 
     def help_edit(self):
         print self.do_edit.__doc__
@@ -578,8 +584,8 @@ DESCRIPTION:
     edit
 
 DESCRIPTION:
-    The edit command allows the user to edit the current change. It starts
-    an editor with the current proposal at the start of the current
+    The edit command allows the user to edit the current file. It starts
+    an editor with the current file at the start of the current
     change, if possible. When the editor is finished etc-proposals rescans
     the filesystem for proposals and normal use of etc-proposals can
     continue.
