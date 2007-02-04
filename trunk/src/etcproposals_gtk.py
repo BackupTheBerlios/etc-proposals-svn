@@ -67,8 +67,8 @@ class EtcProposalChangeStatusGtk(gtk.VBox):
         self.change = change
         self.usebutton = gtk.ToggleButton('Use')
         self.zapbutton = gtk.ToggleButton('Zap')
-        self.usebutton.connect('toggled', lambda w: self.on_use_toggled())
-        self.zapbutton.connect('toggled', lambda w: self.on_zap_toggled())
+        self.usebutton.connect('toggled', lambda b: self.on_use_toggled())
+        self.zapbutton.connect('toggled', lambda b: self.on_zap_toggled())
         self.pack_start(self.usebutton, True, False, 2)
         self.pack_start(self.zapbutton, True, False, 2)
         self.update_change()

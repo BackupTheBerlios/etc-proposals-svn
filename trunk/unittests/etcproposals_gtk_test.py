@@ -23,9 +23,9 @@ class EtcProposalsChangeStub(object):
         self.value = value
         (self.touched, self.merge) = (False, False)
     def get_action(self):
-    	return 'insert'
+        return 'insert'
     def get_affected_lines(self):
-    	return (2,5)
+        return (2,5)
     def is_whitespace_only(self):
         return self.value
     def is_cvsheader(self):
@@ -51,9 +51,9 @@ class TestGtk(unittest.TestCase):
         self.testbox = gtk.VBox(False, 0)
         box = gtk.HBox(False, 0)
         fail_button = gtk.Button('Test failed')
-        fail_button.connect('clicked', lambda w: self.gtk_fail())
+        fail_button.connect('clicked', lambda b: self.gtk_fail())
         passed_button = gtk.Button('Test passed')
-        passed_button.connect('clicked', lambda w: self.gtk_passed())
+        passed_button.connect('clicked', lambda b: self.gtk_passed())
         box.pack_start(fail_button, True, False, 1)
         box.pack_start(passed_button, True, False, 1)
         fail_button.show()
