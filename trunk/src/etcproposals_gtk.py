@@ -58,7 +58,7 @@ class EtcProposalChangeTitleGtk(gtk.VBox):
     def update_change(self):
         self.filenamelabel.set_label(self.change.get_file_path())
         self.proposallabel.set_label('Proposal: %s' % self.change.get_revision())
-        self.lineslabel.set_label('Lines: %d-%d' % (self.change.opcode[1]+1, self.change.opcode[2]+1))
+        self.lineslabel.set_label('Lines: %d-%d' % self.change.get_affected_lines())
 
 
 class EtcProposalChangeStatusGtk(gtk.VBox):
@@ -141,18 +141,20 @@ class EtcProposalChangeContentGtk(gtk.VBox):
         self.show()
     
     def update_change(self):
+        action = self.change.get_action()
+        affected_lines = self.change.get_affected_lines()
         headertext = 'This change proposes to %s content at lines %d-%d in the file %s' % (
-            self.change.opcode[0],
-            self.change.opcode[1]+1,
-            self.change.opcode[2]+1,
+            action,
+            affected_lines[0],
+            affected_lines[1],
             self.change.get_file_path())
         self.header.set_text(headertext)
         for textview in [self.removetextview, self.inserttextview]:
             if not textview.parent == None:
                 self.remove(textview)
-        if self.change.opcode[0] in ['remove', 'replace']:
+        if action in ['remove', 'replace']:
             self.pack_start(self.removetextview, False, False, 2)
-        if self.change.opcode[0] in ['insert', 'replace']:
+        if action in ['insert', 'replace']:
             self.pack_start(self.inserttextview, False, False, 2)
         self.removetextview.get_buffer().set_text(self.change.get_base_content())
         self.inserttextview.get_buffer().set_text(self.change.get_proposed_content())
@@ -162,7 +164,8 @@ class EtcProposalChangeDecoratorGtk(gtk.Expander):
     def __init__(self, change):
         gtk.Expander.__init__(self)
         self.change = change
-        label = gtk.Label('%s:%s-%s(%d)' % (self.change.get_file_path(), self.change.opcode[1]+1, self.change.opcode[2]+1, self.change.get_revision()))
+        affected_lines = self.change.get_affected_lines()
+        label = gtk.Label('%s:%s-%s(%d)' % (self.change.get_file_path(), affected_lines[0], affected_lines[1], self.change.get_revision()))
         label.show()
         self.set_label_widget(label)
         box = gtk.VBox()

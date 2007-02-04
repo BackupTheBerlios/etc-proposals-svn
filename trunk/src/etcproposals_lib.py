@@ -76,6 +76,14 @@ class EtcProposalChange(object):
         "the number in the ._cfgXXXX_ part of a proposals filename"
         return self.proposal.get_revision()
 
+    def get_action(self):
+        "Returns the the proposed action of this change. One of ['insert', 'delete', 'replace']."
+        return self.opcode[0]
+    
+    def get_affected_lines(self):
+        "Returns a tuple (startline, endline) describing the affected lines."
+        return (self.opcode[1]+1, self.opcode[2]+1)
+
     def get_base_content(self):
         "the current (old) file content"
         return self.proposal.get_base_lines(self.opcode)

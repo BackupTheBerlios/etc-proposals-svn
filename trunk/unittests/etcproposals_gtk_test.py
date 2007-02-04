@@ -21,8 +21,11 @@ class EtcProposalsChangeStub(object):
         return 0
     def __init__(self, value=True):
         self.value = value
-        self.opcode = ['insert', 2, 5, 2, 2]
         (self.touched, self.merge) = (False, False)
+    def get_action(self):
+    	return 'insert'
+    def get_affected_lines(self):
+    	return (2,5)
     def is_whitespace_only(self):
         return self.value
     def is_cvsheader(self):

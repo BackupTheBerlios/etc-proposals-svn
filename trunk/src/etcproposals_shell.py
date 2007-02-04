@@ -74,17 +74,19 @@ class EtcProposalChangeShellDecorator(EtcProposalChange):
             self.get_id())
 
     def get_id(self):
+        affected_lines = self.get_affected_lines()
         return '%s:%d-%d(%d)' % (
             self.get_file_path(),
-            self.opcode[1]+1,
-            self.opcode[2]+1,
+            affected_lines[0],
+            affected_lines[1],
             self.get_revision())
         
     def get_complete_description(self, colorizer):
+        affected_lines = self.get_affected_lines()
         result = list()
         result.append('\n-------- %s\n' % self.get_listing_description(colorizer))
         result.append('This change proposes to %s content at lines %d-%d in file %s\n' % 
-                (self.opcode[0], self.opcode[1]+1, self.opcode[2]+1, self.get_file_path()))
+                (self.get_action(), affected_lines[0], affected_lines[1], self.get_file_path()))
         result.extend(self._get_colored_differ_lines(colorizer))
         result.append('-------- %s' % self.get_listing_description(colorizer))
         return ''.join(result)
@@ -572,7 +574,7 @@ DESCRIPTION:
             return
 
     def edit(self):
-        linenumber = self.current_change.opcode[3]+1
+        linenumber = self.current_change.get_affected_lines()[0]
         filepath = self.current_change.get_file_path()
         os.system(self.config.EditCommand() % {'linenumber' :  linenumber, 'filename' : filepath})
 
