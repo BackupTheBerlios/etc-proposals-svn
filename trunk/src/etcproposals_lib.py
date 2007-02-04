@@ -439,6 +439,27 @@ class EtcProposalsConfig(object):
 class EtcProposalsState(shelve.Shelf):
     def __init__(self):
         shelve.Shelf.__init__(self, anydbm.open(STATEFILE, 'c'))
+    
+    def get_configfiles(self):
+        return (key for key in self.keys() if key.startswith('EtcProposalConfigFile:'))
+
+    def get_proposals(self):
+        return (key for key in self.keys() if key.startswith('EtcProposal:'))
+
+    def clear_orphaned(self, current_proposals):
+        self.clear_orphaned_proposals(current_proposals)
+    
+    def clear_orphaned_proposals(self, current_proposals)
+        stateproposalsfiles = set(self.get_proposals())
+        fsproposalsfiles = set(current_proposals)
+        for proposal in (stateproposalsfiles-fsproposalsfiles):
+            del self[proposal]
+    
+    def clear_orphaned_configfiles(self):
+        for stateconfigfile in self.get_configfiles():
+            if not os.path.exists(stateconfigfile.replace('EtcProposalConfigFile://','',1)):
+                del self[stateconfigfile]
+        
 
 __all__ = ['EtcProposalChange', 'EtcProposal', 'EtcProposals', 'EtcProposalsConfig']
 
