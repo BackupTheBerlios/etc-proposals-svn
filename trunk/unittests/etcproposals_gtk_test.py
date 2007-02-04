@@ -8,6 +8,7 @@ from etcproposals.etcproposals_gtk import EtcProposalChangeTitleGtk
 from etcproposals.etcproposals_gtk import EtcProposalChangeLabelGtk
 from etcproposals.etcproposals_gtk import EtcProposalChangeStatusGtk
 from etcproposals.etcproposals_gtk import EtcProposalChangeDecoratorGtk
+from etcproposals.etcproposals_gtk import EtcProposalChangeContentGtk
 
 
 class GUITestFailedError(Exception):
@@ -34,6 +35,10 @@ class EtcProposalsChangeStub(object):
         (self.touched, self.merge) = (True, False)
     def undo(self):
         (self.touched, self.merge) = (False, False)
+    def get_base_content(self):
+        return ''
+    def get_proposed_content(self):
+        return 'proposed'
         
 
 class TestGtk(unittest.TestCase):
@@ -109,6 +114,16 @@ class TestChangeLabelGtk(TestGtk):
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
 
+
+class TestChangeContentGtk(TestGtk):
+    def runTest(self):
+        """Testing GTK display of a change"""
+        change = EtcProposalsChangeStub()
+        contentGTK = EtcProposalChangeContentGtk(change)
+        self.testbox.pack_start(contentGTK, False, False, 1)
+        gtk.main()
+        self.failIf(self.Failed, 'Test failed.')
+    
 
 class TestChangeDecoratorGtk(TestGtk):
     def runTest(self):

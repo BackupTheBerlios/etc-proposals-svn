@@ -116,6 +116,40 @@ class EtcProposalChangeLabelGtk(gtk.HBox):
         for control in [self.title, self.type]:
             control.update_change()
 
+
+class EtcProposalChangeContentGtk(gtk.VBox):
+    def __init__(self, change):
+        gtk.VBox.__init__(self)
+        self.change = change
+        self.header = gtk.Label() 
+        self.header.set_line_wrap(False)
+        self.removetextview = gtk.TextView()
+        self.inserttextview = gtk.TextView()
+        self.removetextview.modify_base(gtk.STATE_NORMAL, self.removetextview.get_colormap().alloc_color(65000,50000,50000))
+        self.inserttextview.modify_base(gtk.STATE_NORMAL, self.inserttextview.get_colormap().alloc_color(50000,65000,50000))
+        for textview in [self.removetextview, self.inserttextview]:
+            buffer = textview.get_buffer()
+            textview.set_editable(False)
+            textview.set_cursor_visible(False)
+            textview.show()
+        self.header.show()
+        self.pack_start(self.header, False, False, 2)
+        self.pack_start(self.removetextview, True, True, 2)
+        self.pack_start(self.inserttextview, True, True, 2)
+        self.show()
+        self.update_change()
+    
+    def update_change(self):
+        headertext = 'This change proposes to %s content at lines %d-%d in the file %s' % (
+            self.change.opcode[0],
+            self.change.opcode[1],
+            self.change.opcode[2],
+            self.change.get_file_path())
+        self.header.set_text(headertext)
+        self.removetextview.get_buffer().set_text(self.change.get_base_content())
+        self.inserttextview.get_buffer().set_text(self.change.get_proposed_content())
+
+
 class EtcProposalChangeDecoratorGtk(gtk.Expander):
     def __init__(self, change):
         gtk.Expander.__init__(self)
