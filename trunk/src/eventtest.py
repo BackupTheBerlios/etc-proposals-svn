@@ -28,10 +28,10 @@ t = TestClass()
 print '------'
 t.changed()
 print '------'
-t.on_changed = [testfunc, testfunc]
+t.on_changed.append(testfunc)
 t.changed()
 print '------'
-t.on_changed = [testfunc, None, None, testfunc]
+t.on_changed.append(testfunc)
 t.changed()
 print '------'
     
