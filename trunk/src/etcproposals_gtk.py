@@ -9,7 +9,29 @@ __author__ = 'Björn Michaelsen'
 __version__ = '1.0'
 __date__ = '2007-01-25'
 
+from etcproposals.etcproposals_lib import *
 import gtk
+
+
+class EtcProposalChangeGtkDecorator(EtcProposalChange):
+    pass
+
+
+class EtcProposalGtkDecorator(EtcProposal):
+    # Being picky, we only want decorated Changes
+    def _create_change(self, opcode):
+        return EtcProposalChangeShellDecorator(opcode, self)
+
+
+class EtcProposalsGtkDecorator(EtcProposals):
+    # Being picky, we only want decorated Proposals
+    def _create_proposal(self, proposal_path):
+        return EtcProposalGtkDecorator(proposal_path, self)
+
+
+class EtcProposalsConfigGtkDecorator(EtcProposalsConfig):
+    pass
+
 
 class EtcProposalChangeTypeGtk(gtk.VBox):
     def __init__(self, change):
