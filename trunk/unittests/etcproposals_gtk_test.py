@@ -134,7 +134,7 @@ class TestChangeDecoratorGtk(TestGtk):
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
 
-alltests = [TestChangeTypeGtk(), TestChangeTitleGtk(), TestChangeStatusGtk(), TestChangeLabelGtk(), TestChangeDecoratorGtk()]
+alltests = [TestChangeTypeGtk(), TestChangeTitleGtk(), TestChangeStatusGtk(), TestChangeLabelGtk(), TestChangeContentGtk(), TestChangeDecoratorGtk()]
 alltestssuite = unittest.TestSuite(alltests)
 
 if __name__ == '__main__':
