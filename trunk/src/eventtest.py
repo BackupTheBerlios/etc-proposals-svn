@@ -1,19 +1,16 @@
 #!/usr/bin/env python
 
-def signaling_class(signaling_class):
-    pass
-    
-
-def signal(signal):
+def signal(signal, *args):
+    print 'signal %s' % signal
+    print  args
     def eventhandler():
         def handle_event(self, *args, **kws):
-            print self
-            print args
-            print kws
             handlersname = 'on_%s' % signal.__name__
             handlers = self.__dict__[handlersname]
             [handler(*args, **kws) for handler in handlers]
-        return handle_event
+        he = handle_event
+        he.__name__ = 'signal' + he.__name__
+        return he
     return eventhandler()
         
 
@@ -40,8 +37,10 @@ def movedfunc(x,y):
     print 'moved: %d %d' % (x, y)
 
 t = TestClass()
+print 't.init'
 t.on_changed = []
 t.on_moved = []
+print type(t.changed)
 tc2 = TestClass2(t)
 print '------'
 t.on_changed.append(testfunc)
