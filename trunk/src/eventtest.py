@@ -9,18 +9,20 @@ def signal(signal, *args):
             handlers = self.__dict__[handlersname]
             [handler(*args, **kws) for handler in handlers]
         he = handle_event
-        he.__name__ = 'signal' + he.__name__
+        he.__signal__ = True
         return he
     return eventhandler()
         
 
 class TestClass(object):
+    def __init__(self):
+        print 'TestClass.__init__'
     @signal
     def changed(self):
         pass
     @signal
     def moved(self, x, y):
-        print x, y
+        pass
 
 
 class TestClass2(object):
@@ -38,9 +40,10 @@ def movedfunc(x,y):
 
 t = TestClass()
 print 't.init'
+print [el for el in TestClass.__dict__]
+print TestClass.__dict__['moved'].__dict__
 t.on_changed = []
 t.on_moved = []
-print type(t.changed)
 tc2 = TestClass2(t)
 print '------'
 t.on_changed.append(testfunc)
