@@ -9,6 +9,7 @@ from etcproposals.etcproposals_gtk import EtcProposalChangeLabelGtk
 from etcproposals.etcproposals_gtk import EtcProposalChangeStatusGtk
 from etcproposals.etcproposals_gtk import EtcProposalChangeDecoratorGtk
 from etcproposals.etcproposals_gtk import EtcProposalChangeContentGtk
+from etcproposals.etcproposals_gtk import EtcProposalsTreeView
 
 
 class GUITestFailedError(Exception):
@@ -42,6 +43,11 @@ class EtcProposalsChangeStub(object):
         return ''
     def get_proposed_content(self):
         return 'proposed'
+
+class EtcProposalsStub(object):
+    def get_files(self):
+        return ['/etc/make.conf', '/etc/issue']
+    
         
 
 class TestGtk(unittest.TestCase):
@@ -137,7 +143,18 @@ class TestChangeDecoratorGtk(TestGtk):
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
 
-alltests = [TestChangeTypeGtk(), TestChangeTitleGtk(), TestChangeStatusGtk(), TestChangeLabelGtk(), TestChangeContentGtk(), TestChangeDecoratorGtk()]
+
+class TestTreeViewGtk(TestGtk):
+    def runTest(self):
+        """Testing GTK display of proposals"""
+        proposals = EtcProposalsStub()
+        tv = EtcProposalsTreeView(proposals)
+        self.testbox.pack_start(tv, False, False, 1)
+        gtk.main()
+        self.failIf(self.Failed, 'Test failed.')
+
+
+alltests = [TestChangeTypeGtk(), TestChangeTitleGtk(), TestChangeStatusGtk(), TestChangeLabelGtk(), TestChangeContentGtk(), TestChangeDecoratorGtk(), TestTreeViewGtk()]
 alltestssuite = unittest.TestSuite(alltests)
 
 if __name__ == '__main__':

@@ -1,8 +1,7 @@
 #!/usr/bin/env python
+import types
 
 def signal(signal, *args):
-    print 'signal %s' % signal
-    print  args
     def eventhandler():
         def handle_event(self, *args, **kws):
             handlersname = 'on_%s' % signal.__name__
@@ -13,8 +12,18 @@ def signal(signal, *args):
         return he
     return eventhandler()
         
+def init_signals(fn, *args, **kws):
+    def wrapper(self, *args, **kws):
+        for (elname, el) in type(self).__dict__.iteritems():
+            if type(el) == types.FunctionType:
+                if el.__dict__.has_key('__signal__'):
+                    self.__dict__['on_%s' % elname] = list()
+        return fn(self, *args, **kws)
+    return wrapper
+    
 
 class TestClass(object):
+    @init_signals
     def __init__(self):
         print 'TestClass.__init__'
     @signal
@@ -40,10 +49,6 @@ def movedfunc(x,y):
 
 t = TestClass()
 print 't.init'
-print [el for el in TestClass.__dict__]
-print TestClass.__dict__['moved'].__dict__
-t.on_changed = []
-t.on_moved = []
 tc2 = TestClass2(t)
 print '------'
 t.on_changed.append(testfunc)

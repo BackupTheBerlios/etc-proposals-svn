@@ -196,3 +196,36 @@ class EtcProposalChangeDecoratorGtk(gtk.Expander):
         box.show()
         self.add(box)
         self.show()
+    
+    
+class EtcProposalsTreeView(gtk.TreeView):
+    def __init__(self, proposals):
+        self.treestore = gtk.TreeStore(str)
+        self.column = gtk.TreeViewColumn('')
+        self.cell = gtk.CellRendererText()
+        self.proposals = proposals
+        gtk.TreeView.__init__(self, self.treestore)
+        self.fsnode = self.treestore.append(None, ['Filesystem'])
+        typenode = self.treestore.append(None, ['Type'])
+        self.treestore.append(typenode, ['Whitespace'])
+        self.treestore.append(typenode, ['CVS-Header'])
+        self.treestore.append(typenode, ['Unmodified'])
+        statusnode = self.treestore.append(None, ['Status'])
+        self.treestore.append(statusnode, ['Use'])
+        self.treestore.append(statusnode, ['Zap'])
+        self.treestore.append(statusnode, ['Undecided'])
+        self.column.pack_start(self.cell, True)
+        self.column.add_attribute(self.cell, 'text',0)
+        self.append_column(self.column)
+        self.refresh()
+        self.refresh()
+        self.show()
+    
+    def refresh(self):
+        files = self.proposals.get_files()
+        filenode = self.treestore.iter_children(self.fsnode)
+        while( filenode != None ):
+            self.treestore.remove(filenode)
+            filenode = self.treestore.iter_children(self.fsnode)
+        for file in self.proposals.get_files():
+            self.treestore.append(self.fsnode, [file])
