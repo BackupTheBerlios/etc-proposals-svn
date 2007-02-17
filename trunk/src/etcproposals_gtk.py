@@ -217,7 +217,7 @@ class EtcProposalsTreeView(gtk.TreeView):
         self.column.pack_start(self.cell, True)
         self.column.add_attribute(self.cell, 'text',0)
         self.append_column(self.column)
-        self.refresh()
+        self.set_headers_visible(False)
         self.refresh()
         self.show()
     
