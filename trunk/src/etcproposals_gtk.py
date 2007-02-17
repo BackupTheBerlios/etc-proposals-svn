@@ -196,15 +196,24 @@ class EtcProposalChangeDecoratorGtk(gtk.Expander):
         box.show()
         self.add(box)
         self.show()
-    
+
+class EtcProposalsTreeViewMenu(gtk.Menu):
+    def __init__(self):
+        gtk.Menu.__init__(self)
+        self.append(gtk.MenuItem('Use All'))
+        self.append(gtk.MenuItem('Zap All'))
+        self.append(gtk.MenuItem('Undo All'))
+        self.show_all()
+
     
 class EtcProposalsTreeView(gtk.TreeView):
     def __init__(self, proposals):
         self.treestore = gtk.TreeStore(str)
+        gtk.TreeView.__init__(self, self.treestore)
+        self.menu = EtcProposalsTreeViewMenu()
         self.column = gtk.TreeViewColumn('')
         self.cell = gtk.CellRendererText()
         self.proposals = proposals
-        gtk.TreeView.__init__(self, self.treestore)
         self.fsnode = self.treestore.append(None, ['Filesystem'])
         typenode = self.treestore.append(None, ['Type'])
         self.treestore.append(typenode, ['Whitespace'])
@@ -218,6 +227,7 @@ class EtcProposalsTreeView(gtk.TreeView):
         self.column.add_attribute(self.cell, 'text',0)
         self.append_column(self.column)
         self.set_headers_visible(False)
+        self.connect_object('event', self.button_press, self.menu)
         self.refresh()
         self.show()
     
@@ -229,3 +239,11 @@ class EtcProposalsTreeView(gtk.TreeView):
             filenode = self.treestore.iter_children(self.fsnode)
         for file in self.proposals.get_files():
             self.treestore.append(self.fsnode, [file])
+    
+    def button_press(self, widget, event):
+        if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
+            (path, column, x, y) = self.get_path_at_pos(int(event.x), int(event.y))
+            self.get_selection().select_path(path)
+            widget.popup(None, None, None, event.button, event.time)
+            return True
+        return False
