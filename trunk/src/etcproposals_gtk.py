@@ -13,22 +13,6 @@ from etcproposals.etcproposals_lib import *
 import gtk
 
 
-class EtcProposalChangeGtkDecorator(EtcProposalChange):
-    pass
-
-
-class EtcProposalGtkDecorator(EtcProposal):
-    # Being picky, we only want decorated Changes
-    def _create_change(self, opcode):
-        return EtcProposalChangeShellDecorator(opcode, self)
-
-
-class EtcProposalsGtkDecorator(EtcProposals):
-    # Being picky, we only want decorated Proposals
-    def _create_proposal(self, proposal_path):
-        return EtcProposalGtkDecorator(proposal_path, self)
-
-
 class EtcProposalsConfigGtkDecorator(EtcProposalsConfig):
     pass
 
@@ -197,6 +181,7 @@ class EtcProposalChangeDecoratorGtk(gtk.Expander):
         self.add(box)
         self.show()
 
+
 class EtcProposalsTreeViewMenu(gtk.Menu):
     def __init__(self):
         gtk.Menu.__init__(self)
@@ -247,3 +232,21 @@ class EtcProposalsTreeView(gtk.TreeView):
             widget.popup(None, None, None, event.button, event.time)
             return True
         return False
+
+
+class EtcProposalsChangesView(gtk.Alignment):
+    def __init__(self):
+        gtk.Alignment.__init__(self, 0, 0, 1, 1)
+        self.scrolled_window = gtk.ScrolledWindow()
+        self.vbox = gtk.VBox()
+        self.vbox.show()
+        self.scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.scrolled_window.add_with_viewport(self.vbox)
+        self.add(self.scrolled_window)
+        self.show_all()
+    
+    def update_changes(self, new_changes):
+        for child in self.vbox.get_children():
+            self.vbox.remove(child)
+        for change in new_changes:
+            self.vbox.pack_start(EtcProposalChangeDecoratorGtk(change), False, False, 0)

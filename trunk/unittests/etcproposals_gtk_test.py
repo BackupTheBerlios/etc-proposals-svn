@@ -10,6 +10,7 @@ from etcproposals.etcproposals_gtk import EtcProposalChangeStatusGtk
 from etcproposals.etcproposals_gtk import EtcProposalChangeDecoratorGtk
 from etcproposals.etcproposals_gtk import EtcProposalChangeContentGtk
 from etcproposals.etcproposals_gtk import EtcProposalsTreeView
+from etcproposals.etcproposals_gtk import EtcProposalsChangesView
 
 
 class GUITestFailedError(Exception):
@@ -48,7 +49,6 @@ class EtcProposalsStub(object):
     def get_files(self):
         return ['/etc/make.conf', '/etc/issue']
     
-        
 
 class TestGtk(unittest.TestCase):
     def setUp(self):
@@ -62,14 +62,14 @@ class TestGtk(unittest.TestCase):
         passed_button.connect('clicked', lambda b: self.gtk_passed())
         box.pack_start(fail_button, True, False, 1)
         box.pack_start(passed_button, True, False, 1)
+        self.testbox.pack_end(box, False, False, 1)
+        window.add(self.testbox)
+        self.window = window
         fail_button.show()
         passed_button.show()
         box.show()
         self.testbox.show()
         window.show()
-        self.testbox.pack_end(box, False, False, 1)
-        window.add(self.testbox)
-        self.window = window
 
     def gtk_fail(self):
         self.window.destroy()
@@ -154,7 +154,22 @@ class TestTreeViewGtk(TestGtk):
         self.failIf(self.Failed, 'Test failed.')
 
 
-alltests = [TestChangeTypeGtk(), TestChangeTitleGtk(), TestChangeStatusGtk(), TestChangeLabelGtk(), TestChangeContentGtk(), TestChangeDecoratorGtk(), TestTreeViewGtk()]
+class TestChangesViewGtk(TestGtk):
+    def runTest(self):
+        """Testing GTK display of changes"""
+        changes = list()
+        changes.append(EtcProposalsChangeStub())
+        changes.append(EtcProposalsChangeStub())
+        changes.append(EtcProposalsChangeStub())
+        changesview = EtcProposalsChangesView()
+        changesview.update_changes(changes)
+        changesview.show_all()
+        self.testbox.pack_start(changesview, True, True, 1)
+        gtk.main()
+        self.failIf(self.Failed, 'Test failed.')
+
+
+alltests = [TestChangeTypeGtk(), TestChangeTitleGtk(), TestChangeStatusGtk(), TestChangeLabelGtk(), TestChangeContentGtk(), TestChangeDecoratorGtk(), TestTreeViewGtk(), TestChangesViewGtk()]
 alltestssuite = unittest.TestSuite(alltests)
 
 if __name__ == '__main__':
