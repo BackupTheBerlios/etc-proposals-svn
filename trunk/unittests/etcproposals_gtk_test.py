@@ -3,12 +3,12 @@ import unittest
 import pygtk
 pygtk.require('2.0')
 import gtk
-from etcproposals.etcproposals_gtk import EtcProposalChangeTypeGtk
-from etcproposals.etcproposals_gtk import EtcProposalChangeTitleGtk
-from etcproposals.etcproposals_gtk import EtcProposalChangeLabelGtk
-from etcproposals.etcproposals_gtk import EtcProposalChangeStatusGtk
-from etcproposals.etcproposals_gtk import EtcProposalChangeDecoratorGtk
-from etcproposals.etcproposals_gtk import EtcProposalChangeContentGtk
+from etcproposals.etcproposals_gtk import EtcProposalChangeType
+from etcproposals.etcproposals_gtk import EtcProposalChangeTitle
+from etcproposals.etcproposals_gtk import EtcProposalChangeLabel
+from etcproposals.etcproposals_gtk import EtcProposalChangeStatus
+from etcproposals.etcproposals_gtk import EtcProposalChangeDecorator
+from etcproposals.etcproposals_gtk import EtcProposalChangeContent
 from etcproposals.etcproposals_gtk import EtcProposalsTreeView
 from etcproposals.etcproposals_gtk import EtcProposalsChangesView
 from etcproposals.etcproposals_gtk import EtcProposalsView
@@ -82,70 +82,70 @@ class TestGtk(unittest.TestCase):
         gtk.main_quit()
         
 
-class TestChangeTypeGtk(TestGtk):
+class TestChangeType(TestGtk):
     def runTest(self):
         """Testing GTK display of change type"""
         false_change = EtcProposalsChangeStub(False)
         true_change = EtcProposalsChangeStub()
-        true_type = EtcProposalChangeTypeGtk(true_change)
-        false_type = EtcProposalChangeTypeGtk(false_change)
+        true_type = EtcProposalChangeType(true_change)
+        false_type = EtcProposalChangeType(false_change)
         self.testbox.pack_start(false_type, False, False, 1)
         self.testbox.pack_start(true_type, False, False, 1)
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
     
 
-class TestChangeTitleGtk(TestGtk):
+class TestChangeTitle(TestGtk):
     def runTest(self):
         """Testing GTK display of change title"""
         change = EtcProposalsChangeStub()
-        titlelabel = EtcProposalChangeTitleGtk(change)
+        titlelabel = EtcProposalChangeTitle(change)
         self.testbox.pack_start(titlelabel, False, False, 1)
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
 
 
-class TestChangeStatusGtk(TestGtk):
+class TestChangeStatus(TestGtk):
     def runTest(self):
         """Testing GTK display of change status"""
         change = EtcProposalsChangeStub()
-        changestatus = EtcProposalChangeStatusGtk(change)
+        changestatus = EtcProposalChangeStatus(change)
         self.testbox.pack_start(changestatus, False, False, 1)
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
 
 
-class TestChangeLabelGtk(TestGtk):
+class TestChangeLabel(TestGtk):
     def runTest(self):
         """Testing GTK display of change label"""
         change = EtcProposalsChangeStub()
-        label = EtcProposalChangeLabelGtk(change)
+        label = EtcProposalChangeLabel(change)
         self.testbox.pack_start(label, False, False, 1)
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
 
 
-class TestChangeContentGtk(TestGtk):
+class TestChangeContent(TestGtk):
     def runTest(self):
         """Testing GTK display of a change"""
         change = EtcProposalsChangeStub()
-        contentGTK = EtcProposalChangeContentGtk(change)
+        contentGTK = EtcProposalChangeContent(change)
         self.testbox.pack_start(contentGTK, False, False, 1)
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
     
 
-class TestChangeDecoratorGtk(TestGtk):
+class TestChangeDecorator(TestGtk):
     def runTest(self):
         """Testing GTK display of a change"""
         change = EtcProposalsChangeStub()
-        changeGTK = EtcProposalChangeDecoratorGtk(change)
+        changeGTK = EtcProposalChangeDecorator(change)
         self.testbox.pack_start(changeGTK, False, False, 1)
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
 
 
-class TestTreeViewGtk(TestGtk):
+class TestTreeView(TestGtk):
     def runTest(self):
         """Testing GTK display of proposals"""
         proposals = EtcProposalsStub()
@@ -155,7 +155,7 @@ class TestTreeViewGtk(TestGtk):
         self.failIf(self.Failed, 'Test failed.')
 
 
-class TestChangesViewGtk(TestGtk):
+class TestChangesView(TestGtk):
     def runTest(self):
         """Testing GTK display of changes"""
         changes = list()
@@ -179,7 +179,7 @@ class TestView(TestGtk):
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
 
-alltests = [TestChangeTypeGtk(), TestChangeTitleGtk(), TestChangeStatusGtk(), TestChangeLabelGtk(), TestChangeContentGtk(), TestChangeDecoratorGtk(), TestTreeViewGtk(), TestChangesViewGtk(), TestView()]
+alltests = [TestChangeType(), TestChangeTitle(), TestChangeStatus(), TestChangeLabel(), TestChangeContent(), TestChangeDecorator(), TestTreeView(), TestChangesView(), TestView()]
 alltestssuite = unittest.TestSuite(alltests)
 
 if __name__ == '__main__':
