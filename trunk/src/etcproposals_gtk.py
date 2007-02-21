@@ -17,7 +17,7 @@ class EtcProposalsConfigGtkDecorator(EtcProposalsConfig):
     pass
 
 
-class EtcProposalChangeTypeGtk(gtk.VBox):
+class EtcProposalChangeType(gtk.VBox):
     def __init__(self, change):
         gtk.VBox.__init__(self)
         self.labelstatus = [
@@ -45,7 +45,7 @@ class EtcProposalChangeTypeGtk(gtk.VBox):
         return ['whitespace', 'cvs-header', 'unchanged']
 
 
-class EtcProposalChangeTitleGtk(gtk.VBox):
+class EtcProposalChangeTitle(gtk.VBox):
     def __init__(self, change):
         gtk.VBox.__init__(self)
         self.change = change
@@ -67,7 +67,7 @@ class EtcProposalChangeTitleGtk(gtk.VBox):
         self.lineslabel.set_label('Lines: %d-%d' % self.change.get_affected_lines())
 
 
-class EtcProposalChangeStatusGtk(gtk.VBox):
+class EtcProposalChangeStatus(gtk.VBox):
     def __init__(self, change):
         gtk.VBox.__init__(self)
         self.change = change
@@ -106,13 +106,13 @@ class EtcProposalChangeStatusGtk(gtk.VBox):
             self.change.undo()
 
 
-class EtcProposalChangeLabelGtk(gtk.Frame):
+class EtcProposalChangeLabel(gtk.Frame):
     def __init__(self, change):
         gtk.Frame.__init__(self)
         self.change = change
-        self.title = EtcProposalChangeTitleGtk(change)
-        self.type = EtcProposalChangeTypeGtk(change)
-        self.status = EtcProposalChangeStatusGtk(change)
+        self.title = EtcProposalChangeTitle(change)
+        self.type = EtcProposalChangeType(change)
+        self.status = EtcProposalChangeStatus(change)
         box = gtk.HBox()
         box.pack_start(self.status, False, False, 10)
         box.pack_start(self.title, True, True, 10)
@@ -126,7 +126,7 @@ class EtcProposalChangeLabelGtk(gtk.Frame):
             control.update_change()
 
 
-class EtcProposalChangeContentGtk(gtk.VBox):
+class EtcProposalChangeContent(gtk.VBox):
     def __init__(self, change):
         gtk.VBox.__init__(self)
         self.change = change
@@ -166,7 +166,7 @@ class EtcProposalChangeContentGtk(gtk.VBox):
         self.inserttextview.get_buffer().set_text(self.change.get_proposed_content())
 
 
-class EtcProposalChangeDecoratorGtk(gtk.Expander):
+class EtcProposalChangeDecorator(gtk.Expander):
     def __init__(self, change):
         gtk.Expander.__init__(self)
         self.change = change
@@ -175,8 +175,8 @@ class EtcProposalChangeDecoratorGtk(gtk.Expander):
         label.show()
         self.set_label_widget(label)
         box = gtk.VBox()
-        box.pack_start(EtcProposalChangeLabelGtk(change), False, False, 2)
-        box.pack_start(EtcProposalChangeContentGtk(change), False, False, 2)
+        box.pack_start(EtcProposalChangeLabel(change), False, False, 2)
+        box.pack_start(EtcProposalChangeContent(change), False, False, 2)
         box.show()
         self.add(box)
         self.show()
@@ -234,19 +234,52 @@ class EtcProposalsTreeView(gtk.TreeView):
         return False
 
 
-class EtcProposalsChangesView(gtk.Alignment):
+class EtcProposalsChangesView(gtk.ScrolledWindow):
     def __init__(self):
-        gtk.Alignment.__init__(self, 0, 0, 1, 1)
-        self.scrolled_window = gtk.ScrolledWindow()
+        gtk.ScrolledWindow.__init__(self)
         self.vbox = gtk.VBox()
         self.vbox.show()
-        self.scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        self.scrolled_window.add_with_viewport(self.vbox)
-        self.add(self.scrolled_window)
+        self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.add_with_viewport(self.vbox)
         self.show_all()
     
     def update_changes(self, new_changes):
         for child in self.vbox.get_children():
             self.vbox.remove(child)
         for change in new_changes:
-            self.vbox.pack_start(EtcProposalChangeDecoratorGtk(change), False, False, 0)
+            self.vbox.pack_start(EtcProposalChangeDecorator(change), False, False, 0)
+
+class EtcProposalsView(gtk.HPaned):
+    def __init__(self, proposals):
+        gtk.HPaned.__init__(self)
+        self.proposals = proposals
+        self.changesview = EtcProposalsChangesView()
+        self.treeview = EtcProposalsTreeView(self.proposals)
+        self.add1(self.changesview)
+        self.rightbox = gtk.VBox()
+        self.rightbox.pack_start(self.treeview, True, True, 0)
+        self.rightbox.pack_end(gtk.Button('Apply'), False, False, 0)
+        self.rightbox.show_all()
+        self.add2(self.rightbox)
+        self.treeview.get_selection().set_select_function(self.on_tv_item_selcted, None)
+        self.show()
+    
+    def on_tv_item_selcted(self, selection, user_data):
+        if len(selection) == 1 and not (selection == (0,)):
+            return False
+        if selection == (1,0):
+            self.changesview.update_changes(self.proposals.get_whitespace_changes())
+        elif selection == (1,1):
+            self.changesview.update_changes(self.proposals.get_cvsheader_changes())
+        elif selection == (1,2):
+            self.changesview.update_changes(self.proposals.get_unmodified_changes())
+        elif selection == (2,0):
+            self.changesview.update_changes([change for change in self.proposals.get_all_changes() if change.get_status() == 'use'])
+        elif selection == (2,1):
+            self.changesview.update_changes([change for change in self.proposals.get_all_changes() if change.get_status() == 'zap'])
+        elif selection == (2,2):
+            self.changesview.update_changes([change for change in self.proposals.get_all_changes() if change.get_status() == 'undecided'])
+        print selection
+        print user_data
+        return True
+

@@ -87,6 +87,14 @@ class EtcProposalChange(object):
             return self.get_proposed_content()
         return self.get_base_content()
 
+    def get_status(self):
+        "returns the status of the change (undecided/use/zap)"
+        if not self.touched:
+            return 'undecided'
+        elif self.merge:
+            return 'use'
+        return 'zap'
+
     def is_nullchange(self):
         "True, if the change describes a unchanged filepart"
         return (self.opcode[0] == 'equal')
