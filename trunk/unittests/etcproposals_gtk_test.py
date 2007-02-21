@@ -45,10 +45,20 @@ class EtcProposalsChangeStub(object):
         return ''
     def get_proposed_content(self):
         return 'proposed'
+    def get_status(self):
+        return 'undecided'
 
 class EtcProposalsStub(object):
     def get_files(self):
         return ['/etc/make.conf', '/etc/issue']
+    def get_whitespace_changes(self):
+        return [EtcProposalsChangeStub(True)]
+    def get_cvsheader_changes(self):
+        return [EtcProposalsChangeStub(True)]
+    def get_unmodified_changes(self):
+        return [EtcProposalsChangeStub(False)]
+    def get_all_changes(self):
+        return [EtcProposalsChangeStub(True), EtcProposalsChangeStub(False)]
     
 
 class TestGtk(unittest.TestCase):
