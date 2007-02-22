@@ -11,7 +11,7 @@ from etcproposals.etcproposals_gtk import EtcProposalChangeDecorator
 from etcproposals.etcproposals_gtk import EtcProposalChangeContent
 from etcproposals.etcproposals_gtk import EtcProposalsTreeView
 from etcproposals.etcproposals_gtk import EtcProposalsChangesView
-from etcproposals.etcproposals_gtk import EtcProposalsView
+from etcproposals.etcproposals_gtk import EtcProposalsPanedView
 
 
 class GUITestFailedError(Exception):
@@ -184,7 +184,7 @@ class TestView(TestGtk):
     def runTest(self):
         """Testing GTK display"""
         proposals = EtcProposalsStub()
-        view = EtcProposalsView(proposals)
+        view = EtcProposalsPanedView(proposals)
         self.testbox.pack_start(view, True, True, 1)
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')

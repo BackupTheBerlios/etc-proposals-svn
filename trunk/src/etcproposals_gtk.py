@@ -177,7 +177,7 @@ class EtcProposalChangeDecorator(gtk.Expander):
         box = gtk.VBox()
         box.pack_start(EtcProposalChangeLabel(change), False, False, 2)
         box.pack_start(EtcProposalChangeContent(change), False, False, 2)
-        box.show()
+        box.show_all()
         self.add(box)
         self.show()
 
@@ -249,7 +249,8 @@ class EtcProposalsChangesView(gtk.ScrolledWindow):
         for change in new_changes:
             self.vbox.pack_start(EtcProposalChangeDecorator(change), False, False, 0)
 
-class EtcProposalsView(gtk.HPaned):
+
+class EtcProposalsPanedView(gtk.HPaned):
     def __init__(self, proposals):
         gtk.HPaned.__init__(self)
         self.proposals = proposals
@@ -279,7 +280,5 @@ class EtcProposalsView(gtk.HPaned):
             self.changesview.update_changes([change for change in self.proposals.get_all_changes() if change.get_status() == 'zap'])
         elif selection == (2,2):
             self.changesview.update_changes([change for change in self.proposals.get_all_changes() if change.get_status() == 'undecided'])
-        print selection
-        print user_data
         return True
 
