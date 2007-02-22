@@ -12,10 +12,12 @@ from etcproposals.etcproposals_gtk import EtcProposalChangeContent
 from etcproposals.etcproposals_gtk import EtcProposalsTreeView
 from etcproposals.etcproposals_gtk import EtcProposalsChangesView
 from etcproposals.etcproposals_gtk import EtcProposalsPanedView
+from etcproposals.etcproposals_gtk import EtcProposalsView
 
 
 class GUITestFailedError(Exception):
     pass
+
 
 class EtcProposalsChangeStub(object):
     def get_file_path(self):
@@ -48,6 +50,7 @@ class EtcProposalsChangeStub(object):
     def get_status(self):
         return 'undecided'
 
+
 class EtcProposalsStub(object):
     def get_files(self):
         return ['/etc/make.conf', '/etc/issue']
@@ -60,6 +63,14 @@ class EtcProposalsStub(object):
     def get_all_changes(self):
         return [EtcProposalsChangeStub(True), EtcProposalsChangeStub(False)]
     
+
+class EtcProposalsControllerStub(object):
+    def undo_changes(self, changes):
+        pass
+    def zap_changes(self, changes):
+        pass
+    def use_changes(self, changes):
+        pass
 
 class TestGtk(unittest.TestCase):
     def setUp(self):
@@ -119,7 +130,8 @@ class TestChangeStatus(TestGtk):
     def runTest(self):
         """Testing GTK display of change status"""
         change = EtcProposalsChangeStub()
-        changestatus = EtcProposalChangeStatus(change)
+        controller = EtcProposalsControllerStub()
+        changestatus = EtcProposalChangeStatus(change, controller)
         self.testbox.pack_start(changestatus, False, False, 1)
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
@@ -129,7 +141,8 @@ class TestChangeLabel(TestGtk):
     def runTest(self):
         """Testing GTK display of change label"""
         change = EtcProposalsChangeStub()
-        label = EtcProposalChangeLabel(change)
+        controller = EtcProposalsControllerStub()
+        label = EtcProposalChangeLabel(change, controller)
         self.testbox.pack_start(label, False, False, 1)
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
@@ -149,7 +162,8 @@ class TestChangeDecorator(TestGtk):
     def runTest(self):
         """Testing GTK display of a change"""
         change = EtcProposalsChangeStub()
-        changeGTK = EtcProposalChangeDecorator(change)
+        controller = EtcProposalsControllerStub()
+        changeGTK = EtcProposalChangeDecorator(change, controller)
         self.testbox.pack_start(changeGTK, False, False, 1)
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
@@ -169,10 +183,11 @@ class TestChangesView(TestGtk):
     def runTest(self):
         """Testing GTK display of changes"""
         changes = list()
+        controller = EtcProposalsControllerStub()
         changes.append(EtcProposalsChangeStub())
         changes.append(EtcProposalsChangeStub())
         changes.append(EtcProposalsChangeStub())
-        changesview = EtcProposalsChangesView()
+        changesview = EtcProposalsChangesView(controller)
         changesview.update_changes(changes)
         changesview.show_all()
         self.testbox.pack_start(changesview, True, True, 1)
@@ -180,16 +195,27 @@ class TestChangesView(TestGtk):
         self.failIf(self.Failed, 'Test failed.')
 
 
-class TestView(TestGtk):
+class TestPanedView(TestGtk):
     def runTest(self):
-        """Testing GTK display"""
+        """Testing GTK paned"""
         proposals = EtcProposalsStub()
-        view = EtcProposalsPanedView(proposals)
+        controller = EtcProposalsControllerStub()
+        view = EtcProposalsPanedView(proposals, controller)
         self.testbox.pack_start(view, True, True, 1)
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
 
-alltests = [TestChangeType(), TestChangeTitle(), TestChangeStatus(), TestChangeLabel(), TestChangeContent(), TestChangeDecorator(), TestTreeView(), TestChangesView(), TestView()]
+
+class TestView(unittest.TestCase):
+    def runTest(self):
+        """Testing GTK display"""
+        proposals = EtcProposalsStub()
+        controller = EtcProposalsControllerStub()
+        view = EtcProposalsView(proposals, controller)
+        gtk.main()
+    
+
+alltests = [TestChangeType(), TestChangeTitle(), TestChangeStatus(), TestChangeLabel(), TestChangeContent(), TestChangeDecorator(), TestTreeView(), TestChangesView(), TestPanedView(), TestView()]
 alltestssuite = unittest.TestSuite(alltests)
 
 if __name__ == '__main__':

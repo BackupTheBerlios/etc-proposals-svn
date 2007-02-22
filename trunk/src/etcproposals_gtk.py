@@ -68,8 +68,9 @@ class EtcProposalChangeTitle(gtk.VBox):
 
 
 class EtcProposalChangeStatus(gtk.VBox):
-    def __init__(self, change):
+    def __init__(self, change, controller):
         gtk.VBox.__init__(self)
+        self.controller = controller
         self.change = change
         self.usebutton = gtk.ToggleButton('Use')
         self.zapbutton = gtk.ToggleButton('Zap')
@@ -93,26 +94,24 @@ class EtcProposalChangeStatus(gtk.VBox):
     
     def on_zap_toggled(self):
         if self.zapbutton.get_active():
-            self.change.zap()
-            self.usebutton.set_active(False)
+            self.controller.zap_changes([self.change])
         else:
-            self.change.undo()
+            self.controller.undo_changes([self.change])
 
     def on_use_toggled(self):
         if self.usebutton.get_active():
-            self.change.use()
-            self.zapbutton.set_active(False)
+            self.controller.use_changes([self.change])
         else:
-            self.change.undo()
+            self.controller.undo_changes([self.change])
 
 
 class EtcProposalChangeLabel(gtk.Frame):
-    def __init__(self, change):
+    def __init__(self, change, controller):
         gtk.Frame.__init__(self)
         self.change = change
         self.title = EtcProposalChangeTitle(change)
         self.type = EtcProposalChangeType(change)
-        self.status = EtcProposalChangeStatus(change)
+        self.status = EtcProposalChangeStatus(change, controller)
         box = gtk.HBox()
         box.pack_start(self.status, False, False, 10)
         box.pack_start(self.title, True, True, 10)
@@ -167,7 +166,7 @@ class EtcProposalChangeContent(gtk.VBox):
 
 
 class EtcProposalChangeDecorator(gtk.Expander):
-    def __init__(self, change):
+    def __init__(self, change, controller):
         gtk.Expander.__init__(self)
         self.change = change
         affected_lines = self.change.get_affected_lines()
@@ -175,7 +174,7 @@ class EtcProposalChangeDecorator(gtk.Expander):
         label.show()
         self.set_label_widget(label)
         box = gtk.VBox()
-        box.pack_start(EtcProposalChangeLabel(change), False, False, 2)
+        box.pack_start(EtcProposalChangeLabel(change, controller), False, False, 2)
         box.pack_start(EtcProposalChangeContent(change), False, False, 2)
         box.show_all()
         self.add(box)
@@ -235,26 +234,28 @@ class EtcProposalsTreeView(gtk.TreeView):
 
 
 class EtcProposalsChangesView(gtk.ScrolledWindow):
-    def __init__(self):
+    def __init__(self, controller):
         gtk.ScrolledWindow.__init__(self)
+        self.controller = controller
         self.vbox = gtk.VBox()
         self.vbox.show()
         self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         self.add_with_viewport(self.vbox)
+        self.set_size_request(600, 500)
         self.show_all()
     
     def update_changes(self, new_changes):
         for child in self.vbox.get_children():
             self.vbox.remove(child)
         for change in new_changes:
-            self.vbox.pack_start(EtcProposalChangeDecorator(change), False, False, 0)
+            self.vbox.pack_start(EtcProposalChangeDecorator(change, self.controller), False, False, 0)
 
 
 class EtcProposalsPanedView(gtk.HPaned):
-    def __init__(self, proposals):
+    def __init__(self, proposals, controller):
         gtk.HPaned.__init__(self)
         self.proposals = proposals
-        self.changesview = EtcProposalsChangesView()
+        self.changesview = EtcProposalsChangesView(controller)
         self.treeview = EtcProposalsTreeView(self.proposals)
         self.add1(self.changesview)
         self.rightbox = gtk.VBox()
@@ -282,3 +283,11 @@ class EtcProposalsPanedView(gtk.HPaned):
             self.changesview.update_changes([change for change in self.proposals.get_all_changes() if change.get_status() == 'undecided'])
         return True
 
+
+class EtcProposalsView(gtk.Window):
+    def __init__(self, proposals, controller):
+        gtk.Window.__init__(self)
+        pane = EtcProposalsPanedView(proposals, controller)
+        self.add(pane)
+        self.set_size_request(800,600)
+        self.show()
