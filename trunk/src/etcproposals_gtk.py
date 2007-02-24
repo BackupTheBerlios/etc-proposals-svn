@@ -165,7 +165,7 @@ class EtcProposalChangeContent(gtk.VBox):
         self.inserttextview.get_buffer().set_text(self.change.get_proposed_content())
 
 
-class EtcProposalChangeDecorator(gtk.Expander):
+class EtcProposalsChangeView(gtk.Expander):
     def __init__(self, change, controller):
         gtk.Expander.__init__(self)
         self.change = change
@@ -237,6 +237,7 @@ class EtcProposalsChangesView(gtk.ScrolledWindow):
     def __init__(self, controller):
         gtk.ScrolledWindow.__init__(self)
         self.controller = controller
+        self.changes_generator = lambda: []
         self.vbox = gtk.VBox()
         self.vbox.show()
         self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -244,11 +245,13 @@ class EtcProposalsChangesView(gtk.ScrolledWindow):
         self.set_size_request(600, 500)
         self.show_all()
     
-    def update_changes(self, new_changes):
+    def update_changes(self, changes_generator = None):
         for child in self.vbox.get_children():
             self.vbox.remove(child)
-        for change in new_changes:
-            self.vbox.pack_start(EtcProposalChangeDecorator(change, self.controller), False, False, 0)
+        if not changes_generator == None:
+            self.changes_generator = changes_generator
+        for change in self.changes_generator():
+            self.vbox.pack_start(EtcProposalsChangeView(change, self.controller), False, False, 0)
 
 
 class EtcProposalsPanedView(gtk.HPaned):
@@ -270,24 +273,42 @@ class EtcProposalsPanedView(gtk.HPaned):
         if len(selection) == 1 and not (selection == (0,)):
             return False
         if selection == (1,0):
-            self.changesview.update_changes(self.proposals.get_whitespace_changes())
+            self.changesview.update_changes(lambda: self.proposals.get_whitespace_changes())
         elif selection == (1,1):
-            self.changesview.update_changes(self.proposals.get_cvsheader_changes())
+            self.changesview.update_changes(lambda: self.proposals.get_cvsheader_changes())
         elif selection == (1,2):
-            self.changesview.update_changes(self.proposals.get_unmodified_changes())
+            self.changesview.update_changes(lambda: self.proposals.get_unmodified_changes())
         elif selection == (2,0):
-            self.changesview.update_changes([change for change in self.proposals.get_all_changes() if change.get_status() == 'use'])
+            self.changesview.update_changes(lambda: [change for change in self.proposals.get_all_changes() if change.get_status() == 'use'])
         elif selection == (2,1):
-            self.changesview.update_changes([change for change in self.proposals.get_all_changes() if change.get_status() == 'zap'])
+            self.changesview.update_changes(lambda: [change for change in self.proposals.get_all_changes() if change.get_status() == 'zap'])
         elif selection == (2,2):
-            self.changesview.update_changes([change for change in self.proposals.get_all_changes() if change.get_status() == 'undecided'])
+            self.changesview.update_changes(lambda: [change for change in self.proposals.get_all_changes() if change.get_status() == 'undecided'])
         return True
 
 
 class EtcProposalsView(gtk.Window):
     def __init__(self, proposals, controller):
         gtk.Window.__init__(self)
-        pane = EtcProposalsPanedView(proposals, controller)
-        self.add(pane)
+        self.paned = EtcProposalsPanedView(proposals, controller)
+        self.add(self.paned)
         self.set_size_request(800,600)
         self.show()
+
+
+class EtcProposalsController(object):
+    def __init__(self, proposals):
+        self.proposals = proposals
+        self.view = EtcProposalsView(proposals, self)
+        
+    def undo_changes(self, changes):
+        [change.undo() for change in changes]
+        self.view.paned.changesview.update_changes()
+
+    def zap_changes(self, changes):
+        [change.zap() for change in changes]
+        self.view.paned.changesview.update_changes()
+
+    def use_changes(self, changes):
+        [change.use() for change in changes]
+        self.view.paned.changesview.update_changes()
