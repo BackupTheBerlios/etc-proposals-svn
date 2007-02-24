@@ -208,13 +208,13 @@ class EtcProposal(object):
 
     def get_merged_content(self):
         "the file content, as it would be merged with the current zap/use decisions"
-        self._assure_changes_exists()
+        self._refresh_changes_cache()
         filelines = list()
         [filelines.extend(change.get_filepart_content()) for change in self._changes]
         return filelines
 
     def get_changes(self):
-        self._assure_changes_exists()
+        self._refresh_changes_cache()
         return [change for change in self._changes if not change.is_nullchange()]
 
     def get_base_lines(self, opcode):
@@ -231,7 +231,7 @@ class EtcProposal(object):
 
     def on_changed(self):
         "Event, should be fired, if the proposal changes"
-        self._assure_changes_exists()
+        self._refresh_changes_cache()
         undecorated_changes = list()
         for change in self._changes:
             undecorated_change = EtcProposalChange(change.opcode, None)
@@ -240,7 +240,7 @@ class EtcProposal(object):
         EtcProposalsState()[self._get_state_url()] = undecorated_changes    
         self.proposals.on_proposal_changed(self)
 
-    def _assure_changes_exists(self):
+    def _refresh_changes_cache(self):
         if self._changes is None:
             self._changes = [self._create_change(opcode) for opcode in self._get_opcodes()]
             state = EtcProposalsState()
