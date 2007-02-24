@@ -174,8 +174,7 @@ class EtcProposalsChangeView(gtk.Expander):
     def __init__(self, change, controller):
         gtk.Expander.__init__(self)
         self.change = change
-        affected_lines = self.change.get_affected_lines()
-        label = gtk.Label('%s:%s-%s(%d)' % (self.change.get_file_path(), affected_lines[0], affected_lines[1], self.change.get_revision()))
+        label = gtk.Label(self.get_labeltext())
         label.show()
         self.set_label_widget(label)
         box = gtk.VBox()
@@ -184,6 +183,10 @@ class EtcProposalsChangeView(gtk.Expander):
         box.show_all()
         self.add(box)
         self.show()
+    
+    def get_labeltext(self):
+        affected_lines = self.change.get_affected_lines()
+        return '%s:%s-%s(%d)' % (self.change.get_file_path(), affected_lines[0], affected_lines[1], self.change.get_revision())
 
 
 class EtcProposalsTreeViewMenu(gtk.Menu):
@@ -243,6 +246,7 @@ class EtcProposalsChangesView(gtk.ScrolledWindow):
         gtk.ScrolledWindow.__init__(self)
         self.controller = controller
         self.changes_generator = lambda: []
+        self.expanded_changes = set()
         self.vbox = gtk.VBox()
         self.vbox.show()
         self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -252,11 +256,19 @@ class EtcProposalsChangesView(gtk.ScrolledWindow):
     
     def update_changes(self, changes_generator = None):
         for child in self.vbox.get_children():
+            labeltext = child.get_labeltext()
+            if child.get_expanded():
+                self.expanded_changes.add(labeltext)
+            elif labeltext in self.expanded_changes:
+                self.expanded_changes.remove(labeltext)
             self.vbox.remove(child)
         if not changes_generator == None:
             self.changes_generator = changes_generator
         for change in self.changes_generator():
-            self.vbox.pack_start(EtcProposalsChangeView(change, self.controller), False, False, 0)
+            changeview = EtcProposalsChangeView(change, self.controller)
+            if changeview.get_labeltext() in self.expanded_changes:
+                changeview.set_expanded(True)
+            self.vbox.pack_start(changeview, False, False, 0)
 
 
 class EtcProposalsPanedView(gtk.HPaned):
