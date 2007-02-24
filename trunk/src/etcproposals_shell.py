@@ -737,7 +737,4 @@ def run_frontend():
     etc_cli.cmdloop()
 
 if __name__ == '__main__':
-    if os.getuid() != 0:
-        print 'EtcProposals: You have to be root to run this tool.'
-        raise SystemExit
     run_frontend()

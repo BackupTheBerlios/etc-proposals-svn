@@ -36,7 +36,7 @@ class EtcProposalsChangeStub(object):
         return self.value
     def is_cvsheader(self):
         return self.value
-    def is_unchanged(self):
+    def is_unmodified(self):
         return self.value
     def use(self):
         (self.touched, self.merge) = (True, True)
@@ -45,9 +45,9 @@ class EtcProposalsChangeStub(object):
     def undo(self):
         (self.touched, self.merge) = (False, False)
     def get_base_content(self):
-        return ''
+        return ['']
     def get_proposed_content(self):
-        return 'proposed'
+        return ['proposed']
     def get_status(self):
         return 'undecided'
 
@@ -214,6 +214,7 @@ class TestView(TestGtk):
         controller = EtcProposalsControllerStub()
         view = EtcProposalsView(proposals, controller)
         gtk.main()
+        view.destroy()
         self.failIf(self.Failed, 'Test failed.')
     
 class TestController(TestGtk):
@@ -222,6 +223,7 @@ class TestController(TestGtk):
         proposals = EtcProposalsStub()
         controller = EtcProposalsController(proposals)
         gtk.main()
+        controller.view.destroy()
         self.failIf(self.Failed, 'Test failed.')
     
 alltests = [TestChangeType(), TestChangeTitle(), TestChangeStatus(), TestChangeLabel(), TestChangeContent(), TestChangeView(), TestTreeView(), TestChangesView(), TestPanedView(), TestView(), TestController()]

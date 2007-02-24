@@ -23,7 +23,7 @@ class EtcProposalChangeType(gtk.VBox):
         self.labelstatus = [
             change.is_whitespace_only,
             change.is_cvsheader,
-            change.is_unchanged ]
+            change.is_unmodified ]
         self.setup_labels()
         self.update_change()
         self.show()
@@ -72,6 +72,7 @@ class EtcProposalChangeStatus(gtk.VBox):
         gtk.VBox.__init__(self)
         self.controller = controller
         self.change = change
+        self.updating = False
         self.usebutton = gtk.ToggleButton('Use')
         self.zapbutton = gtk.ToggleButton('Zap')
         self.usebutton.connect('toggled', lambda b: self.on_use_toggled())
@@ -89,20 +90,24 @@ class EtcProposalChangeStatus(gtk.VBox):
                 buttonstates = (True, False)
             else:
                 buttonstates = (False, True)
+        self.updating = True;
         self.usebutton.set_active(buttonstates[0])
         self.zapbutton.set_active(buttonstates[1])
+        self.updating = False
     
-    def on_zap_toggled(self):
-        if self.zapbutton.get_active():
-            self.controller.zap_changes([self.change])
-        else:
-            self.controller.undo_changes([self.change])
+    def on_zap_toggled(self): 
+        if not self.updating:
+            if self.zapbutton.get_active():
+                self.controller.zap_changes([self.change])
+            else:
+                self.controller.undo_changes([self.change])
 
     def on_use_toggled(self):
-        if self.usebutton.get_active():
-            self.controller.use_changes([self.change])
-        else:
-            self.controller.undo_changes([self.change])
+        if not self.updating:
+            if self.usebutton.get_active():
+                self.controller.use_changes([self.change])
+            else:
+                self.controller.undo_changes([self.change])
 
 
 class EtcProposalChangeLabel(gtk.Frame):
@@ -157,12 +162,12 @@ class EtcProposalChangeContent(gtk.VBox):
         for textview in [self.removetextview, self.inserttextview]:
             if not textview.parent == None:
                 self.remove(textview)
-        if action in ['remove', 'replace']:
+        if action in ['delete', 'replace']:
             self.pack_start(self.removetextview, False, False, 2)
         if action in ['insert', 'replace']:
             self.pack_start(self.inserttextview, False, False, 2)
-        self.removetextview.get_buffer().set_text(self.change.get_base_content())
-        self.inserttextview.get_buffer().set_text(self.change.get_proposed_content())
+        self.removetextview.get_buffer().set_text(''.join(self.change.get_base_content())[:-1])
+        self.inserttextview.get_buffer().set_text(''.join(self.change.get_proposed_content())[:-1])
 
 
 class EtcProposalsChangeView(gtk.Expander):
@@ -312,3 +317,13 @@ class EtcProposalsController(object):
     def use_changes(self, changes):
         [change.use() for change in changes]
         self.view.paned.changesview.update_changes()
+
+
+def run_frontend():
+    model = EtcProposals()
+    controller =  EtcProposalsController(model)
+    gtk.main()
+
+
+if __name__ == '__main__':
+    run_frontend()
