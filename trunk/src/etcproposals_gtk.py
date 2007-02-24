@@ -13,6 +13,17 @@ from etcproposals.etcproposals_lib import *
 import gtk
 
 
+class EtcProposalsGtkDecorator(EtcProposals):
+    def warmup_cache(self):
+        """for the GUI,  we need to keep the cache warm"""
+        self.get_whitespace_changes()
+        self.get_cvsheader_changes()
+        self.get_unmodified_changes()
+        self.get_used_changes()
+        self.get_zapped_changes()
+        self.get_undecided_changes()
+
+
 class EtcProposalsConfigGtkDecorator(EtcProposalsConfig):
     pass
 
@@ -296,17 +307,18 @@ class EtcProposalsPanedView(gtk.HPaned):
         elif selection == (1,2):
             self.changesview.update_changes(lambda: self.proposals.get_unmodified_changes())
         elif selection == (2,0):
-            self.changesview.update_changes(lambda: [change for change in self.proposals.get_all_changes() if change.get_status() == 'use'])
+            self.changesview.update_changes(lambda: self.proposals.get_used_changes())
         elif selection == (2,1):
-            self.changesview.update_changes(lambda: [change for change in self.proposals.get_all_changes() if change.get_status() == 'zap'])
+            self.changesview.update_changes(lambda: self.proposals.get_zapped_changes())
         elif selection == (2,2):
-            self.changesview.update_changes(lambda: [change for change in self.proposals.get_all_changes() if change.get_status() == 'undecided'])
+            self.changesview.update_changes(lambda: self.proposals.get_undecided_changes())
         return True
 
 
 class EtcProposalsView(gtk.Window):
     def __init__(self, proposals, controller):
         gtk.Window.__init__(self)
+        self.connect('destroy', lambda *w: gtk.main_quit())
         self.paned = EtcProposalsPanedView(proposals, controller)
         self.add(self.paned)
         self.set_size_request(800,600)
@@ -316,23 +328,27 @@ class EtcProposalsView(gtk.Window):
 class EtcProposalsController(object):
     def __init__(self, proposals):
         self.proposals = proposals
+        self.proposals.warmup_cache()
         self.view = EtcProposalsView(proposals, self)
         
     def undo_changes(self, changes):
         [change.undo() for change in changes]
+        self.proposals.warmup_cache()
         self.view.paned.changesview.update_changes()
 
     def zap_changes(self, changes):
         [change.zap() for change in changes]
+        self.proposals.warmup_cache()
         self.view.paned.changesview.update_changes()
 
     def use_changes(self, changes):
         [change.use() for change in changes]
+        self.proposals.warmup_cache()
         self.view.paned.changesview.update_changes()
 
 
 def run_frontend():
-    model = EtcProposals()
+    model = EtcProposalsGtkDecorator()
     controller =  EtcProposalsController(model)
     gtk.main()
 

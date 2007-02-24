@@ -12,6 +12,7 @@ __date__ = '2007-01-25'
 import ConfigParser, anydbm, shelve, difflib, os, os.path, re, shutil, md5
 from etcproposals.portage_stubs import PortageInterface
     
+import traceback #DEBUG
 
 STATEFILE = '/var/state/etcproposals.state'
 
@@ -101,14 +102,20 @@ class EtcProposalChange(object):
 
     def is_whitespace_only(self):
         "True, if the change only modifies whitespace file content"
+        if self.proposal.proposals._whitespace_changes != None:
+            return self in self.proposal.proposals._whitespace_changes
         return self._contains_only_matching_lines('^\s*$')
 
     def is_cvsheader(self):
         "True, if the change only modifies a CVS header"
+        if self.proposal.proposals._cvsheader_changes != None:
+            return self in self.proposal.proposals._cvsheader_changes
         return self._contains_only_matching_lines('^# .Header:.*$')
 
     def is_unmodified(self):
         "True, if the change should change a config file, which has not been changed (its the same as the one provided with the package"
+        if self.proposal.proposals._unmodified_changes != None:
+            return self in self.proposal.proposals._unmodified_changes
         return EtcProposalConfigFile(self.proposal.get_file_path()).is_unmodified()
     
     def on_changed(self):
@@ -319,6 +326,7 @@ class EtcProposalConfigFile(object):
 class EtcProposals(list):
     def __init__(self):
         list.__init__(self)
+        self.clear_cache()
         self.refresh()
 
     def refresh(self):
@@ -335,6 +343,15 @@ class EtcProposals(list):
             self._remove_statefiles(dir)
         self.refresh()
 
+    def clear_cache(self):
+        self._changes = None
+        self._whitespace_changes = None
+        self._cvsheader_changes = None
+        self._unmodified_changes = None
+        self._used_changes = None
+        self._zapped_changes = None
+        self._undecided_changes = None
+        
     def apply(self, update_unmodified=False):
         "merges all finished proposals"
         finished_proposals = [proposal for proposal in self if proposal.is_finished()]
@@ -381,20 +398,38 @@ class EtcProposals(list):
 
     def get_all_changes(self):
         "returns a list all changes"
-        return (change for proposal in self
-            for change in proposal.get_changes())
+        self._refresh_changes_cache()
+        return self._changes
 
     def get_whitespace_changes(self):
         "returns a list of changes only changing whitespaces"
-        return [change for change in self.get_all_changes() if change.is_whitespace_only()]
+        self._refresh_whitespace_changes_cache()
+        return self._whitespace_changes
 
     def get_cvsheader_changes(self):
         "returns a list of changes only changing CVS-Header"
-        return [change for change in self.get_all_changes() if change.is_cvsheader()]
+        self._refresh_cvsheader_changes_cache()
+        return self._cvsheader_changes
     
     def get_unmodified_changes(self):
         "returns a list of changes of unmodified files"
-        return [change for change in self.get_all_changes() if change.is_unmodified()]
+        self._refresh_unmodified_changes_cache()
+        return self._unmodified_changes
+
+    def get_used_changes(self):
+        "returns a list of used changes"
+        self._refresh_used_changes_cache()
+        return self._used_changes
+
+    def get_zapped_changes(self):
+        "returns a list of zapped changes"
+        self._refresh_zapped_changes_cache()
+        return self._zapped_changes
+
+    def get_undecided_changes(self):
+        "returns a list of undecided changes"
+        self._refresh_undecided_changes_cache()
+        return self._undecided_changes
 
     def get_previous_proposal(self, proposal):
         "returns the previous revision for a config file"
@@ -407,6 +442,7 @@ class EtcProposals(list):
 
     def on_proposal_changed(self, proposal):
         "Event, should be fired, if a proposal changes"
+        self.clear_cache()
         revision = proposal.get_revision()
         file_path = proposal.get_file_path()
         [p.clear_cache()
@@ -428,6 +464,34 @@ class EtcProposals(list):
 
     def _create_proposal(self, proposal_path):
         return EtcProposal(proposal_path, self)
+    
+    def _refresh_changes_cache(self):
+        if self._changes == None:
+            self._changes = [change for proposal in self for change in proposal.get_changes()]
+
+    def _refresh_whitespace_changes_cache(self):
+        if self._whitespace_changes == None:
+            self._whitespace_changes = [change for change in self.get_all_changes() if change.is_whitespace_only()]
+    
+    def _refresh_cvsheader_changes_cache(self):
+        if self._cvsheader_changes == None:
+            self._cvsheader_changes = [change for change in self.get_all_changes() if change.is_cvsheader()]
+
+    def _refresh_unmodified_changes_cache(self):
+        if self._unmodified_changes == None:
+            self._unmodified_changes = [change for change in self.get_all_changes() if change.is_unmodified()]
+
+    def _refresh_used_changes_cache(self):
+        if self._used_changes == None:
+            self._used_changes = [change for change in self.get_all_changes() if change.get_status() == 'use']
+
+    def _refresh_zapped_changes_cache(self):
+        if self._zapped_changes == None:
+            self._zapped_changes = [change for change in self.get_all_changes() if change.get_status() == 'zap']
+
+    def _refresh_undecided_changes_cache(self):
+        if self._undecided_changes == None:
+            self._undecided_changes = [change for change in self.get_all_changes() if change.get_status() == 'undecided']
 
 class EtcProposalsConfig(object):
     def __init__(self):
