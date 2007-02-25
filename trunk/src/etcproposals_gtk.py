@@ -164,7 +164,7 @@ class EtcProposalChangeContent(gtk.VBox):
     def update_change(self):
         action = self.change.get_action()
         affected_lines = self.change.get_affected_lines()
-        headertext = 'This change proposes to %s content at lines %d-%d in the file %s' % (
+        headertext = '%s content at lines %d-%d in the file %s' % (
             action,
             affected_lines[0],
             affected_lines[1],
@@ -230,7 +230,7 @@ class EtcProposalsTreeView(gtk.TreeView):
         self.column.add_attribute(self.cell, 'text',0)
         self.append_column(self.column)
         self.set_headers_visible(False)
-        self.connect_object('event', self.button_press, self.menu)
+        self.connect_object('event', self.on_button_press, self.menu)
         self.refresh()
         self.show()
     
@@ -242,8 +242,27 @@ class EtcProposalsTreeView(gtk.TreeView):
             filenode = self.treestore.iter_children(self.fsnode)
         for file in self.proposals.get_files():
             self.treestore.append(self.fsnode, [file])
+
+    def get_changegenerator_for_node(self, node):
+        if len(node) == 1 and not (node == (0,)):
+            return None
+        if node == (1,0):
+            return self.proposals.get_whitespace_changes
+        elif node == (1,1):
+            return self.proposals.get_cvsheader_changes
+        elif node == (1,2):
+            return self.proposals.get_unmodified_changes
+        elif node == (2,0):
+            return self.proposals.get_used_changes
+        elif node == (2,1):
+            return self.proposals.get_zapped_changes
+        elif node == (2,2):
+            return self.proposals.get_undecided_changes
+        elif len(node) == 2 and node[0] == 0:
+            return lambda: self.proposals.get_file_changes(self.treestore[node][0])
+        return lambda: []
     
-    def button_press(self, widget, event):
+    def on_button_press(self, widget, event):
         if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
             (path, column, x, y) = self.get_path_at_pos(int(event.x), int(event.y))
             self.get_selection().select_path(path)
@@ -252,34 +271,28 @@ class EtcProposalsTreeView(gtk.TreeView):
         return False
 
 
-class EtcProposalsChangesView(gtk.ScrolledWindow):
+class EtcProposalsChangesView(gtk.VBox):
     def __init__(self, controller):
-        gtk.ScrolledWindow.__init__(self)
+        gtk.VBox.__init__(self)
         self.controller = controller
         self.changes_generator = lambda: []
         self.expanded_changes = set()
-        self.vbox = gtk.VBox()
-        self.vbox.show()
-        self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        self.add_with_viewport(self.vbox)
-        self.set_size_request(600, 500)
-        self.show_all()
     
     def update_changes(self, changes_generator = None):
-        for child in self.vbox.get_children():
+        for child in self.get_children():
             labeltext = child.get_labeltext()
             if child.get_expanded():
                 self.expanded_changes.add(labeltext)
             elif labeltext in self.expanded_changes:
                 self.expanded_changes.remove(labeltext)
-            self.vbox.remove(child)
+            self.remove(child)
         if not changes_generator == None:
             self.changes_generator = changes_generator
         for change in self.changes_generator():
             changeview = EtcProposalsChangeView(change, self.controller)
             if changeview.get_labeltext() in self.expanded_changes:
                 changeview.set_expanded(True)
-            self.vbox.pack_start(changeview, False, False, 0)
+            self.pack_start(changeview, False, False, 0)
 
 
 class EtcProposalsPanedView(gtk.HPaned):
@@ -288,31 +301,25 @@ class EtcProposalsPanedView(gtk.HPaned):
         self.proposals = proposals
         self.changesview = EtcProposalsChangesView(controller)
         self.treeview = EtcProposalsTreeView(self.proposals)
-        self.add1(self.changesview)
-        self.rightbox = gtk.VBox()
-        self.rightbox.pack_start(self.treeview, True, True, 0)
-        self.rightbox.pack_end(gtk.Button('Apply'), False, False, 0)
-        self.rightbox.show_all()
-        self.add2(self.rightbox)
+        tv_scrollwindow = gtk.ScrolledWindow()
+        cv_scrollwindow = gtk.ScrolledWindow()
+        tv_scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        cv_scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        tv_scrollwindow.add_with_viewport(self.treeview)
+        cv_scrollwindow.add_with_viewport(self.changesview)
+        tv_scrollwindow.set_size_request(200,600)
+        self.add1(tv_scrollwindow)
+        self.add2(cv_scrollwindow)
         self.treeview.get_selection().set_select_function(self.on_tv_item_selcted, None)
-        self.show()
+        self.show_all()
     
     def on_tv_item_selcted(self, selection, user_data):
-        if len(selection) == 1 and not (selection == (0,)):
+        changegenerator = self.treeview.get_changegenerator_for_node(selection)
+        if changegenerator == None:
             return False
-        if selection == (1,0):
-            self.changesview.update_changes(lambda: self.proposals.get_whitespace_changes())
-        elif selection == (1,1):
-            self.changesview.update_changes(lambda: self.proposals.get_cvsheader_changes())
-        elif selection == (1,2):
-            self.changesview.update_changes(lambda: self.proposals.get_unmodified_changes())
-        elif selection == (2,0):
-            self.changesview.update_changes(lambda: self.proposals.get_used_changes())
-        elif selection == (2,1):
-            self.changesview.update_changes(lambda: self.proposals.get_zapped_changes())
-        elif selection == (2,2):
-            self.changesview.update_changes(lambda: self.proposals.get_undecided_changes())
+        self.changesview.update_changes(changegenerator)         
         return True
+
 
 
 class EtcProposalsView(gtk.Window):
