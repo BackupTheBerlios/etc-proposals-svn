@@ -78,21 +78,22 @@ class EtcProposalChangeTitle(gtk.VBox):
         self.lineslabel.set_label('Lines: %d-%d' % self.change.get_affected_lines())
 
 
-class EtcProposalChangeStatus(gtk.VBox):
+class EtcProposalChangeStatus(gtk.HBox):
     def __init__(self, change, controller):
-        gtk.VBox.__init__(self)
+        gtk.HBox.__init__(self)
         self.controller = controller
         self.change = change
         self.updating = False
         self.usebutton = gtk.ToggleButton('Use')
         self.zapbutton = gtk.ToggleButton('Zap')
+        self.usebutton.set_size_request(50,50)
+        self.zapbutton.set_size_request(50,50)
         self.usebutton.connect('toggled', lambda b: self.on_use_toggled())
         self.zapbutton.connect('toggled', lambda b: self.on_zap_toggled())
-        self.pack_start(self.usebutton, True, False, 2)
         self.pack_start(self.zapbutton, True, False, 2)
+        self.pack_start(self.usebutton, True, False, 2)
         self.update_change()
-        for control in [self.usebutton, self.zapbutton, self]:
-            control.show()
+        self.show_all()
 
     def update_change(self):
         buttonstates = (False, False)
@@ -259,7 +260,8 @@ class EtcProposalsTreeView(gtk.TreeView):
         elif node == (2,2):
             return self.proposals.get_undecided_changes
         elif len(node) == 2 and node[0] == 0:
-            return lambda: self.proposals.get_file_changes(self.treestore[node][0])
+            file = self.treestore[node][0]
+            return lambda: self.proposals.get_file_changes(file)
         return lambda: []
     
     def on_button_press(self, widget, event):
@@ -319,7 +321,6 @@ class EtcProposalsPanedView(gtk.HPaned):
             return False
         self.changesview.update_changes(changegenerator)         
         return True
-
 
 
 class EtcProposalsView(gtk.Window):
