@@ -319,9 +319,9 @@ class EtcProposalsPanedView(gtk.HPaned):
         self.add1(tv_scrollwindow)
         self.add2(cv_scrollwindow)
         self.treeview.get_selection().set_select_function(self.on_tv_item_selected, None)
-        self.treeview.menu.useitem.connect('activate', lambda *mi: self.on_use_tv_menu_select()) 
-        self.treeview.menu.zapitem.connect('activate', lambda *mi: self.on_zap_tv_menu_select()) 
-        self.treeview.menu.undoitem.connect('activate', lambda *mi: self.on_undo_tv_menu_select()) 
+        self.treeview.menu.useitem.connect('activate', self.on_use_tv_menu_select) 
+        self.treeview.menu.zapitem.connect('activate', self.on_zap_tv_menu_select) 
+        self.treeview.menu.undoitem.connect('activate', self.on_undo_tv_menu_select) 
         self.show_all()
     
     def on_tv_item_selected(self, selection, user_data):
@@ -331,15 +331,15 @@ class EtcProposalsPanedView(gtk.HPaned):
         self.changesview.update_changes(changegenerator)         
         return True
     
-    def on_use_tv_menu_select(self):
+    def on_use_tv_menu_select(self, widget):
         (model, iter) = self.treeview.get_selection().get_selected()
         self.controller.use_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
 
-    def on_zap_tv_menu_select(self):
+    def on_zap_tv_menu_select(self, widget):
         (model, iter) = self.treeview.get_selection().get_selected()
         self.controller.zap_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
 
-    def on_undo_tv_menu_select(self):
+    def on_undo_tv_menu_select(self, widget):
         (model, iter) = self.treeview.get_selection().get_selected()
         self.controller.undo_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
 
