@@ -204,9 +204,12 @@ class EtcProposalsChangeView(gtk.Expander):
 class EtcProposalsTreeViewMenu(gtk.Menu):
     def __init__(self):
         gtk.Menu.__init__(self)
-        self.append(gtk.MenuItem('Use All'))
-        self.append(gtk.MenuItem('Zap All'))
-        self.append(gtk.MenuItem('Undo All'))
+        self.useitem = gtk.MenuItem('Use All')
+        self.zapitem = gtk.MenuItem('Zap All')
+        self.undoitem = gtk.MenuItem('Undo All')
+        self.append(self.useitem)
+        self.append(self.zapitem)
+        self.append(self.undoitem)
         self.show_all()
 
     
@@ -281,6 +284,7 @@ class EtcProposalsChangesView(gtk.VBox):
         self.expanded_changes = set()
     
     def update_changes(self, changes_generator = None):
+        self.hide()
         for child in self.get_children():
             labeltext = child.get_labeltext()
             if child.get_expanded():
@@ -295,13 +299,15 @@ class EtcProposalsChangesView(gtk.VBox):
             if changeview.get_labeltext() in self.expanded_changes:
                 changeview.set_expanded(True)
             self.pack_start(changeview, False, False, 0)
+        self.show()
 
 
 class EtcProposalsPanedView(gtk.HPaned):
     def __init__(self, proposals, controller):
         gtk.HPaned.__init__(self)
+        self.controller = controller
         self.proposals = proposals
-        self.changesview = EtcProposalsChangesView(controller)
+        self.changesview = EtcProposalsChangesView(self.controller)
         self.treeview = EtcProposalsTreeView(self.proposals)
         tv_scrollwindow = gtk.ScrolledWindow()
         cv_scrollwindow = gtk.ScrolledWindow()
@@ -312,15 +318,30 @@ class EtcProposalsPanedView(gtk.HPaned):
         tv_scrollwindow.set_size_request(200,600)
         self.add1(tv_scrollwindow)
         self.add2(cv_scrollwindow)
-        self.treeview.get_selection().set_select_function(self.on_tv_item_selcted, None)
+        self.treeview.get_selection().set_select_function(self.on_tv_item_selected, None)
+        self.treeview.menu.useitem.connect('activate', lambda *mi: self.on_use_tv_menu_select()) 
+        self.treeview.menu.zapitem.connect('activate', lambda *mi: self.on_zap_tv_menu_select()) 
+        self.treeview.menu.undoitem.connect('activate', lambda *mi: self.on_undo_tv_menu_select()) 
         self.show_all()
     
-    def on_tv_item_selcted(self, selection, user_data):
+    def on_tv_item_selected(self, selection, user_data):
         changegenerator = self.treeview.get_changegenerator_for_node(selection)
         if changegenerator == None:
             return False
         self.changesview.update_changes(changegenerator)         
         return True
+    
+    def on_use_tv_menu_select(self):
+        (model, iter) = self.treeview.get_selection().get_selected()
+        self.controller.use_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
+
+    def on_zap_tv_menu_select(self):
+        (model, iter) = self.treeview.get_selection().get_selected()
+        self.controller.zap_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
+
+    def on_undo_tv_menu_select(self):
+        (model, iter) = self.treeview.get_selection().get_selected()
+        self.controller.undo_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
 
 
 class EtcProposalsView(gtk.Window):
