@@ -301,25 +301,6 @@ class EtcProposalsChangesView(gtk.VBox):
             self.pack_start(changeview, False, False, 0)
         self.show()
 
-class EtcProposalsToolbar(gtk.Toolbar):
-    def __init__(self, controller):
-        gtk.Toolbar.__init__(self)
-        iconw = gtk.Image()
-        iconw.set_from_stock(gtk.STOCK_QUIT, gtk.ICON_SIZE_LARGE_TOOLBAR)
-        self.append_element(gtk.TOOLBAR_CHILD_BUTTON, None, "Quit", "", "", iconw, None, self)
-        iconw = gtk.Image()
-        iconw.set_from_stock(gtk.STOCK_APPLY, gtk.ICON_SIZE_LARGE_TOOLBAR)
-        self.append_element(gtk.TOOLBAR_CHILD_BUTTON, None, "Apply", "", "", iconw, None, self)
-        iconw = gtk.Image()
-        iconw.set_from_stock(gtk.STOCK_MEDIA_REWIND, gtk.ICON_SIZE_LARGE_TOOLBAR)
-        self.append_element(gtk.TOOLBAR_CHILD_BUTTON, None, "Collapse All", "", "", iconw, None, self)
-        iconw = gtk.Image()
-        iconw.set_from_stock(gtk.STOCK_MEDIA_FORWARD, gtk.ICON_SIZE_LARGE_TOOLBAR)
-        self.append_element(gtk.TOOLBAR_CHILD_BUTTON, None, "Expand All", "", "", iconw, None, self)
-        iconw = gtk.Image()
-        iconw.set_from_stock(gtk.STOCK_ABOUT, gtk.ICON_SIZE_LARGE_TOOLBAR)
-        self.append_element(gtk.TOOLBAR_CHILD_BUTTON, None, "About", "", "", iconw, None, self)
-        self.show()
 
 class EtcProposalsPanedView(gtk.HPaned):
     def __init__(self, proposals, controller):
@@ -366,9 +347,12 @@ class EtcProposalsPanedView(gtk.HPaned):
 class EtcProposalsView(gtk.Window):
     def __init__(self, proposals, controller):
         gtk.Window.__init__(self)
+        self.controller = controller
         self.connect('destroy', lambda *w: gtk.main_quit())
         vbox = gtk.VBox()
-        self.toolbar = EtcProposalsToolbar(controller)
+        self.toolbar = self._get_toolbar()
+        self.toolbar.set_size_request(800, 100)
+        self.toolbar.show()
         self.paned = EtcProposalsPanedView(proposals, controller)
         vbox.add(self.toolbar)
         vbox.add(self.paned)
@@ -376,6 +360,32 @@ class EtcProposalsView(gtk.Window):
         self.add(vbox)
         self.set_size_request(800,600)
         self.show()
+    
+    def _get_toolbar(self):
+        tb_xml = """
+        <ui>
+            <toolbar name="Toolbar">
+                <toolitem action="Quit"/>
+                <toolitem action="Apply"/>
+                <separator/>
+                <toolitem action="Collapse"/>
+                <toolitem action="Expand"/>
+                <separator/>
+                <toolitem action="About"/>
+            </toolbar>
+        </ui>
+        """
+        actiongroup = gtk.ActionGroup('Main')
+        actiongroup.add_actions([
+            ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit without applying changes', gtk.main_quit),
+            ('Apply', gtk.STOCK_APPLY, '_Apply', None, 'Apply changes', lambda item: self.controller.apply()),
+            ('Collapse', gtk.STOCK_MEDIA_PREVIOUS, '_Collapse', None, 'Collapse all displayed changes'),
+            ('Expand', gtk.STOCK_MEDIA_FORWARD, '_Expand', None, 'Expand all displayed changes'),
+            ('About', gtk.STOCK_ABOUT, '_About', None, 'About this tool')])
+        uimanager = gtk.UIManager()
+        uimanager.insert_action_group(actiongroup, 0)
+        uimanager.add_ui_from_string(tb_xml)
+        return uimanager.get_widget('/Toolbar')
 
 
 class EtcProposalsController(object):
@@ -398,6 +408,12 @@ class EtcProposalsController(object):
         [change.use() for change in changes]
         self.proposals.warmup_cache()
         self.view.paned.changesview.update_changes()
+
+    def apply(self):
+        self.proposals.apply()
+        self.proposals.warmup_cache()
+        self.view.paned.treeview.refresh()
+        self.view.paned.changesview.update_changes(lambda: [])
 
 
 def run_frontend():
