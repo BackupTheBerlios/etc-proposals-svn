@@ -10,7 +10,7 @@ __version__ = '1.0'
 __date__ = '2007-01-25'
 
 from etcproposals.etcproposals_lib import *
-import gtk
+import gtk, os
 
 
 class EtcProposalsGtkDecorator(EtcProposals):
@@ -459,6 +459,8 @@ class EtcProposalsController(object):
 
 
 def run_frontend():
+    if not os.environ.has_key('DISPLAY'):
+        raise FrontendFailedException('display environment variable not set')
     model = EtcProposalsGtkDecorator()
     controller =  EtcProposalsController(model)
     gtk.main()

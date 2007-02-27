@@ -24,9 +24,17 @@ if __name__ == '__main__':
         except IndexError:
             print 'Every configured frontend failed to start.'
             raise SystemExit
-        if frontend == 'shell':
+        if frontend == 'gtk':
+            try:
+                import etcproposals.etcproposals_gtk
+                etcproposals.etcproposals_gtk.run_frontend()
+                frontend_succeeded = True
+            except FrontendFailedException, e:
+                print 'gtk frontend failed to start: ' + str(e)
+        elif frontend == 'shell':
             try:
                 import etcproposals.etcproposals_shell
                 etcproposals.etcproposals_shell.run_frontend()
+                frontend_succeeded = True
             except FrontendFailedException, e:
                 print 'shell frontend failed to start: ' + str(e)

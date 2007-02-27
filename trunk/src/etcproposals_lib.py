@@ -503,7 +503,7 @@ class EtcProposalsConfig(object):
 
     def PreferedFrontends(self):
         try:
-            return self.parser.get('General', 'PreferedFrontends').split(';')
+            return self.parser.get('General', 'PreferedFrontends').split(',')
         except Exception, e:
             print e
             return []
@@ -538,7 +538,7 @@ class EtcProposalsState(shelve.Shelf):
             del self[key]
         
 
-__all__ = ['EtcProposalChange', 'EtcProposal', 'EtcProposals', 'EtcProposalsConfig']
+__all__ = ['EtcProposalChange', 'EtcProposal', 'EtcProposals', 'EtcProposalsConfig', 'FrontendFailedException']
 
 if __name__ == '__main__':
     raise SystemExit, 'This module is not executable.' 
