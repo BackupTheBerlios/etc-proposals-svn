@@ -350,11 +350,41 @@ class EtcProposalsPanedView(gtk.HPaned):
         (model, iter) = self.treeview.get_selection().get_selected()
         self.controller.undo_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
 
+class EtcProposalsAbout(gtk.Dialog):
+    def __init__(self, parent):
+        gtk.Dialog.__init__(self)
+        self.set_title('About Etc-Proposals')
+        self.set_transient_for(parent)
+        title = gtk.Label()
+        title.set_justify(gtk.JUSTIFY_CENTER)
+        title.set_markup("""<span size="larger">Etc-Proposals</span>
+""")
+        info = gtk.Label()
+        info.set_justify(gtk.JUSTIFY_CENTER)
+        info.set_markup("""
+etc-proposals is a tool for merging
+gentoo configuration files.
+
+ Copyright 2006-2007 GPLv2 Björn Michaelsen 
+
+""")
+        icon = gtk.Image()
+        icon.set_from_stock(gtk.STOCK_ABOUT, gtk.ICON_SIZE_DIALOG)
+        close = gtk.Button('Close', gtk.STOCK_CLOSE)
+        close.connect('clicked', lambda *b: self.destroy())
+        self.vbox.add(title)
+        self.vbox.add(icon)
+        self.vbox.add(info)
+        self.action_area.add(close)
+        self.show_all()
+
 
 class EtcProposalsView(gtk.Window):
     def __init__(self, proposals, controller):
         gtk.Window.__init__(self)
         self.controller = controller
+        self.set_title('Etc-Proposals')
+        self.set_position(gtk.WIN_POS_CENTER)
         self.connect('destroy', lambda *w: gtk.main_quit())
         vbox = gtk.VBox()
         self.toolbar = self._get_toolbar()
@@ -393,7 +423,7 @@ class EtcProposalsView(gtk.Window):
             ('Apply', gtk.STOCK_APPLY, '_Apply', None, 'Apply changes', lambda item: self.controller.apply()),
             ('Collapse', gtk.STOCK_MEDIA_PREVIOUS, '_Collapse', None, 'Collapse all displayed changes', lambda item: self.on_collapse_all()),
             ('Expand', gtk.STOCK_MEDIA_FORWARD, '_Expand', None, 'Expand all displayed changes', lambda item: self.on_expand_all()),
-            ('About', gtk.STOCK_ABOUT, '_About', None, 'About this tool')])
+            ('About', gtk.STOCK_ABOUT, '_About', None, 'About this tool', lambda item: EtcProposalsAbout(self))])
         uimanager = gtk.UIManager()
         uimanager.insert_action_group(actiongroup, 0)
         uimanager.add_ui_from_string(tb_xml)
