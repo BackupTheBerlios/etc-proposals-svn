@@ -301,6 +301,13 @@ class EtcProposalsChangesView(gtk.VBox):
             self.pack_start(changeview, False, False, 0)
         self.show()
 
+    def collapse_all(self):
+        [child.set_expanded(False) for child in self.get_children()]
+    
+    def expand_all(self):
+        [child.set_expanded(True) for child in self.get_children()]
+
+
 
 class EtcProposalsPanedView(gtk.HPaned):
     def __init__(self, proposals, controller):
@@ -351,16 +358,21 @@ class EtcProposalsView(gtk.Window):
         self.connect('destroy', lambda *w: gtk.main_quit())
         vbox = gtk.VBox()
         self.toolbar = self._get_toolbar()
-        self.toolbar.set_size_request(800, 100)
         self.toolbar.show()
         self.paned = EtcProposalsPanedView(proposals, controller)
-        vbox.add(self.toolbar)
-        vbox.add(self.paned)
+        vbox.pack_start(self.toolbar, False, False, 0)
+        vbox.pack_start(self.paned, True, True, 0)
         vbox.show()
         self.add(vbox)
         self.set_size_request(800,600)
         self.show()
     
+    def on_expand_all(self):
+        self.paned.changesview.expand_all()
+    
+    def on_collapse_all(self):
+        self.paned.changesview.collapse_all()
+
     def _get_toolbar(self):
         tb_xml = """
         <ui>
@@ -379,8 +391,8 @@ class EtcProposalsView(gtk.Window):
         actiongroup.add_actions([
             ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit without applying changes', gtk.main_quit),
             ('Apply', gtk.STOCK_APPLY, '_Apply', None, 'Apply changes', lambda item: self.controller.apply()),
-            ('Collapse', gtk.STOCK_MEDIA_PREVIOUS, '_Collapse', None, 'Collapse all displayed changes'),
-            ('Expand', gtk.STOCK_MEDIA_FORWARD, '_Expand', None, 'Expand all displayed changes'),
+            ('Collapse', gtk.STOCK_MEDIA_PREVIOUS, '_Collapse', None, 'Collapse all displayed changes', lambda item: self.on_collapse_all()),
+            ('Expand', gtk.STOCK_MEDIA_FORWARD, '_Expand', None, 'Expand all displayed changes', lambda item: self.on_expand_all()),
             ('About', gtk.STOCK_ABOUT, '_About', None, 'About this tool')])
         uimanager = gtk.UIManager()
         uimanager.insert_action_group(actiongroup, 0)
