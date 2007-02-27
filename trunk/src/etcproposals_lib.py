@@ -331,6 +331,7 @@ class EtcProposals(list):
 
     def refresh(self):
         "clears and repopulates the list from the filesystem"
+        self.clear_cache()
         del self[:] 
         for dir in PortageInterface.get_config_protect():
             self._add_update_proposals(dir)
