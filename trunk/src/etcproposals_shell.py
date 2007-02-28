@@ -7,7 +7,7 @@
 
 __author__ = 'Björn Michaelsen' 
 __version__ = '1.0'
-__date__ = '2007-01-25'
+__date__ = '2007-02-28'
 
 import cmd, difflib, os, os.path, re, tempfile
 from etcproposals.etcproposals_lib import *

@@ -7,9 +7,10 @@
 
 __author__ = 'Björn Michaelsen' 
 __version__ = '1.0'
-__date__ = '2007-01-25'
+__date__ = '2007-02-28'
 
 from etcproposals.etcproposals_lib import *
+from etcproposals.etcproposals_lib import __version__ as __libversion__
 import gtk, os
 
 
@@ -350,33 +351,32 @@ class EtcProposalsPanedView(gtk.HPaned):
         (model, iter) = self.treeview.get_selection().get_selected()
         self.controller.undo_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
 
-class EtcProposalsAbout(gtk.Dialog):
+class EtcProposalsAboutDialog(gtk.AboutDialog):
     def __init__(self, parent):
         gtk.Dialog.__init__(self)
-        self.set_title('About Etc-Proposals')
         self.set_transient_for(parent)
-        title = gtk.Label()
-        title.set_justify(gtk.JUSTIFY_CENTER)
-        title.set_markup("""<span size="larger">Etc-Proposals</span>
-""")
-        info = gtk.Label()
-        info.set_justify(gtk.JUSTIFY_CENTER)
-        info.set_markup("""
-etc-proposals is a tool for merging
-gentoo configuration files.
+        self.set_name('Etc-Proposals')
+        self.set_version(__version__)
+        self.set_copyright('Copyright 2006-2007 Björn Michaelsen')
+        self.set_comments('etc-proposals is a tool for merging gentoo configuration files.\netcproposals_lib version:' + __libversion__)
+        self.set_website('http://michaelsen.kicks-ass.net/Members/bjoern/etcproposals')
+        self.set_license('''GNU General Public License, Version 2
 
- Copyright 2006-2007 GPLv2 Björn Michaelsen 
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License Version 2 as
+published by the Free Software Foundation.
 
-""")
-        icon = gtk.Image()
-        icon.set_from_stock(gtk.STOCK_ABOUT, gtk.ICON_SIZE_DIALOG)
-        close = gtk.Button('Close', gtk.STOCK_CLOSE)
-        close.connect('clicked', lambda *b: self.destroy())
-        self.vbox.add(title)
-        self.vbox.add(icon)
-        self.vbox.add(info)
-        self.action_area.add(close)
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA''')
+        self.set_authors(['Björn Michaelsen'])
         self.show_all()
+        self.connect("response", lambda *d: self.destroy())
 
 
 class EtcProposalsView(gtk.Window):
@@ -423,7 +423,7 @@ class EtcProposalsView(gtk.Window):
             ('Apply', gtk.STOCK_APPLY, '_Apply', None, 'Apply changes', lambda item: self.controller.apply()),
             ('Collapse', gtk.STOCK_MEDIA_PREVIOUS, '_Collapse', None, 'Collapse all displayed changes', lambda item: self.on_collapse_all()),
             ('Expand', gtk.STOCK_MEDIA_FORWARD, '_Expand', None, 'Expand all displayed changes', lambda item: self.on_expand_all()),
-            ('About', gtk.STOCK_ABOUT, '_About', None, 'About this tool', lambda item: EtcProposalsAbout(self))])
+            ('About', gtk.STOCK_ABOUT, '_About', None, 'About this tool', lambda item: EtcProposalsAboutDialog(self))])
         uimanager = gtk.UIManager()
         uimanager.insert_action_group(actiongroup, 0)
         uimanager.add_ui_from_string(tb_xml)
