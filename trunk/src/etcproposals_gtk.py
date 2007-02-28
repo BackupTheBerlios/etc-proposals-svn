@@ -452,7 +452,7 @@ class EtcProposalsController(object):
         self.view.paned.changesview.update_changes()
 
     def apply(self):
-        self.proposals.apply()
+        self.proposals.apply(True)
         self.proposals.warmup_cache()
         self.view.paned.treeview.refresh()
         self.view.paned.changesview.update_changes(lambda: [])

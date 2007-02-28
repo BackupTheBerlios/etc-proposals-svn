@@ -63,6 +63,8 @@ class EtcProposalsStub(object):
         return [EtcProposalsChangeStub(False)]
     def get_all_changes(self):
         return [EtcProposalsChangeStub(True), EtcProposalsChangeStub(False)]
+    def warmup_cache(self):
+        pass
     
 
 class EtcProposalsControllerStub(object):
@@ -212,20 +214,36 @@ class TestView(TestGtk):
         """Testing GTK display"""
         proposals = EtcProposalsStub()
         controller = EtcProposalsControllerStub()
-        view = EtcProposalsView(proposals, controller)
+        self.view = EtcProposalsView(proposals, controller)
         gtk.main()
-        view.destroy()
         self.failIf(self.Failed, 'Test failed.')
-    
+
+    def gtk_passed(self):
+        self.view.destroy()
+        TestGtk.gtk_passed(self)
+        
+    def gtk_failed(self):
+        self.view.destroy()
+        TestGtk.gtk_failed(self)
+
+
 class TestController(TestGtk):
     def runTest(self):
         """Testing GTK controller"""
         proposals = EtcProposalsStub()
-        controller = EtcProposalsController(proposals)
+        self.controller = EtcProposalsController(proposals)
         gtk.main()
-        controller.view.destroy()
         self.failIf(self.Failed, 'Test failed.')
-    
+
+    def gtk_passed(self):
+        self.controller.view.destroy()
+        TestGtk.gtk_passed(self)
+        
+    def gtk_failed(self):
+        self.controller.view.destroy()
+        TestGtk.gtk_failed(self)
+
+
 alltests = [TestChangeType(), TestChangeTitle(), TestChangeStatus(), TestChangeLabel(), TestChangeContent(), TestChangeView(), TestTreeView(), TestChangesView(), TestPanedView(), TestView(), TestController()]
 alltestssuite = unittest.TestSuite(alltests)
 
