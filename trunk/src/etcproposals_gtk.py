@@ -11,8 +11,12 @@ __date__ = '2007-02-28'
 
 from etcproposals.etcproposals_lib import *
 from etcproposals.etcproposals_lib import __version__ as __libversion__
-import gtk, os
+import os
 
+try:
+    import gtk
+except ImportError:
+    raise FrontendFailedException('Could not find gtk-bindings.')
 
 class EtcProposalsGtkDecorator(EtcProposals):
     def warmup_cache(self):
@@ -452,7 +456,7 @@ class EtcProposalsController(object):
         self.view.paned.changesview.update_changes()
 
     def apply(self):
-        self.proposals.apply(True)
+        self.proposals.apply()
         self.proposals.warmup_cache()
         self.view.paned.treeview.refresh()
         self.view.paned.changesview.update_changes(lambda: [])
