@@ -1,0 +1,40 @@
+#!/usr/bin/env python
+#! -*- coding: utf-8 -*-
+# Copyright 2006 Björn Michaelsen
+# Distributed under the terms of the GNU General Public License v2
+
+# etc-proposals - a tool to integrate modified configs, post-emerge
+#
+# Author: Björn Michaelsen 
+
+from os import getuid, system
+from etcproposals.etcproposals_lib import EtcProposalsConfig 
+from etcproposals.etcproposals_lib import FrontendFailedException
+
+if __name__ == '__main__':
+    if getuid() != 0:
+        print 'EtcProposals: You have to be root to run this tool.'
+        raise SystemExit
+    frontends = EtcProposalsConfig().PreferedFrontends()
+    frontends.reverse()
+    frontend_succeeded = False
+    while not frontend_succeeded:
+        try:
+            frontend = frontends.pop()
+        except IndexError:
+            print 'Every configured frontend failed to start.'
+            raise SystemExit
+        if frontend == 'gtk':
+            try:
+                import etcproposals.etcproposals_gtk
+                etcproposals.etcproposals_gtk.run_frontend()
+                frontend_succeeded = True
+            except FrontendFailedException, e:
+                print 'gtk frontend failed to start: ' + str(e)
+        elif frontend == 'shell':
+            try:
+                import etcproposals.etcproposals_shell
+                etcproposals.etcproposals_shell.run_frontend()
+                frontend_succeeded = True
+            except FrontendFailedException, e:
+                print 'shell frontend failed to start: ' + str(e)
