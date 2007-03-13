@@ -12,7 +12,7 @@ setup(
     author_email = 'bmichaelsen@gmx.de',
     description = 'a set of tools for updating gentoo config files',
     license = 'GPL Version 2',
-    version = '1.0',
+    version = '1.1',
     keywords = ['gentoo', 'config', 'tool'],
     packages = ['etcproposals'],
     package_dir = {'etcproposals' : 'src'},

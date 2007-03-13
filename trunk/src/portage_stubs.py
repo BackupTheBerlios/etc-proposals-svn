@@ -4,23 +4,12 @@
 # based on gentoo portage 2.1.1, Copyright 1998-2007 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
-import shlex, string, os, md5
-portage_available = False
-try:
-    import portage
-    portage_available = True
-except ImportError:
-    pass
+import re, string, os, md5
 
 # portage constants
 
-VDB_PATH                = "/var/db/pkg"
+VDB_PATH = "/var/db/pkg"
 
-PROFILE_PATH            = "/etc/make.profile"
-
-MAKE_CONF_FILE          = "/etc/make.conf"
-MAKE_GLOBALS_FILE       = "/etc/make.globals"
-MAKE_DEFAULTS_FILE      = PROFILE_PATH + "/make.defaults"
 
 class NotImplementedError(Exception):
     pass
@@ -28,38 +17,23 @@ class NotImplementedError(Exception):
 # portage utils stuff
 class PortageUtils(object):
     @staticmethod
-    def getconfig(mycfg):
-        def parser_state_generator():
-            while True:
-                for state in ['key', 'equals', 'value']:
-                    yield state
-        mykeys = {}
-        f = open(mycfg,'r')
-        lex = shlex.shlex(f)
-        lex.wordchars = string.digits+string.letters+"~!@#$%*_\:;?,./-+{}"     
-        lex.quotes = "\"'"
-        parser_states = parser_state_generator()
-        while True:
-            token=lex.get_token()
-            parser_state = parser_states.next()
-            if token=='' or (parser_state == 'equals' and not token =='='):
-                break
-            if parser_state == 'key':
-                key = token
-            if parser_state == 'value':
-                mykeys[key]=token.replace("\\\n","")
-        return mykeys
+    def get_config_protect():
+        for line in os.popen('emerge --info').readlines():
+            match = re.match(r'CONFIG_PROTECT="(.*)"', line)
+            if match:
+                return match.group(1).split(' ')
+        return []
 
+
+# pkgcore utils stuff
+class PkgcoreUtils(object):
     @staticmethod
     def get_config_protect():
-        make_conf_settings = PortageUtils.getconfig(MAKE_CONF_FILE)
-        make_globals_settings = PortageUtils.getconfig(MAKE_GLOBALS_FILE)
-        make_defaults_settings = PortageUtils.getconfig(MAKE_DEFAULTS_FILE)
-        config_protect = os.environ['CONFIG_PROTECT']
-        for config_settings in [make_defaults_settings, make_globals_settings, make_conf_settings]:
-            if config_settings.has_key('CONFIG_PROTECT'):
-                config_protect = config_protect + ' ' + config_settings['CONFIG_PROTECT'][1:-1]
-        return config_protect.split()
+        for line in os.popen('pconfig dump-uncollapsed').readlines():
+            match = re.match(r"'CONFIG_PROTECT' = '(.*)'", line)
+            if match:
+                return match.group(1).split(' ')
+        return []
 
 
 # Installed package DB stuff
@@ -109,10 +83,11 @@ class InstalledPkgDB(object):
 
 class PortageInterface(object):
     @staticmethod
-    def get_config_protect():
-        if portage_available:
-            return portage.settings['CONFIG_PROTECT'].split(' ')
-        return PortageUtils.get_config_protect()
+    def get_config_protect(backend):
+        return {
+            'portage' : PortageUtils.get_config_protect,
+            'pkgcore' : PkgcoreUtils.get_config_protect
+            }[backend]()
 
     @staticmethod
     def get_md5_from_vdb(files):

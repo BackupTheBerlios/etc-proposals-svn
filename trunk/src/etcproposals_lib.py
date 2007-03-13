@@ -333,14 +333,14 @@ class EtcProposals(list):
         "clears and repopulates the list from the filesystem"
         self.clear_cache()
         del self[:] 
-        for dir in PortageInterface.get_config_protect():
+        for dir in PortageInterface.get_config_protect(EtcProposalsConfig().Backend()):
             self._add_update_proposals(dir)
         self.sort()
 
     def clear_all_states(self):
         "this is pretty much 'undo all' but it also removes orphaned state files"
         # removing deprecated old style statefile
-        for dir in PortageInterface.get_config_protect():
+        for dir in PortageInterface.get_config_protect(EtcProposalsConfig().Backend()):
             self._remove_statefiles(dir)
         self.refresh()
 
@@ -494,6 +494,7 @@ class EtcProposals(list):
         if self._undecided_changes == None:
             self._undecided_changes = [change for change in self.get_all_changes() if change.get_status() == 'undecided']
 
+
 class EtcProposalsConfig(object):
     def __init__(self):
         configlocations = ['.', '/etc']
@@ -505,8 +506,13 @@ class EtcProposalsConfig(object):
         try:
             return self.parser.get('General', 'PreferedFrontends').split(',')
         except Exception, e:
-            print e
             return []
+    
+    def Backend(self):
+        try:
+            return self.parser.get('General', 'Backend')
+        except Exception, e:
+            return 'portage'
 
 
 class EtcProposalsState(shelve.Shelf):
