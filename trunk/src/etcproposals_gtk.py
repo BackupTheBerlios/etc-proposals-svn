@@ -271,13 +271,14 @@ class EtcProposalsTreeViewMenu(gtk.Menu):
     
 class EtcProposalsTreeView(gtk.TreeView):
     """EtcProposalsTreeView implements the Treeview for selecting files and changes."""
-    def __init__(self, proposals):
+    def __init__(self, proposals, controller):
         self.treestore = gtk.TreeStore(str)
         gtk.TreeView.__init__(self, self.treestore)
         self.menu = EtcProposalsTreeViewMenu()
         self.column = gtk.TreeViewColumn('')
         self.cell = gtk.CellRendererText()
         self.proposals = proposals
+        self.controller = controller
         self.fsnode = self.treestore.append(None, ['Filesystem'])
         typenode = self.treestore.append(None, ['Type'])
         self.treestore.append(typenode, ['Whitespace'])
@@ -293,6 +294,9 @@ class EtcProposalsTreeView(gtk.TreeView):
         self.set_headers_visible(False)
         self.connect_object('event', self.on_button_press, self.menu)
         self.refresh()
+        self.menu.useitem.connect('activate', self.on_use_tv_menu_select) 
+        self.menu.zapitem.connect('activate', self.on_zap_tv_menu_select) 
+        self.menu.undoitem.connect('activate', self.on_undo_tv_menu_select) 
         self.show()
     
     def refresh(self):
@@ -332,6 +336,18 @@ class EtcProposalsTreeView(gtk.TreeView):
             widget.popup(None, None, None, event.button, event.time)
             return True
         return False
+
+    def on_use_tv_menu_select(self, widget):
+        (model, iter) = self.get_selection().get_selected()
+        self.controller.use_changes(self.get_changegenerator_for_node(model.get_path(iter))())
+
+    def on_zap_tv_menu_select(self, widget):
+        (model, iter) = self.get_selection().get_selected()
+        self.controller.zap_changes(self.get_changegenerator_for_node(model.get_path(iter))())
+
+    def on_undo_tv_menu_select(self, widget):
+        (model, iter) = self.get_selection().get_selected()
+        self.controller.undo_changes(self.get_changegenerator_for_node(model.get_path(iter))())
 
 
 class EtcProposalsChangesView(gtk.VBox):
@@ -379,7 +395,7 @@ class EtcProposalsPanedView(gtk.HPaned):
         self.controller = controller
         self.proposals = proposals
         self.changesview = EtcProposalsChangesView(self.controller)
-        self.treeview = EtcProposalsTreeView(self.proposals)
+        self.treeview = EtcProposalsTreeView(self.proposals, self.controller)
         tv_scrollwindow = gtk.ScrolledWindow()
         cv_scrollwindow = gtk.ScrolledWindow()
         tv_scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -390,9 +406,6 @@ class EtcProposalsPanedView(gtk.HPaned):
         self.add1(tv_scrollwindow)
         self.add2(cv_scrollwindow)
         self.treeview.get_selection().set_select_function(self.on_tv_item_selected, None)
-        self.treeview.menu.useitem.connect('activate', self.on_use_tv_menu_select) 
-        self.treeview.menu.zapitem.connect('activate', self.on_zap_tv_menu_select) 
-        self.treeview.menu.undoitem.connect('activate', self.on_undo_tv_menu_select) 
         self.show_all()
     
     def on_tv_item_selected(self, selection, user_data):
@@ -401,18 +414,6 @@ class EtcProposalsPanedView(gtk.HPaned):
             return False
         self.changesview.update_changes(changegenerator)         
         return True
-    
-    def on_use_tv_menu_select(self, widget):
-        (model, iter) = self.treeview.get_selection().get_selected()
-        self.controller.use_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
-
-    def on_zap_tv_menu_select(self, widget):
-        (model, iter) = self.treeview.get_selection().get_selected()
-        self.controller.zap_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
-
-    def on_undo_tv_menu_select(self, widget):
-        (model, iter) = self.treeview.get_selection().get_selected()
-        self.controller.undo_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
 
 class EtcProposalsAboutDialog(gtk.AboutDialog):
     """EtcProposalsAboutDialog just is an About Dialog"""
