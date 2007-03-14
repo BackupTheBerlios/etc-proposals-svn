@@ -6,9 +6,35 @@
 # etc-proposals - a gtk-frontend to integrate modified configs, post-emerge
 
 __author__ = 'Björn Michaelsen' 
-__version__ = '1.0'
-__date__ = '2007-02-28'
+__version__ = '1.1'
+__date__ = '2007-03-14'
 
+"""
+etcproposals_gtk is a gtk-frontend to integrate modified configs, post-emerge.
+Its implemented using the MVC (model-view-controller) design pattern.
+
+The model is represented by the EtcProposalsGtkDecorator class, whose functionality
+is mostly implemented in etcproposals_lib.
+
+The view is implemented by the EtcProposalsView using most of the other helper classes
+in this module to show a representation of the model and accept user input.
+
+The controller is implemented by the EtcProposalsController and is used to modify the
+model while keeping the view in sync.
+
+Here is a bit of ASCII-art showing the hierachy of objects in the view:
+EtcProposalsView (window)
++- (toolbar) -> starts EtcProposalsAboutDialog
++- EtcProposalsPanedView
+   +- EtcProposalsTreeView
+   +- EtcProposalsChangesView
+      +- EtcProposalsChangeView (multiple)
+         +- EtcProposalChangeLabel
+         |  +- EtcProposalChangeStatus
+         |  +- EtcProposalChangeTitle
+         |  +- EtcProposalChangeType
+         +- EtcProposalChangeContent
+"""
 from etcproposals.etcproposals_lib import *
 from etcproposals.etcproposals_lib import __version__ as __libversion__
 import os
@@ -19,6 +45,7 @@ except ImportError:
     raise FrontendFailedException('Could not find gtk-bindings.')
 
 class EtcProposalsGtkDecorator(EtcProposals):
+    """decoration of EtcProposals to satisfy the performance needs of the GUI"""
     def warmup_cache(self):
         """for the GUI,  we need to keep the cache warm"""
         self.get_whitespace_changes()
@@ -30,10 +57,14 @@ class EtcProposalsGtkDecorator(EtcProposals):
 
 
 class EtcProposalsConfigGtkDecorator(EtcProposalsConfig):
+    """stub to handle configuration settings for the Gtk GUI"""
     pass
 
 
 class EtcProposalChangeType(gtk.VBox):
+    """EtcProposalChangeType is a widget showing if a connected
+    EtcProposalChange is Whitespace-Only, a CVS-Header or part of an Unmodified
+    file"""
     def __init__(self, change):
         gtk.VBox.__init__(self)
         self.labelstatus = [
@@ -62,6 +93,8 @@ class EtcProposalChangeType(gtk.VBox):
 
 
 class EtcProposalChangeTitle(gtk.VBox):
+    """EtcProposalChangeTitle is a widget showing the filename, effected lines
+    and proposal number of a connected EtcProposalsChange"""
     def __init__(self, change):
         gtk.VBox.__init__(self)
         self.change = change
@@ -84,6 +117,11 @@ class EtcProposalChangeTitle(gtk.VBox):
 
 
 class EtcProposalChangeStatus(gtk.HBox):
+    """EtcProposalChangeStatus is a widget showing if a connected
+    EtcProposalsChange is selected to be used or zapped. The user can change
+    the status of the EtcProposalsChange using the toggle buttons. The
+    EtcProposalChangeStatus uses an EtcProposalsController to change the
+    status."""
     def __init__(self, change, controller):
         gtk.HBox.__init__(self)
         self.controller = controller
@@ -128,6 +166,9 @@ class EtcProposalChangeStatus(gtk.HBox):
 
 
 class EtcProposalChangeLabel(gtk.Frame):
+    """EtcProposalChangeLabel is a widget showing all data of an
+    EtcProposalsChange but the content. It contains an EtcProposalChangeStatus,
+    an EtcProposalChangeTitle and an EtcProposalChangeType."""
     def __init__(self, change, controller):
         gtk.Frame.__init__(self)
         self.change = change
@@ -148,6 +189,8 @@ class EtcProposalChangeLabel(gtk.Frame):
 
 
 class EtcProposalChangeContent(gtk.VBox):
+    """EtcProposalChangeContent is a widget showing the modified lines of an
+    EtcProposalsChange"""
     def __init__(self, change):
         gtk.VBox.__init__(self)
         self.change = change
@@ -188,6 +231,14 @@ class EtcProposalChangeContent(gtk.VBox):
 
 
 class EtcProposalsChangeView(gtk.Expander):
+    """EtcProposalsChangeView is an widget showing everything about an
+    EtcProposalsChange and allows to change its status. It contains an
+    EtcProposalChangeLabel and an EtcProposalChangeContent. In all, it contains the following objects:
+     - EtcProposalChangeLabel
+     --- EtcProposalChangeStatus
+     --- EtcProposalChangeTitle
+     --- EtcProposalChangeType
+     - EtcProposalChangeContent"""
     def __init__(self, change, controller):
         gtk.Expander.__init__(self)
         self.change = change
@@ -207,6 +258,7 @@ class EtcProposalsChangeView(gtk.Expander):
 
 
 class EtcProposalsTreeViewMenu(gtk.Menu):
+    """EtcProposalsTreeViewMenu implements the popup menu in the Treeview."""
     def __init__(self):
         gtk.Menu.__init__(self)
         self.useitem = gtk.MenuItem('Use All')
@@ -219,6 +271,7 @@ class EtcProposalsTreeViewMenu(gtk.Menu):
 
     
 class EtcProposalsTreeView(gtk.TreeView):
+    """EtcProposalsTreeView implements the Treeview for selecting files and changes."""
     def __init__(self, proposals):
         self.treestore = gtk.TreeStore(str)
         gtk.TreeView.__init__(self, self.treestore)
@@ -253,6 +306,7 @@ class EtcProposalsTreeView(gtk.TreeView):
             self.treestore.append(self.fsnode, [file])
 
     def get_changegenerator_for_node(self, node):
+        """returns a functor that returns a list of EtcProposalChanges belonging to a node."""
         if len(node) == 1 and not (node == (0,)):
             return None
         if node == (1,0):
@@ -282,6 +336,9 @@ class EtcProposalsTreeView(gtk.TreeView):
 
 
 class EtcProposalsChangesView(gtk.VBox):
+    """EtcProposalsChangesView implements the display a list of changes. It
+    uses EtcProposalsChangeViews to display the changes. The changes it
+    displays are provided by a functor."""
     def __init__(self, controller):
         gtk.VBox.__init__(self)
         self.controller = controller
@@ -315,6 +372,9 @@ class EtcProposalsChangesView(gtk.VBox):
 
 
 class EtcProposalsPanedView(gtk.HPaned):
+    """EtcProposalsPanedView is a Panel containing an EtcProposalsTreeView for
+    selecting sets of changes and an EtcProposalsChangesView to display
+    them."""
     def __init__(self, proposals, controller):
         gtk.HPaned.__init__(self)
         self.controller = controller
@@ -356,6 +416,7 @@ class EtcProposalsPanedView(gtk.HPaned):
         self.controller.undo_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
 
 class EtcProposalsAboutDialog(gtk.AboutDialog):
+    """EtcProposalsAboutDialog just is an About Dialog"""
     def __init__(self, parent):
         gtk.Dialog.__init__(self)
         self.set_transient_for(parent)
@@ -384,6 +445,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA''')
 
 
 class EtcProposalsView(gtk.Window):
+    """EtcProposalsView is a the Window that displays all the changes. It
+    contains a EtcProposalsPanedView and an additional toolbar."""
     def __init__(self, proposals, controller):
         gtk.Window.__init__(self)
         self.controller = controller
@@ -435,6 +498,11 @@ class EtcProposalsView(gtk.Window):
 
 
 class EtcProposalsController(object):
+    """EtcProposalsController is the controller in the
+    model-view-controller-combination (MVC). It glues the (data-)model
+    (EtcProposalsGtkDecorator) and the view (EtcProposalsView). It triggers
+    changes in the model while keeping the view in sync. It generates an view
+    instance itself when initiated."""
     def __init__(self, proposals):
         self.proposals = proposals
         self.proposals.warmup_cache()
