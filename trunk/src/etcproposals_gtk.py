@@ -525,6 +525,16 @@ class EtcProposalsController(object):
 
     def apply(self):
         self.proposals.apply()
+        if len(self.proposals) == 0 and EtcProposalsConfigGtkDecorator().Fastexit():
+            gtk.main_quit()
+        self.proposals.warmup_cache()
+        self.view.paned.treeview.refresh()
+        self.view.paned.changesview.update_changes(lambda: [])
+    
+    def refresh(self):
+        self.proposals.refresh()
+        if len(self.proposals) == 0 and EtcProposalsConfigGtkDecorator().Fastexit():
+            qtk.main_quit()
         self.proposals.warmup_cache()
         self.view.paned.treeview.refresh()
         self.view.paned.changesview.update_changes(lambda: [])

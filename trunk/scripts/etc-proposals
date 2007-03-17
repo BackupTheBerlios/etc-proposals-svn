@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 #! -*- coding: utf-8 -*-
 # Copyright 2006 Björn Michaelsen
 # Distributed under the terms of the GNU General Public License v2
@@ -10,11 +10,34 @@
 from os import getuid, system
 from etcproposals.etcproposals_lib import EtcProposalsConfig 
 from etcproposals.etcproposals_lib import FrontendFailedException
+from getopt import getopt
+from sys import argv
+
+def showhelp():
+    print "usage:"
+    print "etc-proposals [--frontend frontend] [--fastexit]"
+    raise SystemExit
 
 if __name__ == '__main__':
     if getuid() != 0:
         print 'EtcProposals: You have to be root to run this tool.'
         raise SystemExit
+    opts, pargs = getopt(argv[1:], '', ['frontend=','fastexit'])
+    for opt in opts:
+        if len(opt) == 0:
+            continue
+        if opt[0] == '--frontend':
+            if len(opt) == 2:
+                EtcProposalsConfig.PreferedFrontendsOverride([opt[1]])
+            else:
+                showhelp()
+        elif opt[0] == '--fastexit':
+            if opt[1] == '':
+                EtcProposalsConfig.FastexitOverride(True)
+            else:
+                showhelp()
+        else:
+            showhelp()
     frontends = EtcProposalsConfig().PreferedFrontends()
     frontends.reverse()
     frontend_succeeded = False

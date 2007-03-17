@@ -667,6 +667,9 @@ NOTE:
         self.current_change = None
         self.change_iter = self.proposals.get_all_changes().__iter__()
         self.update_prompt()
+        if len(self.proposals) == 0 and EtcProposalsConfigShellDecorator().Fastexit():
+            print "No proposes left. Exiting."
+            raise SystemExit
 
     def do_EOF(self, args):
         self.do_quit(args)

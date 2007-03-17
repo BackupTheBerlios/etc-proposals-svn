@@ -496,6 +496,9 @@ class EtcProposals(list):
 
 
 class EtcProposalsConfig(object):
+    fastexit_override = None
+    prefered_frontends_override = None
+
     def __init__(self):
         configlocations = ['.', '/etc']
         self.parser = ConfigParser.ConfigParser()
@@ -504,7 +507,10 @@ class EtcProposalsConfig(object):
 
     def PreferedFrontends(self):
         try:
-            return self.parser.get('General', 'PreferedFrontends').split(',')
+            if EtcProposalsConfig.prefered_frontends_override != None:
+                return EtcProposalsConfig.prefered_frontends_override
+            else:
+                return self.parser.get('General', 'PreferedFrontends').split(',')
         except Exception, e:
             return []
     
@@ -514,6 +520,23 @@ class EtcProposalsConfig(object):
         except Exception, e:
             return 'portage'
 
+    def Fastexit(self):
+        try:
+            if EtcProposalsConfig.fastexit_override != None:
+                return EtcProposalsConfig.fastexit_override
+            else:
+                return (self.parser.get('General', 'Fastexit') == 'True')
+        except Exception, e:
+            return False
+    
+    @staticmethod
+    def FastexitOverride(override_value):
+        EtcProposalsConfig.fastexit_override = override_value
+    
+    @staticmethod
+    def PreferedFrontendsOverride(override_value):
+        EtcProposalsConfig.prefered_frontends_override = override_value
+        
 
 class EtcProposalsState(shelve.Shelf):
     def __init__(self):
