@@ -415,10 +415,27 @@ class EtcProposalsPanedView(gtk.HPaned):
         self.changesview.update_changes(changegenerator)         
         return True
 
+class EtcProposalsHelpDialog(gtk.MessageDialog):
+    """Shows a short help text"""
+    def __init__(self, parent):
+        gtk.MessageDialog.__init__(self, parent,
+            gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            gtk.MESSAGE_INFO, gtk.BUTTONS_OK,
+            """Etc-Proposals is a tool for updating gentoo configuration files
+            
+You can accept proposals made by a updated package to change your configuration file or reject them. To do the first use the "Use"-Button, otherwise use the "Zap"-Button. If a file has multiple changes, you can make your choice seperately.
+
+You can use or zap all changes in a group in treeview on the right by using the contextmenu that comes up when you click with the right mousebutton there.
+
+Use the "Apply"-Button in the Toolbar to merge the changes to the filesystem.""")
+        self.connect("response", lambda *d: self.destroy())
+        self.run()
+    
+        
 class EtcProposalsAboutDialog(gtk.AboutDialog):
     """EtcProposalsAboutDialog just is an About Dialog"""
     def __init__(self, parent):
-        gtk.Dialog.__init__(self)
+        gtk.AboutDialog.__init__(self)
         self.set_transient_for(parent)
         self.set_name('Etc-Proposals')
         self.set_version(__version__)
@@ -439,7 +456,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA''')
-        self.set_authors(['Björn Michaelsen'])
+        self.set_authors(['Björn Michaelsen', 'Christian Glindkamp'])
         self.show_all()
         self.connect("response", lambda *d: self.destroy())
 
@@ -477,9 +494,12 @@ class EtcProposalsView(gtk.Window):
                 <toolitem action="Quit"/>
                 <toolitem action="Apply"/>
                 <separator/>
+                <toolitem action="Refresh"/>
+                <separator/>
                 <toolitem action="Collapse"/>
                 <toolitem action="Expand"/>
                 <separator/>
+                <toolitem action="Help"/>
                 <toolitem action="About"/>
             </toolbar>
         </ui>
@@ -488,8 +508,10 @@ class EtcProposalsView(gtk.Window):
         actiongroup.add_actions([
             ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit without applying changes', gtk.main_quit),
             ('Apply', gtk.STOCK_APPLY, '_Apply', None, 'Apply changes', lambda item: self.controller.apply()),
-            ('Collapse', gtk.STOCK_MEDIA_PREVIOUS, '_Collapse', None, 'Collapse all displayed changes', lambda item: self.on_collapse_all()),
-            ('Expand', gtk.STOCK_MEDIA_FORWARD, '_Expand', None, 'Expand all displayed changes', lambda item: self.on_expand_all()),
+            ('Refresh', gtk.STOCK_REFRESH, '_Refresh', None, 'Refresh proposals', lambda item: self.controller.refresh()),
+            ('Collapse', gtk.STOCK_REMOVE, '_Collapse', None, 'Collapse all displayed changes', lambda item: self.on_collapse_all()),
+            ('Expand', gtk.STOCK_ADD, '_Expand', None, 'Expand all displayed changes', lambda item: self.on_expand_all()),
+            ('Help', gtk.STOCK_HELP, '_Help', None, 'A short help', lambda item: EtcProposalsHelpDialog(self)),
             ('About', gtk.STOCK_ABOUT, '_About', None, 'About this tool', lambda item: EtcProposalsAboutDialog(self))])
         uimanager = gtk.UIManager()
         uimanager.insert_action_group(actiongroup, 0)
@@ -505,6 +527,8 @@ class EtcProposalsController(object):
     instance itself when initiated."""
     def __init__(self, proposals):
         self.proposals = proposals
+        if len(self.proposals) == 0 and EtcProposalsConfigGtkDecorator().Fastexit():
+            raise SystemExit
         self.proposals.warmup_cache()
         self.view = EtcProposalsView(proposals, self)
         
@@ -533,8 +557,6 @@ class EtcProposalsController(object):
     
     def refresh(self):
         self.proposals.refresh()
-        if len(self.proposals) == 0 and EtcProposalsConfigGtkDecorator().Fastexit():
-            qtk.main_quit()
         self.proposals.warmup_cache()
         self.view.paned.treeview.refresh()
         self.view.paned.changesview.update_changes(lambda: [])
