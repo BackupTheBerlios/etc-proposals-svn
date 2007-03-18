@@ -1,2 +1,1 @@
 
-- make helperclasses in etcproposals_gtk inner classes

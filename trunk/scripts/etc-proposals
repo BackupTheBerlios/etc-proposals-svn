@@ -23,7 +23,7 @@ def showhelp(msg):
 def getopts():
     opts, pargs = getopt(argv[1:], '', ['frontend=','fastexit'])
     if pargs != []:
-        raise GetoptError('Unknown commandline input: ' + ' '.join(pargs))
+        raise GetoptError('commandline input not recognized: ' + ' '.join(pargs))
     for opt in opts:
         if len(opt) == 0:
             continue
@@ -32,7 +32,7 @@ def getopts():
         elif opt[0] == '--fastexit':
             EtcProposalsConfig.FastexitOverride(True)
         else:
-            raise GetoptError('Unknown option: ' + opt) 
+            raise GetoptError('option ' + opt + ' not recognized') 
 
 if __name__ == '__main__':
     if getuid() != 0:
