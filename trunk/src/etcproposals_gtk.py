@@ -326,6 +326,8 @@ class EtcProposalsTreeView(gtk.TreeView):
             return self.proposals.get_zapped_changes
         elif node == (2,2):
             return self.proposals.get_undecided_changes
+        elif node == (0,0):
+            return self.proposals.get_all_changes
         elif len(node) == 2 and node[0] == 0:
             file = self.treestore[node][0]
             return lambda: self.proposals.get_file_changes(file)

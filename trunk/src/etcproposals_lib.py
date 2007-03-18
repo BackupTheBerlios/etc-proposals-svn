@@ -12,8 +12,6 @@ __date__ = '2007-03-14'
 import ConfigParser, anydbm, shelve, difflib, os, os.path, re, shutil, md5
 from etcproposals.portage_stubs import PortageInterface
     
-import traceback #DEBUG
-
 STATEFILE = '/var/state/etcproposals.state'
 
 class OpcodeMismatchException(Exception):
