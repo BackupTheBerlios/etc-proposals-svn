@@ -199,6 +199,8 @@ class EtcProposalChangeContent(gtk.VBox):
         self.inserttextview = gtk.TextView()
         self.removetextview.modify_base(gtk.STATE_NORMAL, self.removetextview.get_colormap().alloc_color(65000,50000,50000))
         self.inserttextview.modify_base(gtk.STATE_NORMAL, self.inserttextview.get_colormap().alloc_color(50000,65000,50000))
+        self.removetextview.modify_text(gtk.STATE_NORMAL, self.removetextview.get_colormap().alloc_color(0,0,0))
+        self.inserttextview.modify_text(gtk.STATE_NORMAL, self.inserttextview.get_colormap().alloc_color(0,0,0))
         for textview in [self.removetextview, self.inserttextview]:
             buffer = textview.get_buffer()
             textview.set_editable(False)
