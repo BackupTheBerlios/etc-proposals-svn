@@ -7,7 +7,7 @@
 
 __author__ = 'Björn Michaelsen' 
 __version__ = '1.1'
-__date__ = '2007-03-14'
+__date__ = '2007-03-19'
 __doc__ = """
 etcproposals_gtk is a gtk-frontend to integrate modified configs, post-emerge.
 Its implemented using the MVC (model-view-controller) design pattern.
@@ -23,7 +23,7 @@ model while keeping the view in sync.
 
 Here is a bit of ASCII-art showing the hierachy of objects in the view:
 EtcProposalsView (window)
-+- (toolbar) -> starts AboutDialog
++- (toolbar) -> starts AboutDialog, HelpDialog
 +- EtcProposalsPanedView
    +- EtcProposalsTreeView
    +- EtcProposalsChangesView
@@ -230,11 +230,8 @@ class EtcProposalChangeView(gtk.Expander):
     """EtcProposalChangeView is an widget showing everything about an
     EtcProposalsChange and allows to change its status. It contains an
     ChangeLabel and an ChangeContent. In all, it contains the following objects:
-     +- ChangeLabel
-     |  +- ChangeStatus
-     |  +- ChangeTitle
-     |  +- ChangeType
-     +- ChangeContent"""
+     - ChangeLabel
+     - ChangeContent"""
     def __init__(self, change, controller):
         gtk.Expander.__init__(self)
         self.change = change
