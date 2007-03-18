@@ -1,0 +1,3 @@
+
+- fix treeview contextmenu for "Filesystem" (use all etc.)
+- make helperclasses in etcproposals_gtk inner classes

@@ -10,34 +10,38 @@
 from os import getuid, system
 from etcproposals.etcproposals_lib import EtcProposalsConfig 
 from etcproposals.etcproposals_lib import FrontendFailedException
-from getopt import getopt
+from getopt import getopt, GetoptError
 from sys import argv
 
-def showhelp():
+def showhelp(msg):
+    print msg
+    print
     print "usage:"
     print "etc-proposals [--frontend frontend] [--fastexit]"
     raise SystemExit
+
+def getopts():
+    opts, pargs = getopt(argv[1:], '', ['frontend=','fastexit'])
+    if pargs != []:
+        raise GetoptError('Unknown commandline input: ' + ' '.join(pargs))
+    for opt in opts:
+        if len(opt) == 0:
+            continue
+        if opt[0] == '--frontend':
+            EtcProposalsConfig.PreferedFrontendsOverride([opt[1]])
+        elif opt[0] == '--fastexit':
+            EtcProposalsConfig.FastexitOverride(True)
+        else:
+            raise GetoptError('Unknown option: ' + opt) 
 
 if __name__ == '__main__':
     if getuid() != 0:
         print 'EtcProposals: You have to be root to run this tool.'
         raise SystemExit
-    opts, pargs = getopt(argv[1:], '', ['frontend=','fastexit'])
-    for opt in opts:
-        if len(opt) == 0:
-            continue
-        if opt[0] == '--frontend':
-            if len(opt) == 2:
-                EtcProposalsConfig.PreferedFrontendsOverride([opt[1]])
-            else:
-                showhelp()
-        elif opt[0] == '--fastexit':
-            if opt[1] == '':
-                EtcProposalsConfig.FastexitOverride(True)
-            else:
-                showhelp()
-        else:
-            showhelp()
+    try:
+        getopts()
+    except GetoptError, e:
+        showhelp(e.__str__())
     frontends = EtcProposalsConfig().PreferedFrontends()
     frontends.reverse()
     frontend_succeeded = False
