@@ -60,120 +60,118 @@ class EtcProposalsConfigGtkDecorator(EtcProposalsConfig):
     pass
 
 
-class EtcProposalChangeType(gtk.VBox):
-    """EtcProposalChangeType is a widget showing if a connected
-    EtcProposalChange is Whitespace-Only, a CVS-Header or part of an Unmodified
-    file"""
-    def __init__(self, change):
-        gtk.VBox.__init__(self)
-        self.labelstatus = [
-            change.is_whitespace_only,
-            change.is_cvsheader,
-            change.is_unmodified ]
-        self.setup_labels()
-        self.update_change()
-        self.show()
-
-    def setup_labels(self):
-        self.labels = map(lambda x: gtk.Label(), xrange(3)) 
-        [label.show() for label in self.labels]
-        [self.pack_start(label, True, False, 1) for label in self.labels]
-
-    def update_change(self):
-        for (label, status, text) in zip(self.labels, self.labelstatus, self.labeltexts()):
-            if status():
-                label.set_label(text)
-            else:
-                label.set_label('')
-    
-    @staticmethod
-    def labeltexts():
-        return ['whitespace', 'cvs-header', 'unchanged']
-
-
-class EtcProposalChangeTitle(gtk.VBox):
-    """EtcProposalChangeTitle is a widget showing the filename, effected lines
-    and proposal number of a connected EtcProposalsChange"""
-    def __init__(self, change):
-        gtk.VBox.__init__(self)
-        self.change = change
-        self.filenamelabel = gtk.Label()
-        self.proposallabel = gtk.Label()
-        self.lineslabel = gtk.Label()
-        proposallinesbox = gtk.HBox()
-        self.pack_start(self.filenamelabel, True, False, 2)
-        self.pack_start(proposallinesbox, True, False, 2)
-        proposallinesbox.pack_start(self.proposallabel, True, False, 2)
-        proposallinesbox.pack_start(self.lineslabel, True, False, 2)
-        self.update_change()
-        for control in [self.filenamelabel, self.proposallabel, self.lineslabel, proposallinesbox, self]:
-            control.show()
-
-    def update_change(self):
-        self.filenamelabel.set_label(self.change.get_file_path())
-        self.proposallabel.set_label('Proposal: %s' % self.change.get_revision())
-        self.lineslabel.set_label('Lines: %d-%d' % self.change.get_affected_lines())
-
-
-class EtcProposalChangeStatus(gtk.HBox):
-    """EtcProposalChangeStatus is a widget showing if a connected
-    EtcProposalsChange is selected to be used or zapped. The user can change
-    the status of the EtcProposalsChange using the toggle buttons. The
-    EtcProposalChangeStatus uses an EtcProposalsController to change the
-    status."""
-    def __init__(self, change, controller):
-        gtk.HBox.__init__(self)
-        self.controller = controller
-        self.change = change
-        self.updating = False
-        self.usebutton = gtk.ToggleButton('Use')
-        self.zapbutton = gtk.ToggleButton('Zap')
-        self.usebutton.set_size_request(50,50)
-        self.zapbutton.set_size_request(50,50)
-        self.usebutton.connect('toggled', lambda b: self.on_use_toggled())
-        self.zapbutton.connect('toggled', lambda b: self.on_zap_toggled())
-        self.pack_start(self.zapbutton, True, False, 2)
-        self.pack_start(self.usebutton, True, False, 2)
-        self.update_change()
-        self.show_all()
-
-    def update_change(self):
-        buttonstates = (False, False)
-        if self.change.touched:
-            if self.change.merge:
-                buttonstates = (True, False)
-            else:
-                buttonstates = (False, True)
-        self.updating = True;
-        self.usebutton.set_active(buttonstates[0])
-        self.zapbutton.set_active(buttonstates[1])
-        self.updating = False
-    
-    def on_zap_toggled(self): 
-        if not self.updating:
-            if self.zapbutton.get_active():
-                self.controller.zap_changes([self.change])
-            else:
-                self.controller.undo_changes([self.change])
-
-    def on_use_toggled(self):
-        if not self.updating:
-            if self.usebutton.get_active():
-                self.controller.use_changes([self.change])
-            else:
-                self.controller.undo_changes([self.change])
-
-
 class EtcProposalChangeLabel(gtk.Frame):
     """EtcProposalChangeLabel is a widget showing all data of an
     EtcProposalsChange but the content. It contains an EtcProposalChangeStatus,
     an EtcProposalChangeTitle and an EtcProposalChangeType."""
+
+    class EtcProposalChangeType(gtk.VBox):
+        """EtcProposalChangeType is a widget showing if a connected
+        EtcProposalChange is Whitespace-Only, a CVS-Header or part of an Unmodified
+        file"""
+        def __init__(self, change):
+            gtk.VBox.__init__(self)
+            self.labelstatus = [
+                change.is_whitespace_only,
+                change.is_cvsheader,
+                change.is_unmodified ]
+            self.setup_labels()
+            self.update_change()
+            self.show()
+    
+        def setup_labels(self):
+            self.labels = map(lambda x: gtk.Label(), xrange(3)) 
+            [label.show() for label in self.labels]
+            [self.pack_start(label, True, False, 1) for label in self.labels]
+    
+        def update_change(self):
+            for (label, status, text) in zip(self.labels, self.labelstatus, self.labeltexts()):
+                if status():
+                    label.set_label(text)
+                else:
+                    label.set_label('')
+        
+        @staticmethod
+        def labeltexts():
+            return ['whitespace', 'cvs-header', 'unchanged']
+
+    class EtcProposalChangeTitle(gtk.VBox):
+        """EtcProposalChangeTitle is a widget showing the filename, effected lines
+        and proposal number of a connected EtcProposalsChange"""
+        def __init__(self, change):
+            gtk.VBox.__init__(self)
+            self.change = change
+            self.filenamelabel = gtk.Label()
+            self.proposallabel = gtk.Label()
+            self.lineslabel = gtk.Label()
+            proposallinesbox = gtk.HBox()
+            self.pack_start(self.filenamelabel, True, False, 2)
+            self.pack_start(proposallinesbox, True, False, 2)
+            proposallinesbox.pack_start(self.proposallabel, True, False, 2)
+            proposallinesbox.pack_start(self.lineslabel, True, False, 2)
+            self.update_change()
+            for control in [self.filenamelabel, self.proposallabel, self.lineslabel, proposallinesbox, self]:
+                control.show()
+    
+        def update_change(self):
+            self.filenamelabel.set_label(self.change.get_file_path())
+            self.proposallabel.set_label('Proposal: %s' % self.change.get_revision())
+            self.lineslabel.set_label('Lines: %d-%d' % self.change.get_affected_lines())
+
+    class EtcProposalChangeStatus(gtk.HBox):
+        """EtcProposalChangeStatus is a widget showing if a connected
+        EtcProposalsChange is selected to be used or zapped. The user can change
+        the status of the EtcProposalsChange using the toggle buttons. The
+        EtcProposalChangeStatus uses an EtcProposalsController to change the
+        status."""
+        def __init__(self, change, controller):
+            gtk.HBox.__init__(self)
+            self.controller = controller
+            self.change = change
+            self.updating = False
+            self.usebutton = gtk.ToggleButton('Use')
+            self.zapbutton = gtk.ToggleButton('Zap')
+            self.usebutton.set_size_request(50,50)
+            self.zapbutton.set_size_request(50,50)
+            self.usebutton.connect('toggled', lambda b: self.on_use_toggled())
+            self.zapbutton.connect('toggled', lambda b: self.on_zap_toggled())
+            self.pack_start(self.zapbutton, True, False, 2)
+            self.pack_start(self.usebutton, True, False, 2)
+            self.update_change()
+            self.show_all()
+    
+        def update_change(self):
+            buttonstates = (False, False)
+            if self.change.touched:
+                if self.change.merge:
+                    buttonstates = (True, False)
+                else:
+                    buttonstates = (False, True)
+            self.updating = True;
+            self.usebutton.set_active(buttonstates[0])
+            self.zapbutton.set_active(buttonstates[1])
+            self.updating = False
+        
+        def on_zap_toggled(self): 
+            if not self.updating:
+                if self.zapbutton.get_active():
+                    self.controller.zap_changes([self.change])
+                else:
+                    self.controller.undo_changes([self.change])
+    
+        def on_use_toggled(self):
+            if not self.updating:
+                if self.usebutton.get_active():
+                    self.controller.use_changes([self.change])
+                else:
+                    self.controller.undo_changes([self.change])
+
     def __init__(self, change, controller):
         gtk.Frame.__init__(self)
         self.change = change
-        self.title = EtcProposalChangeTitle(change)
-        self.type = EtcProposalChangeType(change)
-        self.status = EtcProposalChangeStatus(change, controller)
+        self.title = EtcProposalChangeLabel.EtcProposalChangeTitle(change)
+        self.type = EtcProposalChangeLabel.EtcProposalChangeType(change)
+        self.status = EtcProposalChangeLabel.EtcProposalChangeStatus(change, controller)
         box = gtk.HBox()
         box.pack_start(self.status, False, False, 10)
         box.pack_start(self.title, True, True, 10)
@@ -258,25 +256,25 @@ class EtcProposalsChangeView(gtk.Expander):
         return '%s:%s-%s(%d)' % (self.change.get_file_path(), affected_lines[0], affected_lines[1], self.change.get_revision())
 
 
-class EtcProposalsTreeViewMenu(gtk.Menu):
-    """EtcProposalsTreeViewMenu implements the popup menu in the Treeview."""
-    def __init__(self):
-        gtk.Menu.__init__(self)
-        self.useitem = gtk.MenuItem('Use All')
-        self.zapitem = gtk.MenuItem('Zap All')
-        self.undoitem = gtk.MenuItem('Undo All')
-        self.append(self.useitem)
-        self.append(self.zapitem)
-        self.append(self.undoitem)
-        self.show_all()
-
-    
 class EtcProposalsTreeView(gtk.TreeView):
     """EtcProposalsTreeView implements the Treeview for selecting files and changes."""
+
+    class EtcProposalsTreeViewMenu(gtk.Menu):
+        """EtcProposalsTreeViewMenu implements the popup menu in the Treeview."""
+        def __init__(self):
+            gtk.Menu.__init__(self)
+            self.useitem = gtk.MenuItem('Use All')
+            self.zapitem = gtk.MenuItem('Zap All')
+            self.undoitem = gtk.MenuItem('Undo All')
+            self.append(self.useitem)
+            self.append(self.zapitem)
+            self.append(self.undoitem)
+            self.show_all()
+
     def __init__(self, proposals, controller):
         self.treestore = gtk.TreeStore(str)
         gtk.TreeView.__init__(self, self.treestore)
-        self.menu = EtcProposalsTreeViewMenu()
+        self.menu = EtcProposalsTreeView.EtcProposalsTreeViewMenu()
         self.column = gtk.TreeViewColumn('')
         self.cell = gtk.CellRendererText()
         self.proposals = proposals
