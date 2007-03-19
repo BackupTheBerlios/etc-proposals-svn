@@ -17,11 +17,11 @@ def showhelp(msg):
     print msg
     print
     print "usage:"
-    print "etc-proposals [--frontend frontend] [--fastexit]"
+    print "etc-proposals [--frontend {gtk,shell}] [--fastexit]"
     raise SystemExit
 
 def getopts():
-    opts, pargs = getopt(argv[1:], '', ['frontend=','fastexit'])
+    opts, pargs = getopt(argv[1:], '', ['frontend=','fastexit','help'])
     if pargs != []:
         raise GetoptError('commandline input not recognized: ' + ' '.join(pargs))
     for opt in opts:
@@ -31,6 +31,8 @@ def getopts():
             EtcProposalsConfig.PreferedFrontendsOverride([opt[1]])
         elif opt[0] == '--fastexit':
             EtcProposalsConfig.FastexitOverride(True)
+        elif opt[0] == '--help':
+            raise GetoptError('')
         else:
             raise GetoptError('option ' + opt + ' not recognized') 
 
