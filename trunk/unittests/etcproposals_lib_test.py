@@ -56,7 +56,7 @@ class TestEtcProposalsLib(unittest.TestCase):
         self.failUnless(len(changes) == 0, 'This test can only run if there are no proposals on your system.')
     
     def _assure_etc_in_config_protect(self):
-        self.failUnless('/etc' in PortageInterface.get_config_protect(), 'This test can only run if /etc is in CONFIG_PROTECT.')
+        self.failUnless('/etc' in PortageInterface.get_config_protect('portage'), 'This test can only run if /etc is in CONFIG_PROTECT.')
 
     def _write_testfiles(self):
         open(TESTCONFIGFILENAME , 'w').write(BASECONTENT)

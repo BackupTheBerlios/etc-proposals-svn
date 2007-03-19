@@ -19,7 +19,7 @@ class Test_get_config_protect(unittest.TestCase):
     def runTest(self):
         """Testing CONFIG_PROTECT calculation"""
         portage_config_protect = set(portage.settings['CONFIG_PROTECT'].split(' '))
-        stubs_config_protect = set(PortageInterface.get_config_protect())
+        stubs_config_protect = set(PortageInterface.get_config_protect('portage'))
         self.failUnless(stubs_config_protect == portage_config_protect, 'Calculated CONFIG_PROTECT differs from the one calculated by portage.')
 
 alltests = [Test_get_config_protect(), Test_get_md5_from_vdb()]
