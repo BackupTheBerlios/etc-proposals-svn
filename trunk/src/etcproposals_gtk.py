@@ -136,7 +136,7 @@ class ChangeLabel(gtk.Frame):
             self.pack_start(self.usebutton, True, False, 2)
             self.update_change()
             self.show_all()
-    
+
         def update_change(self):
             buttonstates = (False, False)
             if self.change.touched:
@@ -148,7 +148,7 @@ class ChangeLabel(gtk.Frame):
             self.usebutton.set_active(buttonstates[0])
             self.zapbutton.set_active(buttonstates[1])
             self.updating = False
-        
+
         def on_zap_toggled(self): 
             if not self.updating:
                 if self.zapbutton.get_active():
@@ -176,7 +176,7 @@ class ChangeLabel(gtk.Frame):
         box.show()
         self.add(box)
         self.show()
-    
+
     def update_change(self):
         for control in [self.title, self.type]:
             control.update_change()
@@ -205,7 +205,7 @@ class ChangeContent(gtk.VBox):
         self.pack_start(self.header, False, False, 2)
         self.update_change()
         self.show()
-    
+
     def update_change(self):
         action = self.change.get_action()
         affected_lines = self.change.get_affected_lines()
@@ -292,7 +292,7 @@ class EtcProposalsTreeView(gtk.TreeView):
         self.menu.zapitem.connect('activate', self.on_zap_tv_menu_select) 
         self.menu.undoitem.connect('activate', self.on_undo_tv_menu_select) 
         self.show()
-    
+
     def refresh(self):
         files = self.proposals.get_files()
         filenode = self.treestore.iter_children(self.fsnode)
@@ -379,7 +379,6 @@ class EtcProposalsChangesView(gtk.VBox):
     
     def expand_all(self):
         [child.set_expanded(True) for child in self.get_children()]
-
 
 
 class EtcProposalsPanedView(gtk.HPaned):
@@ -476,7 +475,7 @@ class EtcProposalsView(gtk.Window):
         self.add(vbox)
         self.set_size_request(800,600)
         self.show()
-    
+
     def on_expand_all(self):
         self.paned.changesview.expand_all()
     
@@ -527,7 +526,7 @@ class EtcProposalsController(object):
             raise SystemExit
         self.proposals.warmup_cache()
         self.view = EtcProposalsView(proposals, self)
-        
+
     def undo_changes(self, changes):
         [change.undo() for change in changes]
         self.proposals.warmup_cache()
