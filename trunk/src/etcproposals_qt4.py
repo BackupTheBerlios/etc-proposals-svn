@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #! -*- coding: utf-8 -*-
-# Copyright 2006, 2007 Wickersheimer Jeremy
+# Copyright 2006, 2007 Wickersheimer Jeremy, Björn Michaelsen
 # Distributed under the terms of the GNU General Public License v2
 
 # etc-proposals - a qt4-frontend to integrate modified configs, post-emerge
@@ -163,15 +163,12 @@ class ChangeLabel(qt.QFrame):
                     if clicked != self.usebutton:
                         self.usebutton.setChecked(False)
                     else:
-                        #print "USE"
                         self.zapbutton.setChecked(False)
                         self.controller.use_changes([self.change])
                 elif self.zapbutton.isChecked():
-                    #print "ZAP"
                     self.usebutton.setChecked(False)
                     self.controller.zap_changes([self.change])
                 else:
-                    #print "No state"
                     self.controller.undo_changes([self.change])
 
 
@@ -419,7 +416,6 @@ class EtcProposalsPanedView(qt.QSplitter):
         self.cv_scrollwindow.show()
 
     def on_tv_item_selected(self):
-        #print "[SIGNAL] Selected item changed in treeview"
         changegenerator = self.treeview.get_changegenerator_for_node(self.treeview.treeview.selectedItems())
         if changegenerator == None:
             return False
@@ -440,6 +436,18 @@ class EtcProposalsPanedView(qt.QSplitter):
         return
         #(model, iter) = self.treeview.get_selection().get_selected()
         #self.controller.undo_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
+
+
+class HelpDialog(object):
+    """Shows a short help text"""
+    # TODO: write qt4 version
+    pass
+
+
+class AboutDialog(object):
+    """AboutDialog just is an About Dialog"""
+    # TODO: write qt4 version
+    pass
 
 
 class EtcProposalsView(qt.QMainWindow):
@@ -476,10 +484,36 @@ class EtcProposalsView(qt.QMainWindow):
         self.applyAct.setIcon(qt.QIcon("/usr/kde/3.5/share/icons/crystalsvg/22x22/actions/button_ok.png"))
         self.applyAct.setStatusTip(self.tr("Apply selected changes"))
         self.connect(self.applyAct, qt.SIGNAL("triggered()"), self.slotApply)
+        #Refresh
+        self.refreshAct = qt.QAction(self.tr("R&efresh"), self)
+        self.refreshAct.setIcon(qt.QIcon("/usr/kde/3.5/share/icons/crystalsvg/22x22/actions/reload.png"))
+        self.refreshAct.setStatusTip(self.tr("Refresh proposals"))
+        self.connect(self.refreshAct, qt.SIGNAL("triggered()"), self.slotRefresh)
+        #Collapse
+        self.collapseAct = qt.QAction(self.tr("C&ollapse"), self)
+        self.collapseAct.setIcon(qt.QIcon("/usr/kde/3.5/share/icons/crystalsvg/22x22/actions/add.png"))
+        self.collapseAct.setStatusTip(self.tr("Collapse all displayed changes"))
+        self.connect(self.collapseAct, qt.SIGNAL("triggered()"), self.slotCollapse)
+        #Expand
+        self.expandAct = qt.QAction(self.tr("E&xpand"), self)
+        self.expandAct.setIcon(qt.QIcon("/usr/kde/3.5/share/icons/crystalsvg/22x22/actions/add.png"))
+        self.expandAct.setStatusTip(self.tr("Expand all displayed changes"))
+        self.connect(self.expandAct, qt.SIGNAL("triggered()"), self.slotExpand)
+        #Help
+        self.helpAct = qt.QAction(self.tr("H&elp"), self)
+        self.helpAct.setIcon(qt.QIcon("/usr/kde/3.5/share/icons/crystalsvg/22x22/actions/help.png"))
+        self.helpAct.setStatusTip(self.tr("A short help"))
+        self.connect(self.helpAct, qt.SIGNAL("triggered()"), self.slotHelp)
+        #About
+        self.aboutAct = qt.QAction(self.tr("A&bout"), self)
+        self.aboutAct.setIcon(qt.QIcon("/usr/kde/3.5/share/icons/crystalsvg/22x22/actions/about_kde.png"))
+        self.aboutAct.setStatusTip(self.tr("About this tool"))
+        self.connect(self.aboutAct, qt.SIGNAL("triggered()"), self.slotAbout)
 
     def initMenus(self):
         self.fileMenu = self.menuBar().addMenu(self.tr("&File"))
         self.fileMenu.addAction(self.applyAct)
+        self.fileMenu.addAction(self.refreshAct)
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.exitAct)
 
@@ -487,6 +521,14 @@ class EtcProposalsView(qt.QMainWindow):
         self.fileToolBar = self.addToolBar(self.tr("File"))
         self.fileToolBar.addAction(self.exitAct)
         self.fileToolBar.addAction(self.applyAct)
+        self.fileToolBar.addSeparator()
+        self.fileToolBar.addAction(self.refreshAct)
+        self.fileToolBar.addSeparator()
+        self.fileToolBar.addAction(self.collapseAct)
+        self.fileToolBar.addAction(self.expandAct)
+        self.fileToolBar.addSeparator()
+        self.fileToolBar.addAction(self.helpAct)
+        self.fileToolBar.addAction(self.aboutAct)
 
     def initWidgets(self):
         self.paned = EtcProposalsPanedView(self, self.proposals, self.controller)
@@ -494,13 +536,32 @@ class EtcProposalsView(qt.QMainWindow):
         self.paned.show()
 
     #def initStatusBar():
-        #todo
+        # TODO:
 
     def slotExit (self):
         self.close()
 
     def slotApply(self):
         self.controller.apply()
+
+    def slotRefresh(self):
+        self.controller.refresh()
+
+    def slotCollapse(self):
+        # TODO
+        pass
+
+    def slotExpand(self):
+        # TODO
+        pass
+
+    def slotHelp(self):
+        # TODO
+        pass
+
+    def slotAbout(self):
+        # TODO
+        pass
 
 
 class EtcProposalsController(object):
@@ -511,6 +572,8 @@ class EtcProposalsController(object):
     instance itself when initiated."""
     def __init__(self, proposals):
         self.proposals = proposals
+        if len(self.proposals) == 0 and EtcProposalsConfigQt4Decorator().Fastexit():
+            raise SystemExit
         self.proposals.warmup_cache()
         self.view = EtcProposalsView(proposals, self)
 
@@ -531,6 +594,15 @@ class EtcProposalsController(object):
 
     def apply(self):
         self.proposals.apply()
+        if len(self.proposals) == 0 and EtcProposalsConfigQt4Decorator().Fastexit():
+            # TODO: exit Qt4 main loop
+            pass
+        self.proposals.warmup_cache()
+        self.view.paned.treeview.refresh()
+        self.view.paned.changesview.update_changes(lambda: [])
+
+    def refresh(self):
+        self.proposals.refresh()
         self.proposals.warmup_cache()
         self.view.paned.treeview.refresh()
         self.view.paned.changesview.update_changes(lambda: [])

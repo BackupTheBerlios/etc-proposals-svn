@@ -410,6 +410,7 @@ class EtcProposalsPanedView(gtk.HPaned):
         self.changesview.update_changes(changegenerator)         
         return True
 
+
 class HelpDialog(gtk.MessageDialog):
     """Shows a short help text"""
     def __init__(self, parent):
@@ -549,7 +550,7 @@ class EtcProposalsController(object):
         self.proposals.warmup_cache()
         self.view.paned.treeview.refresh()
         self.view.paned.changesview.update_changes(lambda: [])
-    
+
     def refresh(self):
         self.proposals.refresh()
         self.proposals.warmup_cache()
