@@ -82,9 +82,11 @@ try:
 except FrontendFailedException, e:
     pass
 
-MUST_RUN_AS_ROOT = True;
 
-__ALL__ = [OPTIONS, VERSIONS, MUST_RUN_AS_ROOT]
+MUST_RUN_AS_ROOT = True;
+COMMAND = 'etc-proposals'
+
+__ALL__ = [OPTIONS, VERSIONS, MUST_RUN_AS_ROOT, COMMAND]
 
 if __name__ == '__main__':
     print 'etc-proposals version and options info'
