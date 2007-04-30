@@ -33,12 +33,29 @@ EtcProposalsView (window)
 """
 from etcproposals.etcproposals_lib import *
 from etcproposals.etcproposals_lib import __version__ as __libversion__
-import os
+import os, subprocess
 
 try:
     import PyQt4.Qt as qt
 except ImportError:
     raise FrontendFailedException('Could not find qt4-bindings.')
+
+
+class KdelibsUtils(object):
+    ICONDIR_PATHS = subprocess.Popen("kde-config --path icon", shell=True, stdout=subprocess.PIPE).stdout.readline().split(':')
+    THEME = 'crystalsvg'
+    ICONSIZE = '22x22'
+    IMAGEFORMAT = 'png'
+
+    @staticmethod
+    def get_iconpath(category, iconname):
+        pathend = os.path.join(KdelibsUtils.THEME, KdelibsUtils.ICONSIZE, category, iconname + '.' + KdelibsUtils.IMAGEFORMAT)
+        for pathstart in KdelibsUtils.ICONDIR_PATHS:
+            path = os.path.join(pathstart, pathend)
+            if os.access(path, os.R_OK):
+                return path
+        raise LookupError, 'Icon %s not found.' % iconname
+
 
 class EtcProposalsQt4Decorator(EtcProposals):
     """decoration of EtcProposals to satisfy the performance needs of the GUI"""
@@ -49,7 +66,8 @@ class EtcProposalsQt4Decorator(EtcProposals):
         self.get_unmodified_changes()
         self.get_used_changes()
         self.get_zapped_changes()
-        self.get_undecided_changes()
+        
+	self.get_undecided_changes()
 
 
 class EtcProposalsConfigQt4Decorator(EtcProposalsConfig):
@@ -475,38 +493,38 @@ class EtcProposalsView(qt.QMainWindow):
     def initActions(self):
         #Exit
         self.exitAct = qt.QAction(self.tr("E&xit"), self)
-        self.exitAct.setIcon(qt.QIcon("/usr/kde/3.5/share/icons/crystalsvg/22x22/actions/exit.png"))
+        self.exitAct.setIcon(qt.QIcon(KdelibsUtils.get_iconpath('actions', 'exit')))
         self.exitAct.setShortcut(self.tr("Ctrl+Q"))
         self.exitAct.setStatusTip(self.tr("Exit the application"))
         self.connect(self.exitAct, qt.SIGNAL("triggered()"), self.slotExit)
         #Apply
         self.applyAct = qt.QAction(self.tr("A&pply"), self)
-        self.applyAct.setIcon(qt.QIcon("/usr/kde/3.5/share/icons/crystalsvg/22x22/actions/button_ok.png"))
+        self.applyAct.setIcon(qt.QIcon(KdelibsUtils.get_iconpath('actions', 'button_ok')))
         self.applyAct.setStatusTip(self.tr("Apply selected changes"))
         self.connect(self.applyAct, qt.SIGNAL("triggered()"), self.slotApply)
         #Refresh
         self.refreshAct = qt.QAction(self.tr("R&efresh"), self)
-        self.refreshAct.setIcon(qt.QIcon("/usr/kde/3.5/share/icons/crystalsvg/22x22/actions/reload.png"))
+        self.refreshAct.setIcon(qt.QIcon(KdelibsUtils.get_iconpath('actions', 'reload')))
         self.refreshAct.setStatusTip(self.tr("Refresh proposals"))
         self.connect(self.refreshAct, qt.SIGNAL("triggered()"), self.slotRefresh)
         #Collapse
         self.collapseAct = qt.QAction(self.tr("C&ollapse"), self)
-        self.collapseAct.setIcon(qt.QIcon("/usr/kde/3.5/share/icons/crystalsvg/22x22/actions/add.png"))
+        self.collapseAct.setIcon(qt.QIcon(KdelibsUtils.get_iconpath('actions', 'add')))
         self.collapseAct.setStatusTip(self.tr("Collapse all displayed changes"))
         self.connect(self.collapseAct, qt.SIGNAL("triggered()"), self.slotCollapse)
         #Expand
         self.expandAct = qt.QAction(self.tr("E&xpand"), self)
-        self.expandAct.setIcon(qt.QIcon("/usr/kde/3.5/share/icons/crystalsvg/22x22/actions/add.png"))
+        self.expandAct.setIcon(qt.QIcon(KdelibsUtils.get_iconpath('actions', 'add')))
         self.expandAct.setStatusTip(self.tr("Expand all displayed changes"))
         self.connect(self.expandAct, qt.SIGNAL("triggered()"), self.slotExpand)
         #Help
         self.helpAct = qt.QAction(self.tr("H&elp"), self)
-        self.helpAct.setIcon(qt.QIcon("/usr/kde/3.5/share/icons/crystalsvg/22x22/actions/help.png"))
+        self.helpAct.setIcon(qt.QIcon(KdelibsUtils.get_iconpath('actions', 'help')))
         self.helpAct.setStatusTip(self.tr("A short help"))
         self.connect(self.helpAct, qt.SIGNAL("triggered()"), self.slotHelp)
         #About
         self.aboutAct = qt.QAction(self.tr("A&bout"), self)
-        self.aboutAct.setIcon(qt.QIcon("/usr/kde/3.5/share/icons/crystalsvg/22x22/actions/about_kde.png"))
+        self.aboutAct.setIcon(qt.QIcon(KdelibsUtils.get_iconpath('actions', 'about_kde')))
         self.aboutAct.setStatusTip(self.tr("About this tool"))
         self.connect(self.aboutAct, qt.SIGNAL("triggered()"), self.slotAbout)
 
