@@ -429,21 +429,12 @@ class EtcProposalsPanedView(qt.QSplitter):
 
     def on_use_tv_menu_select(self):
         self.controller.use_changes(self.treeview.get_changegenerator_for_node(self.treeview.treeview.selectedItems())())
-        return
-        #(model, iter) = self.treeview.get_selection().get_selected()
-        #self.controller.use_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
 
     def on_zap_tv_menu_select(self):
         self.controller.use_changes(self.treeview.get_changegenerator_for_node(self.treeview.treeview.selectedItems())())
-        return
-        #(model, iter) = self.treeview.get_selection().get_selected()
-        #self.controller.zap_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
 
     def on_undo_tv_menu_select(self):
-        self.controller.use_changes(self.treeview.get_changegenerator_for_node(self.treeview.treeview.selectedItems())())
-        return
-        #(model, iter) = self.treeview.get_selection().get_selected()
-        #self.controller.undo_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
+        self.controller.undo_changes(self.treeview.get_changegenerator_for_node(self.treeview.treeview.selectedItems())())
 
 
 class HelpDialog(object):

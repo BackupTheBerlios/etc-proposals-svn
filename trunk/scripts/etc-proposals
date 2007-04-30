@@ -17,7 +17,7 @@ def showhelp(msg):
     print msg
     print
     print "usage:"
-    print "etc-proposals [--frontend {gtk,shell}] [--fastexit]"
+    print "etc-proposals [--frontend {qt4,gtk2,shell}] [--fastexit]"
     raise SystemExit
 
 def getopts():
@@ -53,13 +53,20 @@ if __name__ == '__main__':
         except IndexError:
             print 'Every configured frontend failed to start.'
             raise SystemExit
-        if frontend == 'gtk':
+        if frontend == 'gtk2' or frontend == 'gtk':
             try:
-                import etcproposals.etcproposals_gtk
-                etcproposals.etcproposals_gtk.run_frontend()
+                import etcproposals.etcproposals_gtk2
+                etcproposals.etcproposals_gtk2.run_frontend()
                 frontend_succeeded = True
             except FrontendFailedException, e:
-                print 'gtk frontend failed to start: ' + str(e)
+                print 'gtk2 frontend failed to start: ' + str(e)
+        elif frontend == 'qt4':
+            try:
+                import etcproposals.etcproposals_qt4
+                etcproposals.etcproposals_qt4.run_frontend()
+                frontend_succeeded = True
+            except FrontendFailedException, e:
+                print 'qt4 frontend failed to start: ' + str(e)
         elif frontend == 'shell':
             try:
                 import etcproposals.etcproposals_shell
