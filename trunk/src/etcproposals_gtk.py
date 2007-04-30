@@ -354,22 +354,22 @@ class EtcProposalsChangesView(gtk.VBox):
         gtk.VBox.__init__(self)
         self.controller = controller
         self.changes_generator = lambda: []
-        self.expanded_changes = set()
+        self.collapsed_changes = set()
     
     def update_changes(self, changes_generator = None):
         self.hide()
         for child in self.get_children():
             labeltext = child.get_labeltext()
-            if child.get_expanded():
-                self.expanded_changes.add(labeltext)
-            elif labeltext in self.expanded_changes:
-                self.expanded_changes.remove(labeltext)
+            if not child.get_expanded():
+                self.collapsed_changes.add(labeltext)
+            elif labeltext in self.collapsed_changes:
+                self.collapsed_changes.remove(labeltext)
             self.remove(child)
         if not changes_generator == None:
             self.changes_generator = changes_generator
         for change in self.changes_generator():
             changeview = EtcProposalChangeView(change, self.controller)
-            if changeview.get_labeltext() in self.expanded_changes:
+            if not changeview.get_labeltext() in self.collapsed_changes:
                 changeview.set_expanded(True)
             self.pack_start(changeview, False, False, 0)
         self.show()
