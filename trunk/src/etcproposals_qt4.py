@@ -431,7 +431,7 @@ class EtcProposalsPanedView(qt.QSplitter):
         self.controller.use_changes(self.treeview.get_changegenerator_for_node(self.treeview.treeview.selectedItems())())
 
     def on_zap_tv_menu_select(self):
-        self.controller.use_changes(self.treeview.get_changegenerator_for_node(self.treeview.treeview.selectedItems())())
+        self.controller.zap_changes(self.treeview.get_changegenerator_for_node(self.treeview.treeview.selectedItems())())
 
     def on_undo_tv_menu_select(self):
         self.controller.undo_changes(self.treeview.get_changegenerator_for_node(self.treeview.treeview.selectedItems())())
