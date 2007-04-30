@@ -175,7 +175,6 @@ class ChangeLabel(qt.QFrame):
             self.updating = False
 
         def button_toggled(self, clicked):
-            #print "Button " + str(clicked) + " was clicked"
             if not self.updating:
                 if self.usebutton.isChecked():
                     if clicked != self.usebutton:
@@ -222,7 +221,6 @@ class ChangeContent(qt.QFrame):
         self.inserttextview.setTextColor(qt.QColor(10, 255, 10))
         for textview in [self.removetextview, self.inserttextview]:
             textview.setReadOnly(True)
-            #textview.show()
         self.layout.addWidget(self.header)
         self.layout.addWidget(self.removetextview)
         self.layout.addWidget(self.inserttextview)
@@ -333,7 +331,6 @@ class EtcProposalsTreeView(qt.QFrame):
         self.fsnode.setExpanded(True)
 
     def get_changegenerator_for_node(self, nodes):
-        #print "(get_changegenerator_for_node) nodes: " + str(nodes)
         if len(nodes) == 0:
             return None
         elif nodes[0] == self.status_use:
@@ -351,20 +348,11 @@ class EtcProposalsTreeView(qt.QFrame):
         elif nodes[0] == self.status_use:
             return self.proposals.get_used_changes
         else:
-            #print "parent: " + str(nodes[0].parent())
             if nodes[0].parent() == self.fsnode:
                 file = nodes[0].text(0)
                 return lambda: self.proposals.get_file_changes(file)
             else:
                 return lambda: []
-
-    #def on_button_press(self, widget, event):
-        #if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
-            #(path, column, x, y) = self.get_path_at_pos(int(event.x), int(event.y))
-            #self.get_selection().select_path(path)
-            #widget.popup(None, None, None, event.button, event.time)
-            #return True
-        #return False
 
 
 class EtcProposalsChangesView(qt.QFrame):
@@ -389,23 +377,22 @@ class EtcProposalsChangesView(qt.QFrame):
         # remove all items
         while len(self.changeList) > 0:
             i = self.changeList.pop()
-            #print "(update_changes) Remove item :" + str(i)
             i.hide()
             self.layout.removeWidget(i)
         if not changes_generator == None:
             self.changes_generator = changes_generator
         for change in self.changes_generator():
             changeview = EtcProposalsChangeView(self, change, self.controller)
-            #print "(update_changes) Add item :" + str(changeview)
             self.changeList.append(changeview)
             self.layout.addWidget(changeview)
             changeview.show()
-        #print "(update_changes) Now has :" + str(len(self.changeList)) + " items."
         self.show()
 
+    # TODO:
     #def collapse_all(self):
         #[child.set_expanded(False) for child in self.get_children()]
-
+    
+    # TODO:
     #def expand_all(self):
         #[child.set_expanded(True) for child in self.get_children()]
 
@@ -440,17 +427,20 @@ class EtcProposalsPanedView(qt.QSplitter):
         self.changesview.update_changes(changegenerator)
         return True
 
-    def on_use_tv_menu_select(self, widget):
+    def on_use_tv_menu_select(self):
+        self.controller.use_changes(self.treeview.get_changegenerator_for_node(self.treeview.treeview.selectedItems())())
         return
         #(model, iter) = self.treeview.get_selection().get_selected()
         #self.controller.use_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
 
-    def on_zap_tv_menu_select(self, widget):
+    def on_zap_tv_menu_select(self):
+        self.controller.use_changes(self.treeview.get_changegenerator_for_node(self.treeview.treeview.selectedItems())())
         return
         #(model, iter) = self.treeview.get_selection().get_selected()
         #self.controller.zap_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
 
-    def on_undo_tv_menu_select(self, widget):
+    def on_undo_tv_menu_select(self):
+        self.controller.use_changes(self.treeview.get_changegenerator_for_node(self.treeview.treeview.selectedItems())())
         return
         #(model, iter) = self.treeview.get_selection().get_selected()
         #self.controller.undo_changes(self.treeview.get_changegenerator_for_node(model.get_path(iter))())
@@ -534,6 +524,13 @@ class EtcProposalsView(qt.QMainWindow):
         self.fileMenu.addAction(self.refreshAct)
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.exitAct)
+        self.editMenu = self.menuBar().addMenu(self.tr("&Edit"))
+        self.viewMenu = self.menuBar().addMenu(self.tr("&View"))
+        #self.viewMenu.addAction(self.collapseAct)
+        #self.viewMenu.addAction(self.expandAct)
+        self.helpMenu = self.menuBar().addMenu(self.tr("&Help"))
+        self.helpMenu.addAction(self.helpAct)
+        self.helpMenu.addAction(self.aboutAct)
 
     def initToolBar(self):
         self.fileToolBar = self.addToolBar(self.tr("File"))
@@ -542,9 +539,9 @@ class EtcProposalsView(qt.QMainWindow):
         self.fileToolBar.addSeparator()
         self.fileToolBar.addAction(self.refreshAct)
         self.fileToolBar.addSeparator()
-        self.fileToolBar.addAction(self.collapseAct)
-        self.fileToolBar.addAction(self.expandAct)
-        self.fileToolBar.addSeparator()
+        #self.fileToolBar.addAction(self.collapseAct)
+        #self.fileToolBar.addAction(self.expandAct)
+        #self.fileToolBar.addSeparator()
         self.fileToolBar.addAction(self.helpAct)
         self.fileToolBar.addAction(self.aboutAct)
 
