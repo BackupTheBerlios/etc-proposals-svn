@@ -6,7 +6,7 @@
 # etc-proposals - a gtk-frontend to integrate modified configs, post-emerge
 
 __author__ = 'Björn Michaelsen' 
-__version__ = '1.1'
+__version__ = '1.2'
 __date__ = '2007-03-19'
 __doc__ = """
 etcproposals_gtk is a gtk-frontend to integrate modified configs, post-emerge.

@@ -5,8 +5,8 @@
 
 # etc-proposals - a qt4-frontend to integrate modified configs, post-emerge
 
-__author__ = 'Wickersheimer Jeremy'
-__version__ = '1.0'
+__author__ = 'Jeremy Wickersheimer, Björn Michaelsen'
+__version__ = '1.2'
 __date__ = '2007-03-18'
 __doc__ = """
 etcproposals_qt4 is a qt4-frontend to integrate modified configs, post-emerge.

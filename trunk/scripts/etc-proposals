@@ -10,18 +10,21 @@
 from os import getuid, system
 from etcproposals.etcproposals_lib import EtcProposalsConfig 
 from etcproposals.etcproposals_lib import FrontendFailedException
+from etcproposals.etcproposals_info import *
 from getopt import getopt, GetoptError
 from sys import argv
 
 def showhelp(msg):
     print msg
-    print
-    print "usage:"
-    print "etc-proposals [--frontend {qt4,gtk2,shell}] [--fastexit]"
+    print OPTIONS.prettify()
+    raise SystemExit
+
+def showversions():
+    print VERSIONS.prettify()
     raise SystemExit
 
 def getopts():
-    opts, pargs = getopt(argv[1:], '', ['frontend=','fastexit','help'])
+    opts, pargs = getopt(argv[1:], '', ['frontend=','fastexit','help','version'])
     if pargs != []:
         raise GetoptError('commandline input not recognized: ' + ' '.join(pargs))
     for opt in opts:
@@ -32,13 +35,15 @@ def getopts():
         elif opt[0] == '--fastexit':
             EtcProposalsConfig.FastexitOverride(True)
         elif opt[0] == '--help':
-            raise GetoptError('')
+            showhelp('')
+        elif opt[0] == '--version':
+            showversions()
         else:
             raise GetoptError('option ' + opt + ' not recognized') 
 
 if __name__ == '__main__':
     if getuid() != 0:
-        print 'EtcProposals: You have to be root to run this tool.'
+        print 'etc-proposals: You have to be root to run this tool.'
         raise SystemExit
     try:
         getopts()
@@ -67,7 +72,7 @@ if __name__ == '__main__':
                 frontend_succeeded = True
             except FrontendFailedException, e:
                 print 'qt4 frontend failed to start: ' + str(e)
-        elif frontend == 'shell':
+        elif frontend == 'shell' or frontend == 'readline':
             try:
                 import etcproposals.etcproposals_shell
                 etcproposals.etcproposals_shell.run_frontend()
