@@ -67,8 +67,7 @@ class EtcProposalsQt4Decorator(EtcProposals):
         self.get_unmodified_changes()
         self.get_used_changes()
         self.get_zapped_changes()
-        
-	self.get_undecided_changes()
+        self.get_undecided_changes()
 
 
 class EtcProposalsConfigQt4Decorator(EtcProposalsConfig):
@@ -444,7 +443,7 @@ class HelpDialog(object):
     pass
 
 
-class AboutDialog(object):
+class AboutDialog(qt.QMessageBox):
     """AboutDialog just is an About Dialog"""
     # TODO: write qt4 version
     pass
@@ -563,13 +562,37 @@ class EtcProposalsView(qt.QMainWindow):
         pass
 
     def slotHelp(self):
-        # TODO
-        pass
+        # FIXME: Use HelpDialog when its done
+        text = """Etc-Proposals is a tool for updating gentoo configuration files
+            
+You can accept proposals made by a updated package to change your configuration file or reject them. To do the first use the "Use"-Button, otherwise use the "Zap"-Button. If a file has multiple changes, you can make your choice seperately.
+
+You can use or zap all changes in a group in treeview on the right by using the contextmenu that comes up when you click with the right mousebutton there.
+
+Use the "Apply"-Button in the Toolbar to merge the changes to the filesystem."""
+        qt.QMessageBox.information(None, 'etc-proposals help', text, qt.QMessageBox.Ok) 
 
     def slotAbout(self):
-        # TODO
-        pass
+        # FIXME: use AboutDialog when its done
+        text = 'etc-proposals is a tool for merging gentoo configuration files.\netcproposals_lib version: ' + __libversion__ + '\n'
+        text = text + 'Copyright 2006-2007 Björn Michaelsen\n'
+        text = text + 'http://etc-proposals.berlios.de\n\n'
+        text = text + '''GNU General Public License, Version 2
 
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License Version 2 as
+published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA'''
+        text = text + '\n\nAuthors: ' + __author__
+        qt.QMessageBox.information(None, 'About etc-proposals', text, qt.QMessageBox.Ok) 
 
 class EtcProposalsController(object):
     """EtcProposalsController is the controller in the
@@ -602,8 +625,8 @@ class EtcProposalsController(object):
     def apply(self):
         self.proposals.apply()
         if len(self.proposals) == 0 and EtcProposalsConfigQt4Decorator().Fastexit():
-            # TODO: exit Qt4 main loop
-            pass
+            # TODO: clean exit of Qt4 main loop
+            raise SystemExit
         self.proposals.warmup_cache()
         self.view.paned.treeview.refresh()
         self.view.paned.changesview.update_changes(lambda: [])

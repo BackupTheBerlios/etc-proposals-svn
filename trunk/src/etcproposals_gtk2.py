@@ -437,7 +437,7 @@ class AboutDialog(gtk.AboutDialog):
         self.set_version(__version__)
         self.set_copyright('Copyright 2006-2007 Björn Michaelsen')
         self.set_comments('etc-proposals is a tool for merging gentoo configuration files.\netcproposals_lib version:' + __libversion__)
-        self.set_website('http://michaelsen.kicks-ass.net/Members/bjoern/etcproposals')
+        self.set_website('http://etc-proposals.berlios.de')
         self.set_license('''GNU General Public License, Version 2
 
 This program is free software; you can redistribute it and/or modify
@@ -452,7 +452,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA''')
-        self.set_authors(['Björn Michaelsen', 'Christian Glindkamp'])
+        self.set_authors(['Björn Michaelsen', 'Jeremy Wickersheimer', 'Christian Glindkamp'])
         self.show_all()
         self.connect("response", lambda *d: self.destroy())
 
