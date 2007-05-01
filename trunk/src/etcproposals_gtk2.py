@@ -6,8 +6,8 @@
 # etc-proposals - a gtk-frontend to integrate modified configs, post-emerge
 
 __author__ = 'Björn Michaelsen' 
-__version__ = '1.2'
-__date__ = '2007-03-19'
+__version__ = '1.1.9999'
+__date__ = '2007-05-01'
 __doc__ = """
 etcproposals_gtk is a gtk-frontend to integrate modified configs, post-emerge.
 Its implemented using the MVC (model-view-controller) design pattern.

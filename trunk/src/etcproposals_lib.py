@@ -7,7 +7,7 @@
 
 __author__ = 'Björn Michaelsen' 
 __version__ = '1.1'
-__date__ = '2007-03-19'
+__date__ = '2007-05-01'
 
 import ConfigParser, anydbm, shelve, difflib, os, os.path, re, shutil, md5
 from etcproposals.portage_stubs import PortageInterface
