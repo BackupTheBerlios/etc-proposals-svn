@@ -4,7 +4,7 @@
 # based on gentoo portage 2.1.1, Copyright 1998-2007 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
-import subprocess
+import subprocess, errno
 
 # helper needed because PyQt seems to cause interrupted system calls
 def get_command_output_iterator(command_and_args):
@@ -15,8 +15,8 @@ def get_command_output_iterator(command_and_args):
             for line in outpipe.readlines():
                 yield line
             eof = True
-        except OSError, e:
-            if e.errno != 4:
+        except (OSError, IOError), e:
+            if e.errno != errno.EINTR:
                 raise e
 
 __ALL__=[get_command_output_iterator]
