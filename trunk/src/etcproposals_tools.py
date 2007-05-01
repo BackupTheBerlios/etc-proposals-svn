@@ -15,7 +15,7 @@ def get_command_output_iterator(command_and_args):
             for line in outpipe.readlines():
                 yield line
             eof = True
-        except IOError, e:
+        except OSError, e:
             if e.errno != 4:
                 raise e
 
