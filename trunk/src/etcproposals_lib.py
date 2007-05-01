@@ -18,9 +18,11 @@ class OpcodeMismatchException(Exception):
     "happens when a state file is loaded, that does not match the proposal"
     pass
 
+
 class FrontendFailedException(Exception):
     "happens when a Frontend fails to start"
     pass
+
 
 class EtcProposalChange(object):
     def __init__(self, opcode, proposal):

@@ -4,7 +4,8 @@
 # based on gentoo portage 2.1.1, Copyright 1998-2007 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
-import re, string, os, subprocess, md5
+import re, string, os, md5
+from etcproposals.etcproposals_tools import get_command_output_iterator
 
 # portage constants
 
@@ -18,7 +19,7 @@ class NotImplementedError(Exception):
 class PortageUtils(object):
     @staticmethod
     def get_config_protect():
-        for line in subprocess.Popen("emerge --info", shell=True, stdout=subprocess.PIPE).stdout.readlines():
+        for line in get_command_output_iterator(['emerge', '--info']):
             match = re.match(r'CONFIG_PROTECT="(.*)"', line)
             if match:
                 return match.group(1).split(' ')
@@ -29,7 +30,7 @@ class PortageUtils(object):
 class PkgcoreUtils(object):
     @staticmethod
     def get_config_protect():
-        for line in subprocess.Popen("pconfig dump-uncollapsed", shell=True, stdout=subprocess.PIPE).stdout.readlines():
+        for line in get_command_output_iterator(['pconfig', 'dump-uncollapsed']):
             match = re.match(r"'CONFIG_PROTECT' = '(.*)'", line)
             if match:
                 return match.group(1).split(' ')

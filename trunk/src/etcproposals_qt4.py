@@ -33,7 +33,8 @@ EtcProposalsView (window)
 """
 from etcproposals.etcproposals_lib import *
 from etcproposals.etcproposals_lib import __version__ as __libversion__
-import os, subprocess
+from etcproposals.etcproposals_tools import get_command_output_iterator
+import os
 
 try:
     import PyQt4.Qt as qt
@@ -42,7 +43,7 @@ except ImportError:
 
 
 class KdelibsUtils(object):
-    ICONDIR_PATHS = subprocess.Popen("kde-config --path icon", shell=True, stdout=subprocess.PIPE).stdout.readline().split(':')
+    ICONDIR_PATHS = get_command_output_iterator(['kde-config','--path', 'icon']).next().split(':')
     THEME = 'crystalsvg'
     ICONSIZE = '22x22'
     IMAGEFORMAT = 'png'
