@@ -1,8 +1,10 @@
 #!/bin/bash
+PORTDIR_OVERLAY=/usr/local/portage
+DISTDIR=/usr/portage/distfiles
 python setup.py sdist
-mkdir -p /usr/local/portage/app-portage/etcproposals
-cp dist/*.tar.gz /usr/portage/distfiles
-cp dist/*.ebuild /usr/local/portage/app-portage/etcproposals
-cd /usr/local/portage/app-portage/etcproposals
+mkdir -p $PORTDIR_OVERLAY/app-portage/etcproposals
+cp dist/*.ebuild $PORTDIR_OVERLAY/app-portage/etcproposals
+cp dist/*.tar.gz $DISTDIR
+cd $PORTDIR_OVERLAY/app-portage/etcproposals
 ebuild *.ebuild digest
 emerge etcproposals
