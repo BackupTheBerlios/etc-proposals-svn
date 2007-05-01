@@ -14,7 +14,7 @@ SLOT="0"
 KEYWORDS="~amd64 ~x86"
 
 DEPEND="gtk? ( >=dev-python/pygtk-2.10 )
-		qt4? ( >=x11-libs/qt-4
+		qt4? ( >=x11-libs/PyQt4
 			   >=kde-base/kdelibs-3.5 )"
 RDEPEND="${DEPEND}"
 
