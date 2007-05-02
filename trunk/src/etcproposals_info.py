@@ -9,13 +9,35 @@ from etcproposals_lib import FrontendFailedException
 
 
 class Option(object):
-    def __init__(self, name, command, description):
+    def __init__(self, name, command, description, hide_in_gui = False):
         self.name = name
         self.command = command
         self.description = description
+        self.hide_in_gui = hide_in_gui
 
     def prettify(self):
         return '%s%s' % (self.command.ljust(20), self.description)
+
+
+class ToggleOption(Option):
+    def __init__(self, name, command, description, hide_in_gui = False):
+        Option.__init__(self, name, command, description, hide_in_gui)
+        self.optiontype = 'toggle'
+
+
+class RadioOption(Option, list):
+    def __init__(self, name, description, options, hide_in_gui = False):
+        Option.__init__(self, name, None, description, hide_in_gui)
+        self.optiontype = 'radio'
+        self.name = name
+        self.description = description
+        self.extend(options)
+
+    def prettify(self):
+        result = '%s option - %s:\n' % (self.name, self.description)
+        for option in self:
+            result = result + option.prettify() + '\n'
+        return result
 
 
 class Options(list):
@@ -32,6 +54,7 @@ class Version(object):
         self.name = name
         self.versionnumber = versionnumber
         self.authors = authors
+
     def prettify(self):
         return '%sversion %s by %s' % (self.name.ljust(20), self.versionnumber, self.authors)
 
@@ -45,11 +68,13 @@ class Versions(list):
 
 
 OPTIONS = Options()
-OPTIONS.append(Option('gtk2', '--frontend=gtk2', 'use the gtk2 frontend'))
-OPTIONS.append(Option('qt4', '--frontend=qt4', 'use the qt4 frontend'))
-OPTIONS.append(Option('readline', '--frontend=readline', 'use the readline frontend (requires an terminal)'))
-OPTIONS.append(Option('fastexit', '--fastexit', 'automatically exit if there are no files to update'))
-OPTIONS.append(Option('version', '--version', 'print version information'))
+FRONTEND = RadioOption('frontend', 'select one frontend', [])
+FRONTEND.append(Option('gtk2', '--frontend=gtk2', 'use the gtk2 frontend'))
+FRONTEND.append(Option('qt4', '--frontend=qt4', 'use the qt4 frontend'))
+FRONTEND.append(Option('readline', '--frontend=readline', 'use the readline frontend (requires an terminal)'))
+OPTIONS.append(FRONTEND)
+OPTIONS.append(ToggleOption('fastexit', '--fastexit', 'automatically exit if there are no files to update'))
+OPTIONS.append(ToggleOption('version', '--version', 'print version information', True))
 
 VERSIONS = Versions()
 
@@ -62,8 +87,9 @@ try:
     from etcproposals_gtk2 import __version__ as gtk2feversion
     from etcproposals_gtk2 import __author__ as gtk2feauthor
     VERSIONS.append(Version('gtk2', 'Gtk2 Frontend', gtk2feversion, gtk2feauthor))
+    
     del gtk2feversion, gtk2feauthor
-except FrontendFailedException, e:
+except Exception, e:
     pass
 
 try:
@@ -71,7 +97,7 @@ try:
     from etcproposals_qt4 import __author__ as qt4feauthor
     VERSIONS.append(Version('qt4', 'Qt4 Frontend', qt4feversion, qt4feauthor))
     del qt4feversion, qt4feauthor
-except FrontendFailedException, e:
+except Exception, e:
     pass
     
 try:
@@ -79,7 +105,7 @@ try:
     from etcproposals_readline import __author__ as readlinefeauthor
     VERSIONS.append(Version('readline', 'Readline Frontend', readlinefeversion, readlinefeauthor))
     del readlinefeversion, readlinefeauthor
-except FrontendFailedException, e:
+except Exception, e:
     pass
 
 

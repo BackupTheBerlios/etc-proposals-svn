@@ -463,7 +463,7 @@ class EtcProposalsView(gtk.Window):
     def __init__(self, proposals, controller):
         gtk.Window.__init__(self)
         self.controller = controller
-        self.set_title('Etc-Proposals')
+        self.set_title('etc-proposals')
         self.set_position(gtk.WIN_POS_CENTER)
         self.connect('destroy', lambda *w: gtk.main_quit())
         vbox = gtk.VBox()
