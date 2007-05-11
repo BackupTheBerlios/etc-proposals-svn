@@ -1,0 +1,11 @@
+data/etc-proposals.conf
+scripts/etc-proposals
+setup.py
+src/etcproposals_gtk2.py
+src/etcproposals_info.py
+src/etcproposals_lib.py
+src/etcproposals_qt4.py
+src/etcproposals_readline.py
+src/etcproposals_tools.py
+src/__init__.py
+src/portage_stubs.py
