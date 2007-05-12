@@ -43,7 +43,7 @@ except ImportError:
 
 
 class KdelibsUtils(object):
-    ICONDIR_PATHS = get_command_output_iterator(['kde-config','--path', 'icon']).next().split(':')
+    ICONDIR_PATHS = get_command_output_iterator(['kde-config','--path', 'icon']).next().split(':').rstrip('\n')
     THEME = 'crystalsvg'
     ICONSIZE = '22x22'
     IMAGEFORMAT = 'png'
