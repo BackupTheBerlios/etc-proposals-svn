@@ -273,7 +273,8 @@ class EtcProposalsTreeView(gtk.TreeView):
         self.cell = gtk.CellRendererText()
         self.proposals = proposals
         self.controller = controller
-        self.fsnode = self.treestore.append(None, ['Filesystem'])
+        self.treestore.append(None, ['Filesystem'])
+        self.fsrow = self.treestore[0]
         typenode = self.treestore.append(None, ['Type'])
         self.treestore.append(typenode, ['Whitespace'])
         self.treestore.append(typenode, ['CVS-Header'])
@@ -294,12 +295,9 @@ class EtcProposalsTreeView(gtk.TreeView):
         self.show()
 
     def refresh(self):
-        filenode = self.treestore.iter_children(self.fsnode)
-        while( filenode != None ):
-            self.treestore.remove(filenode)
-            filenode = self.treestore.iter_children(self.fsnode)
+        [self.treestore.remove(row.iter) for row in self.fsrow.iterchildren()]
         for file in self.proposals.get_files():
-            parent=self.fsnode
+            parent=self.fsrow.iter
             for part in file[1:].split('/'):
                 iter = self.treestore.iter_children(parent)
                 while( iter != None ):
@@ -307,7 +305,6 @@ class EtcProposalsTreeView(gtk.TreeView):
                         parent = iter
                         break
                     iter = self.treestore.iter_next(iter)
-
                 if iter == None:
                     parent = self.treestore.append(parent, [part])
 
@@ -330,8 +327,7 @@ class EtcProposalsTreeView(gtk.TreeView):
         elif node == (0,):
             return self.proposals.get_all_changes
         elif node[0] == 0:
-            iter=self.fsnode
-            path='/'
+            (iter, path) = (self.fsrow.iter, '/')
             for i in node[1:]:
                 iter=self.treestore.iter_nth_child(iter, i)
                 path=os.path.join(path, self.treestore[iter][0])
