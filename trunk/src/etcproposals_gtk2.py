@@ -304,6 +304,7 @@ class EtcProposalsTreeView(gtk.TreeView):
                     parent = rows[0]
                 else:
                     parent = self.treestore[self.treestore.append(parent.iter, [part])]
+        self.expand_all()
 
     def get_changegenerator_for_node(self, node):
         """returns a functor that returns a list of EtcProposalChanges belonging to a node."""
