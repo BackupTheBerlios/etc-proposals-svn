@@ -297,16 +297,13 @@ class EtcProposalsTreeView(gtk.TreeView):
     def refresh(self):
         [self.treestore.remove(row.iter) for row in self.fsrow.iterchildren()]
         for file in self.proposals.get_files():
-            parent=self.fsrow.iter
+            parent=self.fsrow
             for part in file[1:].split('/'):
-                iter = self.treestore.iter_children(parent)
-                while( iter != None ):
-                    if self.treestore[iter][0] == part:
-                        parent = iter
-                        break
-                    iter = self.treestore.iter_next(iter)
-                if iter == None:
-                    parent = self.treestore.append(parent, [part])
+                rows = [row for row in parent.iterchildren() if row[0]==part]
+                if len(rows)==1:
+                    parent = rows[0]
+                else:
+                    parent = self.treestore[self.treestore.append(parent.iter, [part])]
 
     def get_changegenerator_for_node(self, node):
         """returns a functor that returns a list of EtcProposalChanges belonging to a node."""
