@@ -294,13 +294,22 @@ class EtcProposalsTreeView(gtk.TreeView):
         self.show()
 
     def refresh(self):
-        files = self.proposals.get_files()
         filenode = self.treestore.iter_children(self.fsnode)
         while( filenode != None ):
             self.treestore.remove(filenode)
             filenode = self.treestore.iter_children(self.fsnode)
         for file in self.proposals.get_files():
-            self.treestore.append(self.fsnode, [file])
+            parent=self.fsnode
+            for part in file[1:].split('/'):
+                iter = self.treestore.iter_children(parent)
+                while( iter != None ):
+                    if self.treestore[iter][0] == part:
+                        parent = iter
+                        break
+                    iter = self.treestore.iter_next(iter)
+
+                if iter == None:
+                    parent = self.treestore.append(parent, [part])
 
     def get_changegenerator_for_node(self, node):
         """returns a functor that returns a list of EtcProposalChanges belonging to a node."""
@@ -320,9 +329,16 @@ class EtcProposalsTreeView(gtk.TreeView):
             return self.proposals.get_undecided_changes
         elif node == (0,):
             return self.proposals.get_all_changes
-        elif len(node) == 2 and node[0] == 0:
-            file = self.treestore[node][0]
-            return lambda: self.proposals.get_file_changes(file)
+        elif node[0] == 0:
+            iter=self.fsnode
+            path='/'
+            for i in node[1:]:
+                iter=self.treestore.iter_nth_child(iter, i)
+                path=os.path.join(path, self.treestore[iter][0])
+            if os.path.isdir(path):
+                return lambda: self.proposals.get_dir_changes(path)
+            else:
+                return lambda: self.proposals.get_file_changes(path)
         return lambda: []
     
     def on_button_press(self, widget, event):
