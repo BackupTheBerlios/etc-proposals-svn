@@ -39,16 +39,20 @@ class PkgcoreUtils(object):
 
 # Installed package DB stuff
 class PortagePkgPart(object):
+    def __init__(self, category, package, version, parttype):
+        (self.category, self.package, self.version, self.parttype) = (category, package, version, parttype)
+
     @staticmethod
-    def parse_dbcontentsline(dbcontentsline):
+    def parse_dbcontentsline(dbcontentsline, category, package, version):
         if dbcontentsline.startswith('obj'):
-            return PortagePkgPartObject(dbcontentsline)
+            return PortagePkgPartObject(dbcontentsline, category, package, version)
         else:
             raise NotImplementedError
 
 
 class PortagePkgPartObject(PortagePkgPart):
-    def __init__(self, dbcontentsline):
+    def __init__(self, category, package, version, dbcontentsline):
+        PortagePkgPart.__init__(self, category, package, version, 'obj')
         templine = dbcontentsline.split(' ', 1)
         self.type = templine[0]
         (self.path, self.md5, mtimestring) = templine[1].rsplit(' ', 2)     
@@ -91,25 +95,24 @@ class PortageInterface(object):
             }[backend]()
 
     @staticmethod
-    def get_md5_from_vdb(files):
-        "returns a dict containing the md5s that were recorded in the vdb for the given files"
-        def allpkgcontents_generator():
-            for pkgdbpath in InstalledPkgDB().installed_pkgs_dbpaths():
-                for pkgpart in InstalledPkg(pkgdbpath).contents():
-                    yield pkgpart
+    def get_fileinfo_from_vdb(files):
+        "returns a dict containing the fileinfo that were recorded in the vdb for the given files"
         files_to_check = set(files)
         pkgparts = dict()
-        allpkgcontents = allpkgcontents_generator()
-        while len(files_to_check) > 0:
-            try:
-                pkgpart = allpkgcontents.next()
-            except StopIteration:
-                break
-            if not pkgpart.path in files_to_check:
-                continue
-            pkgparts[pkgpart.path] = pkgpart.md5
-            files_to_check.discard(pkgpart.path)
+        allpkgcontents = (pkgpart for pkgdbpath in InstalledPkgDB().installed_pkgs_dbpaths()
+            for pkgpart in InstalledPkg(pkgdbpath).contents())
+        for pkgpart in allpkgcontents:
+            if pkgpart.path in files_to_check:
+                pkgparts[pkgpart.path] = pkgpart
+                files_to_check.discard(pkgpart.path)
+            if len(files_to_check) == 0:
+                break   
         return pkgparts
+
+    @staticmethod
+    def get_md5_from_vdb(files):
+        "returns a dict containing the md5s that were recorded in the vdb for the given files"
+        return [pkgpart.md5 for pkgpart in PortageInterface.get_fileinfo_from_vdb(files)]
 
 
 __all__ = ['PortageInterface']
