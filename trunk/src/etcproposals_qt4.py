@@ -322,13 +322,16 @@ class EtcProposalsTreeView(qt.QFrame):
             self.menu.popup(self.cursor().pos())
 
     def refresh(self):
-        childcount = self.fsnode.childCount()
-        for i in range(0,childcount):
-            filenode = self.fsnode.takeChild(i)
+        self.fsnode.takeChildren()
         for file in self.proposals.get_files():
-            newnode = qt.QTreeWidgetItem(self.fsnode)
-            newnode.setText(0, file)
-        self.fsnode.setExpanded(True)
+            parent = self.fsnode
+            for part in file[1:].split('/'):
+                items = [parent.child(i) for i in xrange(0, parent.childCount()) if parent.child(i).text(0) == part]
+                if len(items) == 1:
+                    parent = items[0]
+                else:
+                    parent = qt.QTreeWidgetItem(parent, [part])
+        self.treeview.expandAll()
 
     def get_changegenerator_for_node(self, nodes):
         if len(nodes) == 0:
@@ -347,12 +350,18 @@ class EtcProposalsTreeView(qt.QFrame):
             return self.proposals.get_unmodified_changes
         elif nodes[0] == self.status_use:
             return self.proposals.get_used_changes
+        elif nodes[0] == self.typenode:
+            return lambda: []
         else:
-            if nodes[0].parent() == self.fsnode:
-                file = nodes[0].text(0)
-                return lambda: self.proposals.get_file_changes(file)
+            (child,path) = (nodes[0], [])
+            while child != self.fsnode:
+                path.insert(0, str(child.text(0)))
+                child = child.parent()
+            path = reduce(lambda x,y: os.path.join(x,y), path, '/')
+            if os.path.isdir(path):
+                return lambda: self.proposals.get_dir_changes(path)
             else:
-                return lambda: []
+                return lambda: self.proposals.get_file_changes(path)
 
 
 class EtcProposalsChangesView(qt.QFrame):
