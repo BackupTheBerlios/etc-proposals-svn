@@ -341,7 +341,7 @@ class EtcProposalsTreeView(qt.QFrame):
             return self.proposals.get_unmodified_changes
         elif nodes[0] == self.status_use:
             return self.proposals.get_used_changes
-        elif nodes[0] == self.typenode:
+        elif nodes[0] == self.typenode or nodes[0] == self.statusnode:
             return lambda: []
         else:
             (child,path) = (nodes[0], [])
