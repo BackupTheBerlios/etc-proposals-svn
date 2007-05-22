@@ -121,12 +121,16 @@ class ChangeLabel(qt.QFrame):
             self.filenamelabel = qt.QLabel(self)
             self.proposallabel = qt.QLabel(self)
             self.lineslabel = qt.QLabel(self)
+            self.filenamelabel.setAlignment(qt.Qt.AlignHCenter)
+            self.proposallabel.setAlignment(qt.Qt.AlignHCenter)
+            self.lineslabel.setAlignment(qt.Qt.AlignHCenter)
             self.proposallinesbox = qt.QFrame(self)
             self.proposallinesboxlayout = qt.QHBoxLayout(self.proposallinesbox)
             self.layout.addWidget(self.filenamelabel)
             self.layout.addWidget(self.proposallinesbox)
-            self.proposallinesboxlayout.addWidget(self.proposallabel)
-            self.proposallinesboxlayout.addWidget(self.lineslabel)
+            self.proposallinesboxlayout.addWidget(self.proposallabel, 1)
+            self.proposallinesboxlayout.addWidget(self.lineslabel, 1)
+            self.proposallinesboxlayout.setMargin(0)
             self.update_change()
             for control in [self.filenamelabel, self.proposallabel, self.lineslabel, self.proposallinesbox, self]:
                 control.show()
@@ -215,15 +219,18 @@ class ChangeContent(qt.QFrame):
         self.layout = qt.QVBoxLayout(self)
         self.change = change
         self.header = qt.QLabel(self)
-        self.removetextview = qt.QTextEdit(self)
-        self.inserttextview = qt.QTextEdit(self)
-        self.removetextview.setTextColor(qt.QColor(255, 60, 60))
-        self.inserttextview.setTextColor(qt.QColor(10, 255, 10))
-        for textview in [self.removetextview, self.inserttextview]:
-            textview.setReadOnly(True)
+        self.removetextview = qt.QLabel(self)
+        self.inserttextview = qt.QLabel(self)
+        self.removetextview.palette().setColor(qt.QPalette.Window, qt.QColor(255, 200, 200))
+        self.inserttextview.palette().setColor(qt.QPalette.Window, qt.QColor(200, 255, 200))
+        self.removetextview.palette().setColor(qt.QPalette.WindowText, qt.QColor(0, 0, 0))
+        self.inserttextview.palette().setColor(qt.QPalette.WindowText, qt.QColor(0, 0, 0))
+        self.removetextview.setAutoFillBackground(True)
+        self.inserttextview.setAutoFillBackground(True)
         self.layout.addWidget(self.header)
         self.layout.addWidget(self.removetextview)
         self.layout.addWidget(self.inserttextview)
+        self.layout.setMargin(0)
         self.header.show()
         self.update_change()
         self.show()
@@ -243,8 +250,8 @@ class ChangeContent(qt.QFrame):
             self.removetextview.show()
         if action in ['insert', 'replace']:
             self.inserttextview.show()
-        self.removetextview.setPlainText(''.join(self.change.get_base_content())[:-1])
-        self.inserttextview.setPlainText(''.join(self.change.get_proposed_content())[:-1])
+        self.removetextview.setText(''.join(self.change.get_base_content())[:-1])
+        self.inserttextview.setText(''.join(self.change.get_proposed_content())[:-1])
 
 
 class EtcProposalsChangeView(qt.QFrame):
@@ -261,6 +268,7 @@ class EtcProposalsChangeView(qt.QFrame):
         self.layout.addWidget(self.label)
         self.layout.addWidget(ChangeLabel(self, change, controller))
         self.layout.addWidget(ChangeContent(self, change))
+        self.layout.setMargin(0)
 
     def get_labeltext(self):
         affected_lines = self.change.get_affected_lines()
@@ -386,6 +394,7 @@ class EtcProposalsChangesView(qt.QFrame):
             self.changeList.append(changeview)
             self.layout.addWidget(changeview)
             changeview.show()
+        self.setSizePolicy(qt.QSizePolicy.Preferred, qt.QSizePolicy.Maximum)
         self.show()
 
     # TODO:
