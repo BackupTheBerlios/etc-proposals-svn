@@ -51,7 +51,7 @@ class PortagePkgPart(object):
 
 
 class PortagePkgPartObject(PortagePkgPart):
-    def __init__(self, category, package, version, dbcontentsline):
+    def __init__(self, dbcontentsline, category, package, version):
         PortagePkgPart.__init__(self, category, package, version, 'obj')
         templine = dbcontentsline.split(' ', 1)
         self.type = templine[0]
@@ -69,7 +69,7 @@ class InstalledPkg(object):
         for line in fd:
             line = line.replace('\n', '') 
             try:
-                result.append(PortagePkgPart.parse_dbcontentsline(line))
+                result.append(PortagePkgPart.parse_dbcontentsline(line,'','',''))
             except NotImplementedError:
                 pass
         fd.close()
