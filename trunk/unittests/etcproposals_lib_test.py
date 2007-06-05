@@ -119,7 +119,13 @@ class TestCVSHeader(TestEtcProposalsLib):
         cvsheaderchanges = [change for change in proposals.get_all_changes() if change.is_cvsheader()]
         self.failUnless(len(cvsheaderchanges) == 1, 'CVS-Header recognition failed.')
 
-alltests = [TestUseAll(), TestZapAll(), TestUndoAll(), TestWhitespaceonly(), TestCVSHeader()]
+class TestFileScan(TestEtcProposalsLib):
+    def runTest(self):
+        """Testing if scanning all config files for modifications (comparing to vdb) works"""
+	etcproposals_lib.EtcProposals.scan_all_files()
+
+
+alltests = [TestUseAll(), TestZapAll(), TestUndoAll(), TestWhitespaceonly(), TestCVSHeader(), TestFileScan()]
 alltestssuite = unittest.TestSuite(alltests)
 
 if __name__ == '__main__':

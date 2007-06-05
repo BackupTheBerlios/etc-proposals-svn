@@ -494,6 +494,16 @@ class EtcProposals(list):
         if self._undecided_changes == None:
             self._undecided_changes = [change for change in self.get_all_changes() if change.get_status() == 'undecided']
 
+    @staticmethod
+    def scan_all_files():
+        allpkgparts = PortageInterface.get_fileinfo_from_vdb(
+            [os.path.join(path, file)
+            for configbasedir in PortageInterface.get_config_protect(
+                EtcProposalsConfig().Backend())
+            for (path, dir, files) in os.walk(configbasedir)
+            for file in files])
+        return len([EtcProposalConfigFile(pkgpart.path).update_unmodified(pkgpart.md5) for pkgpart in allpkgparts.values()])
+
 
 class EtcProposalsConfig(object):
     fastexit_override = None

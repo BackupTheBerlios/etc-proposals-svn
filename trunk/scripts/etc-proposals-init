@@ -1,11 +1,4 @@
 #!/usr/bin/env python
-import os
-from etcproposals.portage_stubs import PortageInterface
-from etcproposals.etcproposals_lib import EtcProposalConfigFile
+from etcproposals.etcproposals_lib import EtcProposals
 
-allpkgparts = PortageInterface.get_fileinfo_from_vdb(
-    [os.path.join(path, file) for configbasedir in PortageInterface.get_config_protect('portage')
-        for (path, dir, files) in os.walk(configbasedir)
-        for file in files]
-    )
-print "%s file states updated." % len([EtcProposalConfigFile(pkgpart.path).update_unmodified(pkgpart.md5) for pkgpart in allpkgparts.values()])
+print "%s file states updated." % EtcProposals.scan_all_files() 

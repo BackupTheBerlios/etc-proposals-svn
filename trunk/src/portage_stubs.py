@@ -109,10 +109,14 @@ class PortageInterface(object):
                 break   
         return pkgparts
 
+    # deprecated
     @staticmethod
     def get_md5_from_vdb(files):
         "returns a dict containing the md5s that were recorded in the vdb for the given files"
-        return [pkgpart.md5 for pkgpart in PortageInterface.get_fileinfo_from_vdb(files)]
+        md5s = {}
+        for pkgpart in PortageInterface.get_fileinfo_from_vdb(files).values():
+            md5s[pkgpart.path] = pkgpart.md5
+        return md5s
 
 
 __all__ = ['PortageInterface']

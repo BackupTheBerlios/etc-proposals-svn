@@ -4,14 +4,14 @@ import pygtk
 pygtk.require('2.0')
 import gtk
 
-from etcproposals.etcproposals_gtk import ChangeLabel
-from etcproposals.etcproposals_gtk import ChangeContent
-from etcproposals.etcproposals_gtk import EtcProposalChangeView
-from etcproposals.etcproposals_gtk import EtcProposalsTreeView
-from etcproposals.etcproposals_gtk import EtcProposalsChangesView
-from etcproposals.etcproposals_gtk import EtcProposalsPanedView
-from etcproposals.etcproposals_gtk import EtcProposalsView
-from etcproposals.etcproposals_gtk import EtcProposalsController
+from etcproposals.etcproposals_gtk2 import ChangeLabel
+from etcproposals.etcproposals_gtk2 import ChangeContent
+from etcproposals.etcproposals_gtk2 import EtcProposalChangeView
+from etcproposals.etcproposals_gtk2 import EtcProposalsTreeView
+from etcproposals.etcproposals_gtk2 import EtcProposalsChangesView
+from etcproposals.etcproposals_gtk2 import EtcProposalsPanedView
+from etcproposals.etcproposals_gtk2 import EtcProposalsView
+from etcproposals.etcproposals_gtk2 import EtcProposalsController
 
 
 class GUITestFailedError(Exception):
