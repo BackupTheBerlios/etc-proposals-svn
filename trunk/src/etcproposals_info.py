@@ -75,6 +75,7 @@ FRONTEND.append(Option('readline', '--frontend=readline', 'use the readline fron
 OPTIONS.append(FRONTEND)
 OPTIONS.append(ToggleOption('fastexit', '--fastexit', 'automatically exit if there are no files to update'))
 OPTIONS.append(ToggleOption('version', '--version', 'print version information', True))
+OPTIONS.append(ToggleOption('init-db', '--init-db', 'scans all config files and compares to vdb', True))
 
 VERSIONS = Versions()
 
