@@ -43,7 +43,10 @@ except ImportError:
 
 
 class KdelibsUtils(object):
-    ICONDIR_PATHS = get_command_output_iterator(['kde-config','--path', 'icon']).next().rstrip('\n').split(':')
+    try:
+        ICONDIR_PATHS = get_command_output_iterator(['kde-config','--path', 'icon']).next().rstrip('\n').split(':')
+    except OSError:
+        raise FrontendFailedException('Could not find kde-config in path.')
     THEME = 'crystalsvg'
     ICONSIZE = '22x22'
     IMAGEFORMAT = 'png'
