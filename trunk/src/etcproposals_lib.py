@@ -6,8 +6,8 @@
 # etc-proposals - a tool to integrate modified configs, post-emerge
 
 __author__ = 'Björn Michaelsen' 
-__version__ = '1.1'
-__date__ = '2007-05-01'
+__version__ = '1.3'
+__date__ = '2007-06-06'
 
 import ConfigParser, anydbm, shelve, difflib, os, os.path, re, shutil, md5
 from etcproposals.portage_stubs import PortageInterface

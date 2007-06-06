@@ -7,12 +7,12 @@ from distutils.dir_util import mkpath
 mkpath('/etc/')
 setup(
     name = 'etcproposals',
-    url = 'http://michaelsen.kicks-ass.net/Members/bjoern/etcproposals',
-    author = 'Björn Michaelsen, Jeremy Wickersheimer',
+    url = 'http://etc-proposals.berlios.de',
+    author = 'Björn Michaelsen, Jeremy Wickersheimer, Christian Glindkamp',
     author_email = 'bjoern.michaelsen@gmail.de',
     description = 'a set of tools for updating gentoo config files',
     license = 'GPL Version 2',
-    version = '1.2.1',
+    version = '1.3',
     keywords = ['gentoo', 'config', 'tool'],
     packages = ['etcproposals'],
     package_dir = {'etcproposals' : 'src'},
