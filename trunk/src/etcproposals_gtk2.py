@@ -33,7 +33,7 @@ EtcProposalsView (window)
 """
 from etcproposals.etcproposals_lib import *
 from etcproposals.etcproposals_lib import __version__ as __libversion__
-import os
+import os, difflib
 
 try:
     import gtk
@@ -198,6 +198,9 @@ class ChangeContent(gtk.VBox):
         self.inserttextview.modify_text(gtk.STATE_NORMAL, self.inserttextview.get_colormap().alloc_color(0,0,0))
         for textview in [self.removetextview, self.inserttextview]:
             buffer = textview.get_buffer()
+            buffer.create_tag('^', underline=True)
+            buffer.create_tag('-', underline=True, foreground='DarkRed')
+            buffer.create_tag('+', underline=True, foreground='DarkGreen')
             textview.set_editable(False)
             textview.set_cursor_visible(False)
             textview.show()
@@ -222,9 +225,30 @@ class ChangeContent(gtk.VBox):
             self.pack_start(self.removetextview, False, False, 2)
         if action in ['insert', 'replace']:
             self.pack_start(self.inserttextview, False, False, 2)
-        self.removetextview.get_buffer().set_text(''.join(self.change.get_base_content())[:-1])
-        self.inserttextview.get_buffer().set_text(''.join(self.change.get_proposed_content())[:-1])
-
+        differ = difflib.Differ()
+        insertbuffer=self.inserttextview.get_buffer()
+        removebuffer=self.removetextview.get_buffer()
+        lastbuffer=None
+        for line in differ.compare(self.change.get_base_content(), self.change.get_proposed_content()):
+            if line.startswith('+'):
+                lastbuffer=insertbuffer
+                insertbuffer.insert(insertbuffer.get_end_iter(), line[2:])
+            elif line.startswith('-'):
+                lastbuffer=removebuffer
+                removebuffer.insert(removebuffer.get_end_iter(), line[2:])
+            elif line.startswith('?'):
+                textiter=lastbuffer.get_end_iter()
+                textiter.backward_line()
+                for char in line[2:]:
+                    if char in '^+-':
+                        textenditer=textiter.copy()
+                        textenditer.forward_char()
+                        lastbuffer.apply_tag_by_name(char, textiter, textenditer)
+                    textiter.forward_char()
+        for buffer in [insertbuffer, removebuffer]:
+            enditer=buffer.get_end_iter()
+            enditer.backward_char()
+            buffer.delete(enditer, buffer.get_end_iter())
 
 class EtcProposalChangeView(gtk.Expander):
     """EtcProposalChangeView is an widget showing everything about an
