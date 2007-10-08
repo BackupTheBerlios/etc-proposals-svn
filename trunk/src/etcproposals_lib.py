@@ -6,13 +6,14 @@
 # etc-proposals - a tool to integrate modified configs, post-emerge
 
 __author__ = 'Björn Michaelsen' 
-__version__ = '1.3'
-__date__ = '2007-06-06'
+__version__ = '1.4'
+__date__ = '2007-10-08'
 
 import ConfigParser, anydbm, shelve, difflib, os, os.path, re, shutil, md5
 from etcproposals.portage_stubs import PortageInterface
     
 STATEFILE = '/var/state/etcproposals.state'
+
 
 class OpcodeMismatchException(Exception):
     "happens when a state file is loaded, that does not match the proposal"
@@ -264,7 +265,7 @@ class EtcProposal(object):
         return 'EtcProposal://' + self.path
 
     def _get_file_content(self, filepath):
-        return open(filepath).readlines()
+        return FileCache.readlines_from_file(filepath)
 
     def _get_opcodes(self):
         return difflib.SequenceMatcher(
@@ -505,6 +506,29 @@ class EtcProposals(list):
         return len([EtcProposalConfigFile(pkgpart.path).update_unmodified(pkgpart.md5) for pkgpart in allpkgparts.values()])
 
 
+class EtcProposalFileCache(object):
+    def __init__(self, max_cached_files):
+        self.max_cached_files = max_cached_files
+        self.clear()
+
+    def readlines_from_file(self, filepath):
+        self._add_cached_file(filepath)
+        return self.cached_content[filepath]
+
+    def _add_cached_file(self, filepath):
+        if filepath in self.last_files:
+            self.last_files.remove(filepath)
+        self.last_files.append(filepath)
+        if len(self.last_files) > self.max_cached_files:
+            del self.cached_content[self.last_files.pop(0)]
+        if filepath not in self.cached_content:
+            self.cached_content[filepath] = open(filepath).readlines()
+
+    def clear(self):
+        self.last_files = list()
+        self.cached_content = dict()
+        
+
 class EtcProposalsConfig(object):
     fastexit_override = None
     prefered_frontends_override = None
@@ -539,6 +563,12 @@ class EtcProposalsConfig(object):
         except Exception, e:
             return False
     
+    def MaxCachedFiles(self):
+        try:
+            return int(self.parser.get('General', 'MaxCachedFiles'))
+        except Exception, e:
+            return 10
+    	
     @staticmethod
     def FastexitOverride(override_value):
         EtcProposalsConfig.fastexit_override = override_value
@@ -581,3 +611,8 @@ __all__ = ['EtcProposalChange', 'EtcProposal', 'EtcProposals', 'EtcProposalsConf
 
 if __name__ == '__main__':
     raise SystemExit, 'This module is not executable.' 
+
+
+# Singletons
+
+FileCache = EtcProposalFileCache(EtcProposalsConfig().MaxCachedFiles())

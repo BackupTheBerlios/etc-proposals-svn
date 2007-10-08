@@ -6,5 +6,5 @@ mkdir -p $PORTDIR_OVERLAY/app-portage/etcproposals
 cp dist/*.ebuild $PORTDIR_OVERLAY/app-portage/etcproposals
 cp dist/*.tar.gz $DISTDIR
 cd $PORTDIR_OVERLAY/app-portage/etcproposals
-ebuild digest *.ebuild
+ebuild *.ebuild digest
 emerge etcproposals
