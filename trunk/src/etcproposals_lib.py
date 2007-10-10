@@ -250,7 +250,10 @@ class EtcProposal(object):
 
     def _refresh_changes_cache(self):
         if self._changes is None:
-            self._changes = [self._create_change(opcode) for opcode in self._get_opcodes()]
+            opcodes = self._get_opcodes()
+            if len(opcodes) > Config.MaxChangesPerProposal():
+                opcodes = [self._join_opcodes(opcodes)]
+            self._changes = [self._create_change(opcode) for opcode in opcodes]
             state = EtcProposalsState()
             if state.has_key(self._get_state_url()):
                 undecorated_changes = EtcProposalsState()[self._get_state_url()]
@@ -260,6 +263,14 @@ class EtcProposal(object):
                     pass
                 except IndexError:
                     pass
+
+    def _join_opcodes(self, opcodes):
+        return (
+            'replace',
+            reduce(min, (opcode[1] for opcode in opcodes)),
+            reduce(max, (opcode[2] for opcode in opcodes)),
+            reduce(min, (opcode[3] for opcode in opcodes)),
+            reduce(max, (opcode[4] for opcode in opcodes)))
 
     def _get_state_url(self):
         return 'EtcProposal://' + self.path
@@ -334,14 +345,14 @@ class EtcProposals(list):
         "clears and repopulates the list from the filesystem"
         self.clear_cache()
         del self[:] 
-        for dir in PortageInterface.get_config_protect(EtcProposalsConfig().Backend()):
+        for dir in PortageInterface.get_config_protect(Config.Backend()):
             self._add_update_proposals(dir)
         self.sort()
 
     def clear_all_states(self):
         "this is pretty much 'undo all' but it also removes orphaned state files"
         # removing deprecated old style statefile
-        for dir in PortageInterface.get_config_protect(EtcProposalsConfig().Backend()):
+        for dir in PortageInterface.get_config_protect(Config.Backend()):
             self._remove_statefiles(dir)
         self.refresh()
 
@@ -500,7 +511,7 @@ class EtcProposals(list):
         allpkgparts = PortageInterface.get_fileinfo_from_vdb(
             [os.path.join(path, file)
             for configbasedir in PortageInterface.get_config_protect(
-                EtcProposalsConfig().Backend())
+                Config.Backend())
             for (path, dir, files) in os.walk(configbasedir)
             for file in files])
         return len([EtcProposalConfigFile(pkgpart.path).update_unmodified(pkgpart.md5) for pkgpart in allpkgparts.values()])
@@ -568,7 +579,12 @@ class EtcProposalsConfig(object):
             return int(self.parser.get('General', 'MaxCachedFiles'))
         except Exception, e:
             return 10
-    	
+
+    def MaxChangesPerProposal(self):
+        try:
+            return int(self.parser.get('General', 'MaxChangesPerProposal'))
+        except Exception, e:
+            return 100
     @staticmethod
     def FastexitOverride(override_value):
         EtcProposalsConfig.fastexit_override = override_value
@@ -615,4 +631,5 @@ if __name__ == '__main__':
 
 # Singletons
 
-FileCache = EtcProposalFileCache(EtcProposalsConfig().MaxCachedFiles())
+Config = EtcProposalsConfig()
+FileCache = EtcProposalFileCache(Config.MaxCachedFiles())
