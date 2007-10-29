@@ -417,6 +417,8 @@ class EtcProposalsChangesView(gtk.VBox):
             elif labeltext in self.collapsed_changes:
                 self.collapsed_changes.remove(labeltext)
             self.remove(child)
+            while gtk.events_pending():
+                gtk.main_iteration()
         if not changes_generator == None:
             self.changes_generator = changes_generator
         for change in self.changes_generator():
@@ -424,6 +426,8 @@ class EtcProposalsChangesView(gtk.VBox):
             if not changeview.get_labeltext() in self.collapsed_changes:
                 changeview.set_expanded(True)
             self.pack_start(changeview, False, False, 0)
+            while gtk.events_pending():
+                gtk.main_iteration()
         self.show()
 
     def collapse_all(self):
