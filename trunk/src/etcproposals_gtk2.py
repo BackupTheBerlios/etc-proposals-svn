@@ -50,6 +50,7 @@ class EtcProposalsConfigGtkDecorator(EtcProposalsConfig):
     """stub to handle configuration settings for the Gtk GUI"""
     pass
 
+
 class EtcProposalsMainActiongroup(gtk.ActionGroup):
     def __init__(self, controller):
         gtk.ActionGroup.__init__(self, 'Main')
@@ -65,6 +66,47 @@ class EtcProposalsMainActiongroup(gtk.ActionGroup):
             ('Expand', gtk.STOCK_ADD, '_Expand', None, 'Expand all displayed changes', lambda item: controller.view.on_expand_all()),
             ('Help', gtk.STOCK_HELP, '_Help', None, 'A short help', lambda item: HelpDialog(controller.view)),
             ('About', gtk.STOCK_ABOUT, '_About', None, 'About this tool', lambda item: AboutDialog(controller.view))])
+
+
+class EtcProposalsUIManager(gtk.UIManager):
+    def __init__(self, controller):
+        gtk.UIManager.__init__(self)
+        xml = """
+        <ui>
+            <menubar name="Menubar">
+                <menu action="Filemenu">
+                    <menuitem action="Refresh"/>
+                    <menuitem action="Apply"/>
+                    <menuitem action="Quit"/>
+                </menu>
+                <menu action="Editmenu">
+                </menu>
+                <menu action="Viewmenu">
+                    <menuitem action="Collapse"/>
+                    <menuitem action="Expand"/>
+                </menu>
+                <menu action="Helpmenu">
+                    <menuitem action="Help"/>
+                    <menuitem action="About"/>
+                </menu>
+            </menubar>
+            <toolbar name="Toolbar">
+                <toolitem action="Quit"/>
+                <toolitem action="Apply"/>
+                <separator/>
+                <toolitem action="Refresh"/>
+                <separator/>
+                <toolitem action="Collapse"/>
+                <toolitem action="Expand"/>
+                <separator/>
+                <separator/>
+                <toolitem action="Help"/>
+                <toolitem action="About"/>
+            </toolbar>
+        </ui>
+        """
+        self.insert_action_group(controller.main_actiongroup, 0)
+        self.add_ui_from_string(xml)
 
 
 class ScanFSWindow(gtk.Window):
@@ -559,55 +601,9 @@ class EtcProposalsView(gtk.Window):
         self.paned.changesview.collapse_all()
 
     def _get_menubar(self):
-        menu_xml = """
-        <ui>
-            <menubar name="Menubar">
-                <menu action="Filemenu">
-                    <menuitem action="Refresh"/>
-                    <menuitem action="Apply"/>
-                    <menuitem action="Quit"/>
-                </menu>
-                <menu action="Editmenu">
-                </menu>
-                <menu action="Viewmenu">
-                    <menuitem action="Collapse"/>
-                    <menuitem action="Expand"/>
-                </menu>
-                <menu action="Helpmenu">
-                    <menuitem action="Help"/>
-                    <menuitem action="About"/>
-                </menu>
-            </menubar>
-        </ui>
-        """
-        uimanager = gtk.UIManager()
-        uimanager.insert_action_group(self.controller.main_actiongroup, 0)
-        uimanager.add_ui_from_string(menu_xml)
-        menubar = uimanager.get_widget('/Menubar')
-        return menubar
+        return self.controller.uimanager.get_widget('/Menubar')
 
     def _get_toolbar(self):
-        tb_xml = """
-        <ui>
-            <toolbar name="Toolbar">
-                <toolitem action="Quit"/>
-                <toolitem action="Apply"/>
-                <separator/>
-                <toolitem action="Refresh"/>
-                <separator/>
-                <toolitem action="Collapse"/>
-                <toolitem action="Expand"/>
-                <separator/>
-                <separator/>
-                <toolitem action="Help"/>
-                <toolitem action="About"/>
-            </toolbar>
-        </ui>
-        """
-        uimanager = gtk.UIManager()
-        uimanager.insert_action_group(self.controller.main_actiongroup, 0)
-        uimanager.add_ui_from_string(tb_xml)
-        toolbar = uimanager.get_widget('/Toolbar')
         #toolitem = gtk.ToolItem()
         #menubar = gtk.MenuBar()
         #typeitem = gtk.MenuItem("Typefilters")
@@ -627,7 +623,7 @@ class EtcProposalsView(gtk.Window):
         #toolitem.add(gtk.Label("Statusfilter:"))
         #toolitem.show_all()
         #toolbar.insert(toolitem, 8)
-        return toolbar
+        return self.controller.uimanager.get_widget('/Toolbar')
 
 
 class EtcProposalsController(object):
@@ -638,9 +634,10 @@ class EtcProposalsController(object):
     instance itself when initiated."""
     def __init__(self, proposals):
         self.proposals = proposals
-        self.main_actiongroup = EtcProposalsMainActiongroup(self)
         if len(self.proposals) == 0 and EtcProposalsConfigGtkDecorator().Fastexit():
             raise SystemExit
+        self.main_actiongroup = EtcProposalsMainActiongroup(self)
+        self.uimanager = EtcProposalsUIManager(self)
         self.view = EtcProposalsView(proposals, self)
         self.refresh()
 
