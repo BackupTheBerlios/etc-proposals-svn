@@ -50,6 +50,22 @@ class EtcProposalsConfigGtkDecorator(EtcProposalsConfig):
     """stub to handle configuration settings for the Gtk GUI"""
     pass
 
+class EtcProposalsMainActiongroup(gtk.ActionGroup):
+    def __init__(self, controller):
+        gtk.ActionGroup.__init__(self, 'Main')
+        self.add_actions([
+            ('Filemenu', None, '_File', None, None, None),
+            ('Editmenu', None, '_Edit', None, None, None),
+            ('Viewmenu', None, '_View', None, None, None),
+            ('Helpmenu', None, '_Help', None, None, None),
+            ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit without applying changes', gtk.main_quit),
+            ('Apply', gtk.STOCK_APPLY, '_Apply', None, 'Apply changes', lambda item: controller.apply()),
+            ('Refresh', gtk.STOCK_REFRESH, '_Refresh', None, 'Refresh proposals', lambda item: controller.refresh()),
+            ('Collapse', gtk.STOCK_REMOVE, '_Collapse', None, 'Collapse all displayed changes', lambda item: controller.view.on_collapse_all()),
+            ('Expand', gtk.STOCK_ADD, '_Expand', None, 'Expand all displayed changes', lambda item: controller.view.on_expand_all()),
+            ('Help', gtk.STOCK_HELP, '_Help', None, 'A short help', lambda item: HelpDialog(controller.view)),
+            ('About', gtk.STOCK_ABOUT, '_About', None, 'About this tool', lambda item: AboutDialog(controller.view))])
+
 
 class ScanFSWindow(gtk.Window):
     """ScanFSWindow ."""
@@ -523,9 +539,12 @@ class EtcProposalsView(gtk.Window):
         self.set_position(gtk.WIN_POS_CENTER)
         self.connect('destroy', lambda *w: gtk.main_quit())
         vbox = gtk.VBox()
+        self.menubar = self._get_menubar()
+        self.menubar.show()
         self.toolbar = self._get_toolbar()
         self.toolbar.show()
         self.paned = EtcProposalsPanedView(proposals, controller)
+        vbox.pack_start(self.menubar, False, False, 0)
         vbox.pack_start(self.toolbar, False, False, 0)
         vbox.pack_start(self.paned, True, True, 0)
         vbox.show()
@@ -539,6 +558,34 @@ class EtcProposalsView(gtk.Window):
     def on_collapse_all(self):
         self.paned.changesview.collapse_all()
 
+    def _get_menubar(self):
+        menu_xml = """
+        <ui>
+            <menubar name="Menubar">
+                <menu action="Filemenu">
+                    <menuitem action="Refresh"/>
+                    <menuitem action="Apply"/>
+                    <menuitem action="Quit"/>
+                </menu>
+                <menu action="Editmenu">
+                </menu>
+                <menu action="Viewmenu">
+                    <menuitem action="Collapse"/>
+                    <menuitem action="Expand"/>
+                </menu>
+                <menu action="Helpmenu">
+                    <menuitem action="Help"/>
+                    <menuitem action="About"/>
+                </menu>
+            </menubar>
+        </ui>
+        """
+        uimanager = gtk.UIManager()
+        uimanager.insert_action_group(self.controller.main_actiongroup, 0)
+        uimanager.add_ui_from_string(menu_xml)
+        menubar = uimanager.get_widget('/Menubar')
+        return menubar
+
     def _get_toolbar(self):
         tb_xml = """
         <ui>
@@ -551,24 +598,36 @@ class EtcProposalsView(gtk.Window):
                 <toolitem action="Collapse"/>
                 <toolitem action="Expand"/>
                 <separator/>
+                <separator/>
                 <toolitem action="Help"/>
                 <toolitem action="About"/>
             </toolbar>
         </ui>
         """
-        actiongroup = gtk.ActionGroup('Main')
-        actiongroup.add_actions([
-            ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit without applying changes', gtk.main_quit),
-            ('Apply', gtk.STOCK_APPLY, '_Apply', None, 'Apply changes', lambda item: self.controller.apply()),
-            ('Refresh', gtk.STOCK_REFRESH, '_Refresh', None, 'Refresh proposals', lambda item: self.controller.refresh()),
-            ('Collapse', gtk.STOCK_REMOVE, '_Collapse', None, 'Collapse all displayed changes', lambda item: self.on_collapse_all()),
-            ('Expand', gtk.STOCK_ADD, '_Expand', None, 'Expand all displayed changes', lambda item: self.on_expand_all()),
-            ('Help', gtk.STOCK_HELP, '_Help', None, 'A short help', lambda item: HelpDialog(self)),
-            ('About', gtk.STOCK_ABOUT, '_About', None, 'About this tool', lambda item: AboutDialog(self))])
         uimanager = gtk.UIManager()
-        uimanager.insert_action_group(actiongroup, 0)
+        uimanager.insert_action_group(self.controller.main_actiongroup, 0)
         uimanager.add_ui_from_string(tb_xml)
-        return uimanager.get_widget('/Toolbar')
+        toolbar = uimanager.get_widget('/Toolbar')
+        #toolitem = gtk.ToolItem()
+        #menubar = gtk.MenuBar()
+        #typeitem = gtk.MenuItem("Typefilters")
+        #typeitem_menu = gtk.Menu()
+        #ws_typeitem = gtk.MenuItem("Whitespace")
+        #cvs_typeitem = gtk.MenuItem("CVS-Header")
+        #unchanged_typeitem = gtk.MenuItem("Unchanged")
+        #typeitem_menu.add(gtk.TearoffMenuItem())
+        #typeitem_menu.add(ws_typeitem)
+        #typeitem_menu.add(cvs_typeitem)
+        #typeitem_menu.add(unchanged_typeitem)
+        #typeitem.set_submenu(typeitem_menu)
+        #menubar.add(typeitem)
+        #toolitem.add(menubar)
+        #toolitem.set_expand(True)
+        #toolitem.add(gtk.Label("Statusfilter:"))
+        #toolitem.add(gtk.Label("Statusfilter:"))
+        #toolitem.show_all()
+        #toolbar.insert(toolitem, 8)
+        return toolbar
 
 
 class EtcProposalsController(object):
@@ -579,6 +638,7 @@ class EtcProposalsController(object):
     instance itself when initiated."""
     def __init__(self, proposals):
         self.proposals = proposals
+        self.main_actiongroup = EtcProposalsMainActiongroup(self)
         if len(self.proposals) == 0 and EtcProposalsConfigGtkDecorator().Fastexit():
             raise SystemExit
         self.view = EtcProposalsView(proposals, self)
