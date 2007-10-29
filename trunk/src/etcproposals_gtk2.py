@@ -6,8 +6,8 @@
 # etc-proposals - a gtk-frontend to integrate modified configs, post-emerge
 
 __author__ = 'Björn Michaelsen, Christian Glindkamp' 
-__version__ = '1.3'
-__date__ = '2007-06-06'
+__version__ = '1.4'
+__date__ = '2007-10-25'
 __doc__ = """
 etcproposals_gtk is a gtk-frontend to integrate modified configs, post-emerge.
 Its implemented using the MVC (model-view-controller) design pattern.
@@ -41,21 +41,39 @@ except ImportError:
     raise FrontendFailedException('Could not find gtk-bindings.')
 
 class EtcProposalsGtkDecorator(EtcProposals):
-    """decoration of EtcProposals to satisfy the performance needs of the GUI"""
-    def warmup_cache(self):
-        """for the GUI,  we need to keep the cache warm"""
-        self.get_whitespace_changes()
-        self.get_cvsheader_changes()
-        self.get_unmodified_changes()
-        self.get_used_changes()
-        self.get_zapped_changes()
-        self.get_undecided_changes()
+    """decoration of EtcProposals"""
+    def __init__(self):
+        EtcProposals.__init__(self, False)
 
 
 class EtcProposalsConfigGtkDecorator(EtcProposalsConfig):
     """stub to handle configuration settings for the Gtk GUI"""
     pass
 
+
+class ScanFSWindow(gtk.Window):
+    """ScanFSWindow ."""
+    def __init__(self):
+        gtk.Window.__init__(self)
+        self.set_title('etc-proposals - scanning configuration files')
+        self.set_position(gtk.WIN_POS_CENTER)
+        self.description_label = gtk.Label()
+        self.current_file_label = gtk.Label()
+        self.description_label.set_label("Scanning configuration files")
+        vbox = gtk.VBox()
+        vbox.pack_start(self.description_label, True, False, 1)
+        vbox.pack_start(self.current_file_label, True, False, 1)
+        self.description_label.show()
+        self.add(vbox)
+        self.show_all()
+    
+    def get_current_file(self):
+        return self.current_file_label.get_label()
+
+    def set_current_file(self, current_file):
+        self.current_file_label.set_label(current_file)
+
+    current_file = property(get_current_file, set_current_file)
 
 class ChangeLabel(gtk.Frame):
     """ChangeLabel is a widget showing all data of an
@@ -559,37 +577,39 @@ class EtcProposalsController(object):
         self.proposals = proposals
         if len(self.proposals) == 0 and EtcProposalsConfigGtkDecorator().Fastexit():
             raise SystemExit
-        self.proposals.warmup_cache()
         self.view = EtcProposalsView(proposals, self)
+        self.refresh()
 
     def undo_changes(self, changes):
         [change.undo() for change in changes]
-        self.proposals.warmup_cache()
         self.view.paned.changesview.update_changes()
 
     def zap_changes(self, changes):
         [change.zap() for change in changes]
-        self.proposals.warmup_cache()
         self.view.paned.changesview.update_changes()
 
     def use_changes(self, changes):
         [change.use() for change in changes]
-        self.proposals.warmup_cache()
         self.view.paned.changesview.update_changes()
 
     def apply(self):
         self.proposals.apply()
         if len(self.proposals) == 0 and EtcProposalsConfigGtkDecorator().Fastexit():
             gtk.main_quit()
-        self.proposals.warmup_cache()
         self.view.paned.treeview.refresh()
         self.view.paned.changesview.update_changes(lambda: [])
 
     def refresh(self):
-        self.proposals.refresh()
-        self.proposals.warmup_cache()
+        def refresh_callback(current_file):
+            wait_win.current_file = current_file
+            while gtk.events_pending():
+                gtk.main_iteration()
+        wait_win = ScanFSWindow()
+        self.proposals.refresh(refresh_callback)
+        refresh_callback("Refreshing views.")
         self.view.paned.treeview.refresh()
         self.view.paned.changesview.update_changes(lambda: [])
+        wait_win.destroy()
 
 
 def run_frontend():

@@ -4,6 +4,7 @@ import pygtk
 pygtk.require('2.0')
 import gtk
 
+from etcproposals.etcproposals_gtk2 import ScanFSWindow
 from etcproposals.etcproposals_gtk2 import ChangeLabel
 from etcproposals.etcproposals_gtk2 import ChangeContent
 from etcproposals.etcproposals_gtk2 import EtcProposalChangeView
@@ -102,7 +103,16 @@ class TestGtk(unittest.TestCase):
     def gtk_passed(self):
         self.window.destroy()
         gtk.main_quit()
-        
+
+
+class TestScanFSWindow(TestGtk):
+    def runTest(self):
+        """Testing the wait window """
+        wait_win = ScanFSWindow()
+        wait_win.current_file = "/etc/fstab"
+        gtk.main()
+        wait_win.destroy()
+        self.failIf(self.Failed, 'Test failed.')
 
 
 class TestChangeLabel(TestGtk):
@@ -210,7 +220,7 @@ class TestController(TestGtk):
         TestGtk.gtk_failed(self)
 
 
-alltests = [TestChangeLabel(), TestChangeContent(), TestChangeView(), TestTreeView(), TestChangesView(), TestPanedView(), TestView(), TestController()]
+alltests = [TestScanFSWindow(), TestChangeLabel(), TestChangeContent(), TestChangeView(), TestTreeView(), TestChangesView(), TestPanedView(), TestView(), TestController()]
 alltestssuite = unittest.TestSuite(alltests)
 
 if __name__ == '__main__':
