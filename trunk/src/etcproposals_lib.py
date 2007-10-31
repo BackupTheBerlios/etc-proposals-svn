@@ -173,9 +173,8 @@ class EtcProposal(object):
         self.clear_state()
     
     def clear_state(self):
-        state = EtcProposalsState()
-        if state.has_key(self._get_state_url()):
-            del state[self._get_state_url()]
+        if State.has_key(self._get_state_url()):
+            del State[self._get_state_url()]
 
     def clear_cache(self):
         "clears all state data"
@@ -245,7 +244,7 @@ class EtcProposal(object):
             undecorated_change = EtcProposalChange(change.opcode, None)
             undecorated_change.copystatefrom(change)
             undecorated_changes.append(undecorated_change)
-        EtcProposalsState()[self._get_state_url()] = undecorated_changes    
+        State[self._get_state_url()] = undecorated_changes    
         self.proposals.on_proposal_changed(self)
 
     def _refresh_changes_cache(self):
@@ -254,9 +253,8 @@ class EtcProposal(object):
             if len(opcodes) > Config.MaxChangesPerProposal():
                 opcodes = [self._join_opcodes(opcodes)]
             self._changes = [self._create_change(opcode) for opcode in opcodes]
-            state = EtcProposalsState()
-            if state.has_key(self._get_state_url()):
-                undecorated_changes = EtcProposalsState()[self._get_state_url()]
+            if State.has_key(self._get_state_url()):
+                undecorated_changes = State[self._get_state_url()]
                 try:
                     [change.copystatefrom(undecorated_changes.pop(0)) for change in self._changes]
                 except OpcodeMismatchException:
@@ -310,8 +308,7 @@ class EtcProposalConfigFile(object):
     
     def is_unmodified(self):
         "True, if the file in the fs has the same md5 as recorded"
-        state = EtcProposalsState()
-        if not state.has_key(self._get_state_url()):
+        if not State.has_key(self._get_state_url()):
             return False
         try:
             return (state[self._get_state_url()] == self.md5hexdigest())
@@ -320,14 +317,13 @@ class EtcProposalConfigFile(object):
 
     def clear_unmodified(self):
         "clears the memory about this config file"
-        state = EtcProposalsState()
-        if state.has_key(self._get_state_url()):
+        if State.has_key(self._get_state_url()):
             del state[self._get_state_url()]
 
     def update_unmodified(self, expected_md5):
         "records the md5 if it matches the one of the file in the fs"
         if expected_md5 == self.md5hexdigest():
-            EtcProposalsState()[self._get_state_url()] = expected_md5 
+            State[self._get_state_url()] = expected_md5 
         else:
             self.clear_unmodified()
 
@@ -636,3 +632,4 @@ if __name__ == '__main__':
 
 Config = EtcProposalsConfig()
 FileCache = EtcProposalFileCache(Config.MaxCachedFiles())
+State = EtcProposalsState()

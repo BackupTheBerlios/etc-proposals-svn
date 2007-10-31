@@ -62,10 +62,26 @@ class EtcProposalsMainActiongroup(gtk.ActionGroup):
             ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit without applying changes', gtk.main_quit),
             ('Apply', gtk.STOCK_APPLY, '_Apply', None, 'Apply changes', lambda item: controller.apply()),
             ('Refresh', gtk.STOCK_REFRESH, '_Refresh', None, 'Refresh proposals', lambda item: controller.refresh()),
-            ('Collapse', gtk.STOCK_REMOVE, '_Collapse', None, 'Collapse all displayed changes', lambda item: controller.view.on_collapse_all()),
-            ('Expand', gtk.STOCK_ADD, '_Expand', None, 'Expand all displayed changes', lambda item: controller.view.on_expand_all()),
+            ('Collapse', gtk.STOCK_REMOVE, '_Collapse Changes', None, 'Collapse all displayed changes', lambda item: controller.view.on_collapse_all()),
+            ('Expand', gtk.STOCK_ADD, '_Expand Changes', None, 'Expand all displayed changes', lambda item: controller.view.on_expand_all()),
             ('Help', gtk.STOCK_HELP, '_Help', None, 'A short help', lambda item: HelpDialog(controller.view)),
-            ('About', gtk.STOCK_ABOUT, '_About', None, 'About this tool', lambda item: AboutDialog(controller.view))])
+            ('About', gtk.STOCK_ABOUT, '_About', None, 'About this tool', lambda item: AboutDialog(controller.view)),
+            ('Typefilter', None, 'Type Filter', None, None, None),
+            ('Statusfilter', None, 'Status Filter', None, None, None),
+            ('Whitespacefilter', None, 'Whitespace Filter', None, None, None),
+            ('CVSHeaderfilter', None, 'CVS-Header Filter', None, None, None),
+            ('Unmodifiedfilter', None, 'Unmodified Filter', None, None, None)])
+        self.add_toggle_actions([
+            ('Show Whitespace', None, 'Show Whitespace Changes', None, None, None),
+            ('Show CVS', None, 'Show CVS-Header Changes', None, None, None),
+            ('Show Unmodified', None, 'Show Unmodified Changes', None, None, None),
+            ('Show Non-Whitespace', None, 'Show Non-Whitespace Changes', None, None, None),
+            ('Show Non-CVS', None, 'Show Non-CVS-Header Changes', None, None, None),
+            ('Show Modified', None, 'Show Modified Changes', None, None, None),
+            ('Show Use', None, 'Show Used Changes', None, None, None),
+            ('Show Zap', None, 'Show Zapped Changes', None, None, None),
+            ('Show Undecided', None, 'Show Undecided Changes', None, None, None)
+            ])
 
 
 class EtcProposalsUIManager(gtk.UIManager):
@@ -84,6 +100,26 @@ class EtcProposalsUIManager(gtk.UIManager):
                 <menu action="Viewmenu">
                     <menuitem action="Collapse"/>
                     <menuitem action="Expand"/>
+                    <separator/>
+                    <menu action="Typefilter">
+                        <menu action="Whitespacefilter">
+                            <menuitem action="Show Whitespace"/>
+                            <menuitem action="Show Non-Whitespace"/>
+                        </menu>
+                        <menu action="CVSHeaderfilter">
+                            <menuitem action="Show CVS"/>
+                            <menuitem action="Show Non-CVS"/>
+                        </menu>
+                        <menu action="Unmodifiedfilter">
+                            <menuitem action="Show Unmodified"/>
+                            <menuitem action="Show Modified"/>
+                        </menu>
+                    </menu>
+                    <menu action="Statusfilter">
+                        <menuitem action="Show Use"/>
+                        <menuitem action="Show Zap"/>
+                        <menuitem action="Show Undecided"/>
+                    </menu>
                 </menu>
                 <menu action="Helpmenu">
                     <menuitem action="Help"/>
@@ -96,9 +132,16 @@ class EtcProposalsUIManager(gtk.UIManager):
                 <separator/>
                 <toolitem action="Refresh"/>
                 <separator/>
+                <placeholder name="ToolbarChangeLabel"/>
                 <toolitem action="Collapse"/>
                 <toolitem action="Expand"/>
                 <separator/>
+                <placeholder name="ToolbarStatusLabel"/>
+		<toolitem action="Show Use"/>
+		<toolitem action="Show Zap"/>
+		<toolitem action="Show Undecided"/>
+		<separator/>
+                <placeholder name="Toolbarspace"/>
                 <separator/>
                 <toolitem action="Help"/>
                 <toolitem action="About"/>
@@ -107,6 +150,7 @@ class EtcProposalsUIManager(gtk.UIManager):
         """
         self.insert_action_group(controller.main_actiongroup, 0)
         self.add_ui_from_string(xml)
+        self.set_add_tearoffs(True)
 
 
 class ScanFSWindow(gtk.Window):
@@ -475,8 +519,6 @@ class EtcProposalsChangesView(gtk.VBox):
             elif labeltext in self.collapsed_changes:
                 self.collapsed_changes.remove(labeltext)
             self.remove(child)
-            while gtk.events_pending():
-                gtk.main_iteration()
         if not changes_generator == None:
             self.changes_generator = changes_generator
         for change in self.changes_generator():
@@ -484,8 +526,6 @@ class EtcProposalsChangesView(gtk.VBox):
             if not changeview.get_labeltext() in self.collapsed_changes:
                 changeview.set_expanded(True)
             self.pack_start(changeview, False, False, 0)
-            while gtk.events_pending():
-                gtk.main_iteration()
         self.show()
 
     def collapse_all(self):
@@ -604,26 +644,19 @@ class EtcProposalsView(gtk.Window):
         return self.controller.uimanager.get_widget('/Menubar')
 
     def _get_toolbar(self):
-        #toolitem = gtk.ToolItem()
-        #menubar = gtk.MenuBar()
-        #typeitem = gtk.MenuItem("Typefilters")
-        #typeitem_menu = gtk.Menu()
-        #ws_typeitem = gtk.MenuItem("Whitespace")
-        #cvs_typeitem = gtk.MenuItem("CVS-Header")
-        #unchanged_typeitem = gtk.MenuItem("Unchanged")
-        #typeitem_menu.add(gtk.TearoffMenuItem())
-        #typeitem_menu.add(ws_typeitem)
-        #typeitem_menu.add(cvs_typeitem)
-        #typeitem_menu.add(unchanged_typeitem)
-        #typeitem.set_submenu(typeitem_menu)
-        #menubar.add(typeitem)
-        #toolitem.add(menubar)
-        #toolitem.set_expand(True)
-        #toolitem.add(gtk.Label("Statusfilter:"))
-        #toolitem.add(gtk.Label("Statusfilter:"))
-        #toolitem.show_all()
-        #toolbar.insert(toolitem, 8)
-        return self.controller.uimanager.get_widget('/Toolbar')
+        toolbar = self.controller.uimanager.get_widget('/Toolbar')
+        space_item = gtk.ToolItem()
+        space_item.set_expand(True)
+        toolbar.insert(space_item, 16)
+        toolbar.insert(gtk.SeparatorToolItem(),17)
+        status_label_item = gtk.ToolItem()
+        status_label_item.add(gtk.Label("Status:"))
+        changes_label_item = gtk.ToolItem()
+        changes_label_item.add(gtk.Label("Changes:"))
+        toolbar.insert(status_label_item, 10)
+        toolbar.insert(changes_label_item, 5)
+        toolbar.show_all()
+        return toolbar 
 
 
 class EtcProposalsController(object):
