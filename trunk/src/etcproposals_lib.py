@@ -32,8 +32,8 @@ class EtcProposalChange(object):
     def __getstate__(self):
         return (self.opcode, self.merge, self.touched)
 
-    def __setstate__(self, state):
-        (self.opcode, self.merge, self.touched) = state
+    def __setstate__(self, new_state):
+        (self.opcode, self.merge, self.touched) = new_state
     
     def copystatefrom(self, other):
         if not self.opcode == other.opcode:
@@ -311,14 +311,14 @@ class EtcProposalConfigFile(object):
         if not State.has_key(self._get_state_url()):
             return False
         try:
-            return (state[self._get_state_url()] == self.md5hexdigest())
+            return (State[self._get_state_url()] == self.md5hexdigest())
         except IOError:
             return False
 
     def clear_unmodified(self):
         "clears the memory about this config file"
         if State.has_key(self._get_state_url()):
-            del state[self._get_state_url()]
+            del State[self._get_state_url()]
 
     def update_unmodified(self, expected_md5):
         "records the md5 if it matches the one of the file in the fs"
