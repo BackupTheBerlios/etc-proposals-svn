@@ -338,7 +338,7 @@ class EtcProposals(list):
         if refresh_on_init:
             self.refresh()
 
-    def refresh(self, current_file_callback = lambda current_file: current_file):
+    def refresh(self, current_file_callback = None):
         "clears and repopulates the list from the filesystem"
         self.clear_cache()
         del self[:] 
@@ -462,7 +462,7 @@ class EtcProposals(list):
     def _add_update_proposals(self, dir, current_file_callback):
         up_regexp = EtcProposal.proposal_regexp()
         self.extend((
-            self._create_proposal(os.path.join(path, file), current_file_callback) 
+            self._create_proposal(os.path.join(path, file), current_file_callback)
             for (path, dirs, files) in os.walk(dir) for file in files
             if up_regexp.match(file) ))
 
@@ -474,7 +474,7 @@ class EtcProposals(list):
             if state_regexp.match(file)]
 
     def _create_proposal(self, proposal_path, current_file_callback):
-        current_file_callback(proposal_path)
+        if not current_file_callback is None: current_file_callback(proposal_path)
         return EtcProposal(proposal_path, self)
     
     def _refresh_changes_cache(self):

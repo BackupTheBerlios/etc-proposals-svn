@@ -123,7 +123,8 @@ class EtcProposalsShellDecorator(EtcProposals):
         self.cmdline = cmdline
 
     # Being picky, we only want decorated Proposals
-    def _create_proposal(self, proposal_path):
+    def _create_proposal(self, proposal_path, current_file_callback):
+        if not current_file_callback is None: current_file_callback()
         return EtcProposalShellDecorator(proposal_path, self)
 
 
