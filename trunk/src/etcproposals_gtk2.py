@@ -12,7 +12,7 @@ __doc__ = """
 etcproposals_gtk is a gtk-frontend to integrate modified configs, post-emerge.
 Its implemented using the MVC (model-view-controller) design pattern.
 
-The model is represented by the EtcProposalsGtkDecorator class, whose functionality
+The model is represented by the EtcProposals class, whose functionality
 is mostly implemented in etcproposals_lib.
 
 The view is implemented by the EtcProposalsView using most of the other helper classes
@@ -24,10 +24,10 @@ model while keeping the view in sync.
 Here is a bit of ASCII-art showing the hierachy of objects in the view:
 EtcProposalsView (window)
 +- (toolbar) -> starts AboutDialog, HelpDialog
-+- EtcProposalsPanedView
-   +- EtcProposalsTreeView
-   +- EtcProposalsChangesView
-      +- EtcProposalChangeView (multiple)
++- PanedView
+   +- FilesystemTreeView
+   +- ChangesView
+      +- ChangeView (multiple)
          +- ChangeLabel
          +- ChangeContent
 """
@@ -41,11 +41,8 @@ except ImportError:
     raise FrontendFailedException('Could not find gtk-bindings.')
 
 #### MVC: Model ####
-class EtcProposalsGtkDecorator(EtcProposals):
-    """decoration of EtcProposals"""
-    def __init__(self):
-        EtcProposals.__init__(self, False)
 
+# see etcproposals_lib
 
 class EtcProposalsConfigGtkDecorator(EtcProposalsConfig):
     """stub to handle configuration settings for the Gtk GUI"""
@@ -53,7 +50,7 @@ class EtcProposalsConfigGtkDecorator(EtcProposalsConfig):
 
 
 #### MVC: View ####
-class EtcProposalsUIManager(gtk.UIManager):
+class UIManager(gtk.UIManager):
     def __init__(self, controller):
         gtk.UIManager.__init__(self)
         xml = """
@@ -109,10 +106,10 @@ class EtcProposalsUIManager(gtk.UIManager):
                 <toolitem action="Expand"/>
                 <separator/>
                 <placeholder name="ToolbarStatusLabel"/>
-		<toolitem action="Show Use"/>
-		<toolitem action="Show Zap"/>
-		<toolitem action="Show Undecided"/>
-		<separator/>
+        <toolitem action="Show Use"/>
+        <toolitem action="Show Zap"/>
+        <toolitem action="Show Undecided"/>
+        <separator/>
                 <placeholder name="Toolbarspace"/>
                 <separator/>
                 <toolitem action="Help"/>
@@ -164,11 +161,11 @@ class ChangeLabel(gtk.Frame):
                 change.is_whitespace_only,
                 change.is_cvsheader,
                 change.is_unmodified ]
-            self.setup_labels()
+            self.__setup_labels()
             self.update_change()
             self.show()
     
-        def setup_labels(self):
+        def __setup_labels(self):
             self.labels = map(lambda x: gtk.Label(), xrange(3)) 
             [label.show() for label in self.labels]
             [self.pack_start(label, True, False, 1) for label in self.labels]
@@ -222,8 +219,8 @@ class ChangeLabel(gtk.Frame):
             self.zapbutton = gtk.ToggleButton('Zap')
             self.usebutton.set_size_request(50,50)
             self.zapbutton.set_size_request(50,50)
-            self.usebutton.connect('toggled', lambda b: self.on_use_toggled())
-            self.zapbutton.connect('toggled', lambda b: self.on_zap_toggled())
+            self.usebutton.connect('toggled', lambda b: self.__on_use_toggled())
+            self.zapbutton.connect('toggled', lambda b: self.__on_zap_toggled())
             self.pack_start(self.zapbutton, True, False, 2)
             self.pack_start(self.usebutton, True, False, 2)
             self.update_change()
@@ -241,14 +238,14 @@ class ChangeLabel(gtk.Frame):
             self.zapbutton.set_active(buttonstates[1])
             self.updating = False
 
-        def on_zap_toggled(self): 
+        def __on_zap_toggled(self): 
             if not self.updating:
                 if self.zapbutton.get_active():
                     self.controller.zap_changes([self.change])
                 else:
                     self.controller.undo_changes([self.change])
     
-        def on_use_toggled(self):
+        def __on_use_toggled(self):
             if not self.updating:
                 if self.usebutton.get_active():
                     self.controller.use_changes([self.change])
@@ -290,9 +287,9 @@ class ChangeContent(gtk.VBox):
         self.inserttextview.modify_text(gtk.STATE_NORMAL, self.inserttextview.get_colormap().alloc_color(0,0,0))
         for textview in [self.removetextview, self.inserttextview]:
             buffer = textview.get_buffer()
-            buffer.create_tag('^', underline=True)
-            buffer.create_tag('-', underline=True, foreground='DarkRed')
-            buffer.create_tag('+', underline=True, foreground='DarkGreen')
+            buffer.create_tag('^', background='Yellow')
+            buffer.create_tag('-', background='Red')
+            buffer.create_tag('+', background='Green')
             textview.set_editable(False)
             textview.set_cursor_visible(False)
             textview.show()
@@ -342,8 +339,9 @@ class ChangeContent(gtk.VBox):
             enditer.backward_char()
             buffer.delete(enditer, buffer.get_end_iter())
 
-class EtcProposalChangeView(gtk.Expander):
-    """EtcProposalChangeView is an widget showing everything about an
+
+class ChangeView(gtk.Expander):
+    """ChangeView is an widget showing everything about an
     EtcProposalsChange and allows to change its status. It contains an
     ChangeLabel and an ChangeContent. In all, it contains the following objects:
      - ChangeLabel
@@ -366,8 +364,44 @@ class EtcProposalChangeView(gtk.Expander):
         return '%s:%s-%s(%d)' % (self.change.get_file_path(), affected_lines[0], affected_lines[1], self.change.get_revision())
 
 
-class EtcProposalsTreeView(gtk.TreeView):
-    """EtcProposalsTreeView implements the Treeview for selecting files and changes."""
+class ChangesView(gtk.VBox):
+    """ChangesView implements the display a list of changes. It
+    uses ChangeViews to display the changes. The changes it
+    displays are provided by a functor."""
+    def __init__(self, controller):
+        gtk.VBox.__init__(self)
+        self.controller = controller
+        self.changes_generator = lambda: []
+        self.collapsed_changes = set()
+    
+    def update_changes(self, changes_generator = None):
+        self.hide()
+        for child in self.get_children():
+            labeltext = child.get_labeltext()
+            if not child.get_expanded():
+                self.collapsed_changes.add(labeltext)
+            elif labeltext in self.collapsed_changes:
+                self.collapsed_changes.remove(labeltext)
+            self.remove(child)
+        if not changes_generator == None:
+            self.changes_generator = changes_generator
+        for change in self.changes_generator():
+            if self.controller.is_not_filtered(change):
+                changeview = ChangeView(change, self.controller)
+                if not changeview.get_labeltext() in self.collapsed_changes:
+                    changeview.set_expanded(True)
+                self.pack_start(changeview, False, False, 0)
+        self.show()
+
+    def collapse_all(self):
+        [child.set_expanded(False) for child in self.get_children()]
+    
+    def expand_all(self):
+        [child.set_expanded(True) for child in self.get_children()]
+
+
+class FilesystemTreeView(gtk.TreeView):
+    """FilesystemTreeView implements the Treeview for selecting files and changes."""
 
     class ContextMenu(gtk.Menu):
         """ContextMenu implements the popup menu in the Treeview."""
@@ -384,21 +418,13 @@ class EtcProposalsTreeView(gtk.TreeView):
     def __init__(self, proposals, controller):
         self.treestore = gtk.TreeStore(str)
         gtk.TreeView.__init__(self, self.treestore)
-        self.menu = EtcProposalsTreeView.ContextMenu()
+        self.menu = FilesystemTreeView.ContextMenu()
         self.column = gtk.TreeViewColumn('')
         self.cell = gtk.CellRendererText()
         self.proposals = proposals
         self.controller = controller
-        self.treestore.append(None, ['Filesystem'])
+        self.treestore.append(None, ['/'])
         self.fsrow = self.treestore[0]
-        typenode = self.treestore.append(None, ['Type'])
-        self.treestore.append(typenode, ['Whitespace'])
-        self.treestore.append(typenode, ['CVS-Header'])
-        self.treestore.append(typenode, ['Unmodified'])
-        statusnode = self.treestore.append(None, ['Status'])
-        self.treestore.append(statusnode, ['Use'])
-        self.treestore.append(statusnode, ['Zap'])
-        self.treestore.append(statusnode, ['Undecided'])
         self.column.pack_start(self.cell, True)
         self.column.add_attribute(self.cell, 'text',0)
         self.append_column(self.column)
@@ -426,21 +452,8 @@ class EtcProposalsTreeView(gtk.TreeView):
         """returns a functor that returns a list of EtcProposalChanges belonging to a node."""
         if len(node) == 1 and not (node == (0,)):
             return None
-        if node == (1,0):
-            return self.proposals.get_whitespace_changes
-        elif node == (1,1):
-            return self.proposals.get_cvsheader_changes
-        elif node == (1,2):
-            return self.proposals.get_unmodified_changes
-        elif node == (2,0):
-            return self.proposals.get_used_changes
-        elif node == (2,1):
-            return self.proposals.get_zapped_changes
-        elif node == (2,2):
-            return self.proposals.get_undecided_changes
-        elif node == (0,):
-            return self.proposals.get_all_changes
-        elif node[0] == 0:
+        #elif node[0] == 0:
+        if node[0] == 0:
             (iter, path) = (self.fsrow.iter, '/')
             for i in node[1:]:
                 iter=self.treestore.iter_nth_child(iter, i)
@@ -472,52 +485,16 @@ class EtcProposalsTreeView(gtk.TreeView):
         self.controller.undo_changes(self.get_changegenerator_for_node(model.get_path(iter))())
 
 
-class EtcProposalsChangesView(gtk.VBox):
-    """EtcProposalsChangesView implements the display a list of changes. It
-    uses EtcProposalChangeViews to display the changes. The changes it
-    displays are provided by a functor."""
-    def __init__(self, controller):
-        gtk.VBox.__init__(self)
-        self.controller = controller
-        self.changes_generator = lambda: []
-        self.collapsed_changes = set()
-    
-    def update_changes(self, changes_generator = None):
-        self.hide()
-        for child in self.get_children():
-            labeltext = child.get_labeltext()
-            if not child.get_expanded():
-                self.collapsed_changes.add(labeltext)
-            elif labeltext in self.collapsed_changes:
-                self.collapsed_changes.remove(labeltext)
-            self.remove(child)
-        if not changes_generator == None:
-            self.changes_generator = changes_generator
-        for change in self.changes_generator():
-            if self.controller.is_not_filtered(change):
-                changeview = EtcProposalChangeView(change, self.controller)
-                if not changeview.get_labeltext() in self.collapsed_changes:
-                    changeview.set_expanded(True)
-                self.pack_start(changeview, False, False, 0)
-        self.show()
-
-    def collapse_all(self):
-        [child.set_expanded(False) for child in self.get_children()]
-    
-    def expand_all(self):
-        [child.set_expanded(True) for child in self.get_children()]
-
-
-class EtcProposalsPanedView(gtk.HPaned):
-    """EtcProposalsPanedView is a Panel containing an EtcProposalsTreeView for
-    selecting sets of changes and an EtcProposalsChangesView to display
+class PanedView(gtk.HPaned):
+    """PanedView is a Panel containing an FilesystemTreeView for
+    selecting sets of changes and an ChangesView to display
     them."""
     def __init__(self, proposals, controller):
         gtk.HPaned.__init__(self)
         self.controller = controller
         self.proposals = proposals
-        self.changesview = EtcProposalsChangesView(self.controller)
-        self.treeview = EtcProposalsTreeView(self.proposals, self.controller)
+        self.changesview = ChangesView(self.controller)
+        self.treeview = FilesystemTreeView(self.proposals, self.controller)
         tv_scrollwindow = gtk.ScrolledWindow()
         cv_scrollwindow = gtk.ScrolledWindow()
         tv_scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -586,20 +563,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA''')
 
 class EtcProposalsView(gtk.Window):
     """EtcProposalsView is a the Window that displays all the changes. It
-    contains a EtcProposalsPanedView and an additional toolbar."""
+    contains a PanedView and an additional toolbar."""
     def __init__(self, proposals, controller):
         gtk.Window.__init__(self)
         self.controller = controller
-        self.uimanager = EtcProposalsUIManager(self.controller)
+        self.uimanager = UIManager(self.controller)
         self.set_title('etc-proposals')
         self.set_position(gtk.WIN_POS_CENTER)
         self.connect('destroy', lambda *w: gtk.main_quit())
         vbox = gtk.VBox()
-        self.menubar = self._get_menubar()
+        self.menubar = self.__get_menubar()
         self.menubar.show()
-        self.toolbar = self._get_toolbar()
+        self.toolbar = self.__get_toolbar()
         self.toolbar.show()
-        self.paned = EtcProposalsPanedView(proposals, controller)
+        self.paned = PanedView(proposals, controller)
         vbox.pack_start(self.menubar, False, False, 0)
         vbox.pack_start(self.toolbar, False, False, 0)
         vbox.pack_start(self.paned, True, True, 0)
@@ -614,10 +591,10 @@ class EtcProposalsView(gtk.Window):
     def on_collapse_all(self):
         self.paned.changesview.collapse_all()
 
-    def _get_menubar(self):
+    def __get_menubar(self):
         return self.uimanager.get_widget('/Menubar')
 
-    def _get_toolbar(self):
+    def __get_toolbar(self):
         toolbar = self.uimanager.get_widget('/Toolbar')
         space_item = gtk.ToolItem()
         space_item.set_expand(True)
@@ -634,7 +611,7 @@ class EtcProposalsView(gtk.Window):
 
 
 #### MVC: Controller ####
-class EtcProposalsMainActiongroup(gtk.ActionGroup):
+class MainActiongroup(gtk.ActionGroup):
     NUMERIC_TO_BOOL = {0: None, 1: True, 2: False}
     STATE_TO_ACTION = { 'use' : 'Show Use', 'zap' : 'Show Zap', 'undecided' : 'Show Undecided'}
     
@@ -679,29 +656,29 @@ class EtcProposalsMainActiongroup(gtk.ActionGroup):
             on_change = lambda item, current: controller.on_filter_changed())
 
     def get_whitespace_condition(self):
-        return EtcProposalsMainActiongroup.NUMERIC_TO_BOOL[self.get_action('Only Whitespace').get_current_value()]
+        return MainActiongroup.NUMERIC_TO_BOOL[self.get_action('Only Whitespace').get_current_value()]
 
     def get_cvs_condition(self):
-        return EtcProposalsMainActiongroup.NUMERIC_TO_BOOL[self.get_action('Only CVS').get_current_value()]
+        return MainActiongroup.NUMERIC_TO_BOOL[self.get_action('Only CVS').get_current_value()]
         
     def get_unmodified_condition(self):
-        return EtcProposalsMainActiongroup.NUMERIC_TO_BOOL[self.get_action('Only Unmodified').get_current_value()]
+        return MainActiongroup.NUMERIC_TO_BOOL[self.get_action('Only Unmodified').get_current_value()]
 
     def show_state(self, state):
-        return self.get_action(EtcProposalsMainActiongroup.STATE_TO_ACTION[state]).get_active()
+        return self.get_action(MainActiongroup.STATE_TO_ACTION[state]).get_active()
 
 
 class EtcProposalsController(object):
     """EtcProposalsController is the controller in the
     model-view-controller-combination (MVC). It glues the (data-)model
-    (EtcProposalsGtkDecorator) and the view (EtcProposalsView). It triggers
+    (EtcProposals) and the view (EtcProposalsView). It triggers
     changes in the model while keeping the view in sync. It generates an view
     instance itself when initiated."""
     def __init__(self, proposals):
         self.proposals = proposals
         if len(self.proposals) == 0 and EtcProposalsConfigGtkDecorator().Fastexit():
             raise SystemExit
-        self.main_actiongroup = EtcProposalsMainActiongroup(self)
+        self.main_actiongroup = MainActiongroup(self)
         self.view = EtcProposalsView(proposals, self)
         self.refresh()
 
@@ -760,7 +737,7 @@ class EtcProposalsController(object):
 def run_frontend():
     if not os.environ.has_key('DISPLAY'):
         raise FrontendFailedException('display environment variable not set')
-    model = EtcProposalsGtkDecorator()
+    model = EtcProposals()
     controller =  EtcProposalsController(model)
     gtk.main()
 
