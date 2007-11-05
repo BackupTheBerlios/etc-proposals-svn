@@ -17,5 +17,7 @@ setup(
     packages = ['etcproposals'],
     package_dir = {'etcproposals' : 'src'},
     scripts = ['scripts/etc-proposals'],
-    data_files = [('/etc/' , ['data/etc-proposals.conf'])]
+    data_files = [
+        ('/etc/' , ['data/etc-proposals.conf']),
+        ('/usr/share/etcproposals/', ['data/etcproposals-cvs.svg', 'data/etcproposals-whitespace.svg', 'data/etcproposals-unmodified.svg'])]
 )

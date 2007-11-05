@@ -33,7 +33,7 @@ EtcProposalsView (window)
 """
 from etcproposals.etcproposals_lib import *
 from etcproposals.etcproposals_lib import __version__ as __libversion__
-import os, difflib
+import os, os.path, difflib
 
 try:
     import gtk
@@ -50,8 +50,26 @@ class EtcProposalsConfigGtkDecorator(EtcProposalsConfig):
 
 
 #### MVC: View ####
+STOCK_PREFIX = 'etcproposals-'
+STOCK_CVS = STOCK_PREFIX + 'CVS'
+STOCK_WHITESPACE = STOCK_PREFIX + 'WHITESPACE'
+STOCK_UNMODIFIED = STOCK_PREFIX + 'UNMODIFIED'
+
+class IconFactory(gtk.IconFactory):
+    ICON_PATH = '/usr/share/etcproposals'
+    ICON_EXT = '.svg'
+    def __init__(self):
+        gtk.IconFactory.__init__(self)
+        for icon_id in [STOCK_CVS, STOCK_WHITESPACE, STOCK_UNMODIFIED]:
+            source = gtk.IconSource()
+            source.set_filename(os.path.join(IconFactory.ICON_PATH, icon_id.lower() + IconFactory.ICON_EXT))
+            iconset = gtk.IconSet()
+            iconset.add_source(source)
+            self.add(icon_id, iconset)
+
+
 class UIManager(gtk.UIManager):
-    def __init__(self, controller):
+    def __init__(self, view):
         gtk.UIManager.__init__(self)
         xml = """
         <ui>
@@ -83,6 +101,7 @@ class UIManager(gtk.UIManager):
                             <menuitem action="Only Modified"/>
                             <menuitem action="Modificationfilter Off"/>
                         </menu>
+                        <menuitem action="Typefilter Off"/>
                     </menu>
                     <menu action="Statusfilter">
                         <menuitem action="Show Use"/>
@@ -101,15 +120,17 @@ class UIManager(gtk.UIManager):
                 <separator/>
                 <toolitem action="Refresh"/>
                 <separator/>
-                <placeholder name="ToolbarChangeLabel"/>
                 <toolitem action="Collapse"/>
                 <toolitem action="Expand"/>
                 <separator/>
-                <placeholder name="ToolbarStatusLabel"/>
-        <toolitem action="Show Use"/>
-        <toolitem action="Show Zap"/>
-        <toolitem action="Show Undecided"/>
-        <separator/>
+                <toolitem action="Show Use"/>
+                <toolitem action="Show Zap"/>
+                <toolitem action="Show Undecided"/>
+                <separator/>
+                <toolitem action="Only CVS"/>
+                <toolitem action="Only Unmodified"/>
+                <toolitem action="Only Whitespace"/>
+                <toolitem action="Typefilter Off"/>
                 <placeholder name="Toolbarspace"/>
                 <separator/>
                 <toolitem action="Help"/>
@@ -117,7 +138,7 @@ class UIManager(gtk.UIManager):
             </toolbar>
         </ui>
         """
-        self.insert_action_group(controller.main_actiongroup, 0)
+        self.insert_action_group(view.main_actiongroup, 0)
         self.add_ui_from_string(xml)
         self.set_add_tearoffs(True)
 
@@ -367,9 +388,10 @@ class ChangesView(gtk.VBox):
     """ChangesView implements the display a list of changes. It
     uses ChangeViews to display the changes. The changes it
     displays are provided by a functor."""
-    def __init__(self, controller):
+    def __init__(self, controller, view):
         gtk.VBox.__init__(self)
         self.controller = controller
+        self.view = view
         self.changes_generator = lambda: []
         self.collapsed_changes = set()
     
@@ -385,7 +407,7 @@ class ChangesView(gtk.VBox):
         if not changes_generator == None:
             self.changes_generator = changes_generator
         for change in self.changes_generator():
-            if self.controller.is_not_filtered(change):
+            if self.view.is_not_filtered(change):
                 changeview = ChangeView(change, self.controller)
                 if not changeview.get_labeltext() in self.collapsed_changes:
                     changeview.set_expanded(True)
@@ -451,7 +473,6 @@ class FilesystemTreeView(gtk.TreeView):
         """returns a functor that returns a list of EtcProposalChanges belonging to a node."""
         if len(node) == 1 and not (node == (0,)):
             return None
-        #elif node[0] == 0:
         if node[0] == 0:
             (iter, path) = (self.fsrow.iter, '/')
             for i in node[1:]:
@@ -488,11 +509,11 @@ class PanedView(gtk.HPaned):
     """PanedView is a Panel containing an FilesystemTreeView for
     selecting sets of changes and an ChangesView to display
     them."""
-    def __init__(self, proposals, controller):
+    def __init__(self, proposals, controller, view):
         gtk.HPaned.__init__(self)
         self.controller = controller
         self.proposals = proposals
-        self.changesview = ChangesView(self.controller)
+        self.changesview = ChangesView(self.controller, view)
         self.treeview = FilesystemTreeView(self.proposals, self.controller)
         tv_scrollwindow = gtk.ScrolledWindow()
         cv_scrollwindow = gtk.ScrolledWindow()
@@ -555,7 +576,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA''')
-        self.set_authors(['Björn Michaelsen', 'Jeremy Wickersheimer', 'Christian Glindkamp'])
+        self.set_authors(['Björn Michaelsen', 'Jeremy Wickersheimer', 'Christian Glindkamp', 'Jakub Steiner'])
         self.show_all()
         self.connect("response", lambda *d: self.destroy())
 
@@ -566,7 +587,11 @@ class EtcProposalsView(gtk.Window):
     def __init__(self, proposals, controller):
         gtk.Window.__init__(self)
         self.controller = controller
-        self.uimanager = UIManager(self.controller)
+        self.ignore_filterchanges = False
+        iconfactory = IconFactory()
+        iconfactory.add_default()
+        self.main_actiongroup = MainActiongroup(self.controller, self)
+        self.uimanager = UIManager(self)
         self.set_title('etc-proposals')
         self.set_position(gtk.WIN_POS_CENTER)
         self.connect('destroy', lambda *w: gtk.main_quit())
@@ -575,7 +600,7 @@ class EtcProposalsView(gtk.Window):
         self.menubar.show()
         self.toolbar = self.__get_toolbar()
         self.toolbar.show()
-        self.paned = PanedView(proposals, controller)
+        self.paned = PanedView(proposals, controller, self)
         vbox.pack_start(self.menubar, False, False, 0)
         vbox.pack_start(self.toolbar, False, False, 0)
         vbox.pack_start(self.paned, True, True, 0)
@@ -598,15 +623,38 @@ class EtcProposalsView(gtk.Window):
         space_item = gtk.ToolItem()
         space_item.set_expand(True)
         toolbar.insert(space_item, 16)
-        toolbar.insert(gtk.SeparatorToolItem(),17)
-        status_label_item = gtk.ToolItem()
-        status_label_item.add(gtk.Label("Status:"))
-        changes_label_item = gtk.ToolItem()
-        changes_label_item.add(gtk.Label("Changes:"))
-        toolbar.insert(status_label_item, 10)
-        toolbar.insert(changes_label_item, 5)
+        toolbar.insert(gtk.SeparatorToolItem(),16)
         toolbar.show_all()
         return toolbar 
+
+    def is_not_filtered(self, change):
+        if not self.main_actiongroup.show_state(change.get_status()):
+            return False
+        whitespace_cnd = self.main_actiongroup.get_whitespace_condition()
+        if not whitespace_cnd is None:
+            if not whitespace_cnd == change.is_whitespace_only():
+                return False
+        cvs_cnd = self.main_actiongroup.get_cvs_condition()
+        if not cvs_cnd is None:
+            if not cvs_cnd == change.is_cvsheader():
+                return False
+        unmodified_cnd = self.main_actiongroup.get_unmodified_condition()
+        if not unmodified_cnd is None:
+            if not unmodified_cnd == change.is_unmodified():
+                return False
+        return True
+
+    def on_filter_changed(self):
+        if not self.ignore_filterchanges:
+            self.paned.changesview.update_changes()
+
+    def on_typefilter_off(self):
+        self.ignore_filterchanges = True
+        self.main_actiongroup.get_action('Modificationfilter Off').set_active(True)
+        self.main_actiongroup.get_action('CVSHeaderfilter Off').set_active(True)
+        self.main_actiongroup.get_action('Whitespacefilter Off').set_active(True)
+        self.ignore_filterchanges = False
+        self.on_filter_changed()
 
 
 #### MVC: Controller ####
@@ -614,7 +662,7 @@ class MainActiongroup(gtk.ActionGroup):
     NUMERIC_TO_BOOL = {0: None, 1: True, 2: False}
     STATE_TO_ACTION = { 'use' : 'Show Use', 'zap' : 'Show Zap', 'undecided' : 'Show Undecided'}
     
-    def __init__(self, controller):
+    def __init__(self, controller, view):
         gtk.ActionGroup.__init__(self, 'Main')
         self.add_actions([
             ('Filemenu', None, '_File', None, None, None),
@@ -624,35 +672,37 @@ class MainActiongroup(gtk.ActionGroup):
             ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit without applying changes', gtk.main_quit),
             ('Apply', gtk.STOCK_APPLY, '_Apply', None, 'Apply changes', lambda item: controller.apply()),
             ('Refresh', gtk.STOCK_REFRESH, '_Refresh', None, 'Refresh proposals', lambda item: controller.refresh()),
-            ('Collapse', gtk.STOCK_REMOVE, '_Collapse Changes', None, 'Collapse all displayed changes', lambda item: controller.view.on_collapse_all()),
-            ('Expand', gtk.STOCK_ADD, '_Expand Changes', None, 'Expand all displayed changes', lambda item: controller.view.on_expand_all()),
-            ('Help', gtk.STOCK_HELP, '_Help', None, 'A short help', lambda item: HelpDialog(controller.view)),
-            ('About', gtk.STOCK_ABOUT, '_About', None, 'About this tool', lambda item: AboutDialog(controller.view)),
+            ('Collapse', gtk.STOCK_REMOVE, '_Collapse Changes', None, 'Collapse all displayed changes', lambda item: view.on_collapse_all()),
+            ('Expand', gtk.STOCK_ADD, '_Expand Changes', None, 'Expand all displayed changes', lambda item: view.on_expand_all()),
+            ('Help', gtk.STOCK_HELP, '_Help', None, 'A short help', lambda item: HelpDialog(view)),
+            ('About', gtk.STOCK_ABOUT, '_About', None, 'About this tool', lambda item: AboutDialog(view)),
             ('Typefilter', None, 'Type Filter', None, None, None),
             ('Statusfilter', None, 'Status Filter', None, None, None),
             ('Whitespacefilter', None, 'Whitespace Filter', None, None, None),
             ('CVSHeaderfilter', None, 'CVS-Header Filter', None, None, None),
-            ('Modificationfilter', None, 'Modification Filter', None, None, None)])
+            ('Modificationfilter', None, 'Modification Filter', None, None, None),
+            ('Typefilter Off', gtk.STOCK_CLEAR, 'No Type Filtering', None, None, lambda item: view.on_typefilter_off())
+            ])
         self.add_toggle_actions([
-            ('Show Use', gtk.STOCK_OK, 'Show Used Changes', None, None, lambda item: controller.on_filter_changed(), True),
-            ('Show Zap', gtk.STOCK_CANCEL, 'Show Zapped Changes', None, None, lambda item: controller.on_filter_changed(), True),
-            ('Show Undecided', gtk.STOCK_DIALOG_QUESTION, 'Show Undecided Changes', None, None, lambda item: controller.on_filter_changed(), True)
+            ('Show Use', gtk.STOCK_OK, 'Show Used Changes', None, None, lambda item: view.on_filter_changed(), True),
+            ('Show Zap', gtk.STOCK_CANCEL, 'Show Zapped Changes', None, None, lambda item: view.on_filter_changed(), True),
+            ('Show Undecided', gtk.STOCK_DIALOG_QUESTION, 'Show Undecided Changes', None, None, lambda item: view.on_filter_changed(), True)
             ])
         self.add_radio_actions([
-            ('Only Whitespace', None, 'Only Whitespace Changes', None, None, 1),
+            ('Only Whitespace', STOCK_WHITESPACE, 'Only Whitespace Changes', None, None, 1),
             ('Only Non-Whitespace', None, 'Only Non-Whitespace Changes', None, None, 2),
             ('Whitespacefilter Off', None, 'No Whitespace Filtering', None, None, 0)],
-            on_change = lambda item, current: controller.on_filter_changed())
+            on_change = lambda item, current: view.on_filter_changed())
         self.add_radio_actions([
-            ('Only CVS', None, 'Only CVS-Header Changes', None, None, 1),
+            ('Only CVS', STOCK_CVS, 'Only CVS-Header Changes', None, None, 1),
             ('Only Non-CVS', None, 'Only Non-CVS-Header Changes', None, None, 2),
             ('CVSHeaderfilter Off', None, 'No CVS-Header Filtering', None, None, 0)],
-            on_change = lambda item, current: controller.on_filter_changed())
+            on_change = lambda item, current: view.on_filter_changed())
         self.add_radio_actions([
-            ('Only Unmodified', None, 'Only Unmodified Changes', None, None, 1),
+            ('Only Unmodified', STOCK_UNMODIFIED, 'Only Unmodified Changes', None, None, 1),
             ('Only Modified', None, 'Only Modified Changes', None, None, 2),
             ('Modificationfilter Off', None, 'No Modification Filtering', None, None, 0)],
-            on_change = lambda item, current: controller.on_filter_changed())
+            on_change = lambda item, current: view.on_filter_changed())
 
     def get_whitespace_condition(self):
         return MainActiongroup.NUMERIC_TO_BOOL[self.get_action('Only Whitespace').get_current_value()]
@@ -677,7 +727,6 @@ class EtcProposalsController(object):
         self.proposals = proposals
         if len(self.proposals) == 0 and EtcProposalsConfigGtkDecorator().Fastexit():
             raise SystemExit
-        self.main_actiongroup = MainActiongroup(self)
         self.view = EtcProposalsView(proposals, self)
         self.refresh()
 
@@ -712,25 +761,6 @@ class EtcProposalsController(object):
         self.view.paned.changesview.update_changes(lambda: [])
         wait_win.destroy()
 
-    def is_not_filtered(self, change):
-        if not self.main_actiongroup.show_state(change.get_status()):
-            return False
-        whitespace_cnd = self.main_actiongroup.get_whitespace_condition()
-        if not whitespace_cnd is None:
-            if not whitespace_cnd == change.is_whitespace_only():
-                return False
-        cvs_cnd = self.main_actiongroup.get_cvs_condition()
-        if not cvs_cnd is None:
-            if not cvs_cnd == change.is_cvsheader():
-                return False
-        unmodified_cnd = self.main_actiongroup.get_unmodified_condition()
-        if not unmodified_cnd is None:
-            if not cvs_cnd == change.is_cvsheader():
-                return False
-        return True
-
-    def on_filter_changed(self):
-        self.view.paned.changesview.update_changes()
 
 
 def run_frontend():

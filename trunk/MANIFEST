@@ -1,4 +1,7 @@
 data/etc-proposals.conf
+data/etcproposals-cvs.svg
+data/etcproposals-unmodified.svg
+data/etcproposals-whitespace.svg
 scripts/etc-proposals
 setup.py
 src/etcproposals_gtk2.py

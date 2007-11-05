@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.0"
+   width="48"
+   height="48"
+   viewBox="0 0 451 451"
+   preserveAspectRatio="xMidYMid meet"
+   id="svg2"
+   sodipodi:version="0.32"
+   inkscape:version="0.45.1"
+   sodipodi:docname="Whitespace.svg"
+   sodipodi:docbase="/home/bjoern/Desktop"
+   inkscape:output_extension="org.inkscape.output.svg.inkscape">
+  <defs
+     id="defs13" />
+  <sodipodi:namedview
+     inkscape:window-height="602"
+     inkscape:window-width="894"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     guidetolerance="10.0"
+     gridtolerance="10.0"
+     objecttolerance="10.0"
+     borderopacity="1.0"
+     bordercolor="#666666"
+     pagecolor="#ffffff"
+     id="base"
+     width="48px"
+     height="48px"
+     inkscape:zoom="0.67405765"
+     inkscape:cx="281.875"
+     inkscape:cy="281.875"
+     inkscape:window-x="53"
+     inkscape:window-y="28"
+     inkscape:current-layer="svg2" />
+  <metadata
+     id="metadata4">
+Created by potrace 1.7, written by Peter Selinger 2001-2005
+<rdf:RDF>
+  <cc:Work
+     rdf:about="">
+    <dc:format>image/svg+xml</dc:format>
+    <dc:type
+       rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+    <dc:title>Whitespace Icon</dc:title>
+    <dc:date>2007/11/05</dc:date>
+    <dc:creator>
+      <cc:Agent>
+        <dc:title>Björn Michaelsen</dc:title>
+      </cc:Agent>
+    </dc:creator>
+    <dc:publisher>
+      <cc:Agent>
+        <dc:title>Björn Michaelsen</dc:title>
+      </cc:Agent>
+    </dc:publisher>
+    <dc:source>http://etc-proposals.berlios.de</dc:source>
+    <cc:license
+       rdf:resource="http://creativecommons.org/licenses/GPL/2.0/" />
+  </cc:Work>
+  <cc:License
+     rdf:about="http://creativecommons.org/licenses/GPL/2.0/">
+    <cc:permits
+       rdf:resource="http://web.resource.org/cc/Reproduction" />
+    <cc:permits
+       rdf:resource="http://web.resource.org/cc/Distribution" />
+    <cc:requires
+       rdf:resource="http://web.resource.org/cc/Notice" />
+    <cc:permits
+       rdf:resource="http://web.resource.org/cc/DerivativeWorks" />
+    <cc:requires
+       rdf:resource="http://web.resource.org/cc/ShareAlike" />
+    <cc:requires
+       rdf:resource="http://web.resource.org/cc/SourceCode" />
+  </cc:License>
+</rdf:RDF>
+</metadata>
+  <g
+     transform="matrix(9.3958e-2,0,0,-9.3958e-2,0,451)"
+     id="g6"
+     style="fill:#000000;stroke:none">
+    <path
+       d="M 1060,1345 L 1060,1190 L 1580,1190 L 2100,1190 L 2100,1345 L 2100,1500 L 2030,1500 L 1960,1500 L 1960,1415 L 1960,1330 L 1580,1330 L 1200,1330 L 1200,1415 L 1200,1500 L 1130,1500 L 1060,1500 L 1060,1345 z "
+       id="path8" />
+    <path
+       d="M 2700,1345 L 2700,1190 L 3220,1190 L 3740,1190 L 3740,1345 L 3740,1500 L 3670,1500 L 3600,1500 L 3600,1415 L 3600,1330 L 3220,1330 L 2840,1330 L 2840,1415 L 2840,1500 L 2770,1500 L 2700,1500 L 2700,1345 z "
+       id="path10" />
+  </g>
+</svg>
