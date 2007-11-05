@@ -80,6 +80,9 @@ class UIManager(gtk.UIManager):
                     <menuitem action="Quit"/>
                 </menu>
                 <menu action="Editmenu">
+		    <menuitem action="Use All"/>
+		    <menuitem action="Zap All"/>
+		    <menuitem action="Undo All"/>
                 </menu>
                 <menu action="Viewmenu">
                     <menuitem action="Collapse"/>
@@ -136,6 +139,11 @@ class UIManager(gtk.UIManager):
                 <toolitem action="Help"/>
                 <toolitem action="About"/>
             </toolbar>
+	    <popup name="TreeMenu">
+	    	<menuitem action="Use All"/>
+	    	<menuitem action="Zap All"/>
+	    	<menuitem action="Undo All"/>
+	    </popup>
         </ui>
         """
         self.insert_action_group(view.main_actiongroup, 0)
@@ -423,23 +431,10 @@ class ChangesView(gtk.VBox):
 
 class FilesystemTreeView(gtk.TreeView):
     """FilesystemTreeView implements the Treeview for selecting files and changes."""
-
-    class ContextMenu(gtk.Menu):
-        """ContextMenu implements the popup menu in the Treeview."""
-        def __init__(self):
-            gtk.Menu.__init__(self)
-            self.useitem = gtk.MenuItem('Use All Undecided')
-            self.zapitem = gtk.MenuItem('Zap All Undecided')
-            self.undoitem = gtk.MenuItem('Undo All')
-            self.append(self.useitem)
-            self.append(self.zapitem)
-            self.append(self.undoitem)
-            self.show_all()
-
-    def __init__(self, proposals, controller):
+    def __init__(self, proposals, controller, view):
         self.treestore = gtk.TreeStore(str)
         gtk.TreeView.__init__(self, self.treestore)
-        self.menu = FilesystemTreeView.ContextMenu()
+        self.menu = view.uimanager.get_widget('/TreeMenu')
         self.column = gtk.TreeViewColumn('')
         self.cell = gtk.CellRendererText()
         self.proposals = proposals
@@ -447,14 +442,11 @@ class FilesystemTreeView(gtk.TreeView):
         self.treestore.append(None, ['/'])
         self.fsrow = self.treestore[0]
         self.column.pack_start(self.cell, True)
-        self.column.add_attribute(self.cell, 'text',0)
+        self.column.add_attribute(self.cell, 'text', 0)
         self.append_column(self.column)
         self.set_headers_visible(False)
         self.connect_object('event', self.on_button_press, self.menu)
         self.refresh()
-        self.menu.useitem.connect('activate', self.on_use_tv_menu_select) 
-        self.menu.zapitem.connect('activate', self.on_zap_tv_menu_select) 
-        self.menu.undoitem.connect('activate', self.on_undo_tv_menu_select) 
         self.show()
 
     def refresh(self):
@@ -514,7 +506,7 @@ class PanedView(gtk.HPaned):
         self.controller = controller
         self.proposals = proposals
         self.changesview = ChangesView(self.controller, view)
-        self.treeview = FilesystemTreeView(self.proposals, self.controller)
+        self.treeview = FilesystemTreeView(self.proposals, self.controller, view)
         tv_scrollwindow = gtk.ScrolledWindow()
         cv_scrollwindow = gtk.ScrolledWindow()
         tv_scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -615,35 +607,6 @@ class EtcProposalsView(gtk.Window):
     def on_collapse_all(self):
         self.paned.changesview.collapse_all()
 
-    def __get_menubar(self):
-        return self.uimanager.get_widget('/Menubar')
-
-    def __get_toolbar(self):
-        toolbar = self.uimanager.get_widget('/Toolbar')
-        space_item = gtk.ToolItem()
-        space_item.set_expand(True)
-        toolbar.insert(space_item, 16)
-        toolbar.insert(gtk.SeparatorToolItem(),16)
-        toolbar.show_all()
-        return toolbar 
-
-    def is_not_filtered(self, change):
-        if not self.main_actiongroup.show_state(change.get_status()):
-            return False
-        whitespace_cnd = self.main_actiongroup.get_whitespace_condition()
-        if not whitespace_cnd is None:
-            if not whitespace_cnd == change.is_whitespace_only():
-                return False
-        cvs_cnd = self.main_actiongroup.get_cvs_condition()
-        if not cvs_cnd is None:
-            if not cvs_cnd == change.is_cvsheader():
-                return False
-        unmodified_cnd = self.main_actiongroup.get_unmodified_condition()
-        if not unmodified_cnd is None:
-            if not unmodified_cnd == change.is_unmodified():
-                return False
-        return True
-
     def on_filter_changed(self):
         if not self.ignore_filterchanges:
             self.paned.changesview.update_changes()
@@ -655,6 +618,46 @@ class EtcProposalsView(gtk.Window):
         self.main_actiongroup.get_action('Whitespacefilter Off').set_active(True)
         self.ignore_filterchanges = False
         self.on_filter_changed()
+
+    def is_not_filtered(self, change):
+        if not self.main_actiongroup.show_state(change.get_status()):
+            print "DEBUG: state filtered " + change.get_file_path()
+            return False
+        whitespace_cnd = self.main_actiongroup.get_whitespace_condition()
+        if not whitespace_cnd is None:
+            if not whitespace_cnd == change.is_whitespace_only():
+                print "DEBUG: ws filtered " + change.get_file_path()
+                return False
+        cvs_cnd = self.main_actiongroup.get_cvs_condition()
+        if not cvs_cnd is None:
+            if not cvs_cnd == change.is_cvsheader():
+                print "DEBUG: cvs filtered " + change.get_file_path()
+                return False
+        unmodified_cnd = self.main_actiongroup.get_unmodified_condition()
+        if not unmodified_cnd is None:
+            if not unmodified_cnd == change.is_unmodified():
+                print "DEBUG: unmod filtered " + change.get_file_path()
+                return False
+        return True
+
+    def get_filtered_selection(self):
+        tv = self.paned.treeview
+        (model, iter) = tv.get_selection().get_selected()
+        return (change for change in
+            tv.get_changegenerator_for_node(model.get_path(iter))()
+            if self.is_not_filtered(change))
+        
+    def __get_menubar(self):
+        return self.uimanager.get_widget('/Menubar')
+
+    def __get_toolbar(self):
+        toolbar = self.uimanager.get_widget('/Toolbar')
+        space_item = gtk.ToolItem()
+        space_item.set_expand(True)
+        toolbar.insert(space_item, 16)
+        toolbar.insert(gtk.SeparatorToolItem(),16)
+        toolbar.show_all()
+        return toolbar 
 
 
 #### MVC: Controller ####
@@ -674,19 +677,22 @@ class MainActiongroup(gtk.ActionGroup):
             ('Refresh', gtk.STOCK_REFRESH, '_Refresh', None, 'Refresh proposals', lambda item: controller.refresh()),
             ('Collapse', gtk.STOCK_REMOVE, '_Collapse Changes', None, 'Collapse all displayed changes', lambda item: view.on_collapse_all()),
             ('Expand', gtk.STOCK_ADD, '_Expand Changes', None, 'Expand all displayed changes', lambda item: view.on_expand_all()),
+            ('Use All', gtk.STOCK_OK, 'Use All Undecided', None, 'use all filtered changes in the current selection', lambda item: controller.on_use_selection()),
+            ('Zap All', gtk.STOCK_CANCEL, 'Zap All Undecided', None, 'zap all filtered changes in the current selection', lambda item: controller.on_zap_selection()),
+            ('Undo All', gtk.STOCK_UNDO, 'Undo All', None, 'undo all filtered changes in the current selection', lambda item: controller.on_undo_selection()),
             ('Help', gtk.STOCK_HELP, '_Help', None, 'A short help', lambda item: HelpDialog(view)),
             ('About', gtk.STOCK_ABOUT, '_About', None, 'About this tool', lambda item: AboutDialog(view)),
             ('Typefilter', None, 'Type Filter', None, None, None),
             ('Statusfilter', None, 'Status Filter', None, None, None),
-            ('Whitespacefilter', None, 'Whitespace Filter', None, None, None),
-            ('CVSHeaderfilter', None, 'CVS-Header Filter', None, None, None),
-            ('Modificationfilter', None, 'Modification Filter', None, None, None),
+            ('Whitespacefilter', STOCK_WHITESPACE, 'Whitespace Filter', None, None, None),
+            ('CVSHeaderfilter', STOCK_CVS, 'CVS-Header Filter', None, None, None),
+            ('Modificationfilter', STOCK_UNMODIFIED, 'Modification Filter', None, None, None),
             ('Typefilter Off', gtk.STOCK_CLEAR, 'No Type Filtering', None, 'Disable all type filters', lambda item: view.on_typefilter_off())
             ])
         self.add_toggle_actions([
             ('Show Use', gtk.STOCK_OK, 'Show Used Changes', None, 'Show used changes', lambda item: view.on_filter_changed(), True),
             ('Show Zap', gtk.STOCK_CANCEL, 'Show Zapped Changes', None, 'Show zapped changes', lambda item: view.on_filter_changed(), True),
-            ('Show Undecided', gtk.STOCK_DIALOG_QUESTION, 'Show Undecided Changes', None, 'Show undecied changes', lambda item: view.on_filter_changed(), True)
+            ('Show Undecided', gtk.STOCK_DIALOG_QUESTION, 'Show Undecided Changes', None, 'Show undecided changes', lambda item: view.on_filter_changed(), True)
             ])
         self.add_radio_actions([
             ('Only Whitespace', STOCK_WHITESPACE, 'Only Whitespace Changes', None, 'Show only whitespace changes', 1),
@@ -761,7 +767,36 @@ class EtcProposalsController(object):
         self.view.paned.changesview.update_changes(lambda: [])
         wait_win.destroy()
 
+    def on_undo_selection(self):
+        changes = self.__get_filtered_decided_selection()
+        while len(changes):
+            [change.undo() for change in changes]
+            changes = self.__get_filtered_decided_selection()
+        self.view.paned.changesview.update_changes()
 
+    def on_zap_selection(self):
+        changes = self.__get_filtered_undecided_selection()
+        while len(changes):
+            [change.zap() for change in changes]
+            changes = self.__get_filtered_undecided_selection()
+        self.view.paned.changesview.update_changes()
+
+    def on_use_selection(self):
+        changes = self.__get_filtered_undecided_selection()
+        while len(changes):
+            [change.use() for change in changes]
+            changes = self.__get_filtered_undecided_selection()
+        self.view.paned.changesview.update_changes()
+    
+    def __get_filtered_undecided_selection(self):
+        return [change for change in 
+            self.view.get_filtered_selection()
+            if change.get_status() == 'undecided']
+
+    def __get_filtered_decided_selection(self):
+        return [change for change in 
+            self.view.get_filtered_selection()
+            if not change.get_status() == 'undecided']
 
 def run_frontend():
     if not os.environ.has_key('DISPLAY'):
