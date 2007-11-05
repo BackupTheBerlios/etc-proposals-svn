@@ -428,8 +428,8 @@ class FilesystemTreeView(gtk.TreeView):
         """ContextMenu implements the popup menu in the Treeview."""
         def __init__(self):
             gtk.Menu.__init__(self)
-            self.useitem = gtk.MenuItem('Use All')
-            self.zapitem = gtk.MenuItem('Zap All')
+            self.useitem = gtk.MenuItem('Use All Undecided')
+            self.zapitem = gtk.MenuItem('Zap All Undecided')
             self.undoitem = gtk.MenuItem('Undo All')
             self.append(self.useitem)
             self.append(self.zapitem)
@@ -681,27 +681,27 @@ class MainActiongroup(gtk.ActionGroup):
             ('Whitespacefilter', None, 'Whitespace Filter', None, None, None),
             ('CVSHeaderfilter', None, 'CVS-Header Filter', None, None, None),
             ('Modificationfilter', None, 'Modification Filter', None, None, None),
-            ('Typefilter Off', gtk.STOCK_CLEAR, 'No Type Filtering', None, None, lambda item: view.on_typefilter_off())
+            ('Typefilter Off', gtk.STOCK_CLEAR, 'No Type Filtering', None, 'Disable all type filters', lambda item: view.on_typefilter_off())
             ])
         self.add_toggle_actions([
-            ('Show Use', gtk.STOCK_OK, 'Show Used Changes', None, None, lambda item: view.on_filter_changed(), True),
-            ('Show Zap', gtk.STOCK_CANCEL, 'Show Zapped Changes', None, None, lambda item: view.on_filter_changed(), True),
-            ('Show Undecided', gtk.STOCK_DIALOG_QUESTION, 'Show Undecided Changes', None, None, lambda item: view.on_filter_changed(), True)
+            ('Show Use', gtk.STOCK_OK, 'Show Used Changes', None, 'Show used changes', lambda item: view.on_filter_changed(), True),
+            ('Show Zap', gtk.STOCK_CANCEL, 'Show Zapped Changes', None, 'Show zapped changes', lambda item: view.on_filter_changed(), True),
+            ('Show Undecided', gtk.STOCK_DIALOG_QUESTION, 'Show Undecided Changes', None, 'Show undecied changes', lambda item: view.on_filter_changed(), True)
             ])
         self.add_radio_actions([
-            ('Only Whitespace', STOCK_WHITESPACE, 'Only Whitespace Changes', None, None, 1),
-            ('Only Non-Whitespace', None, 'Only Non-Whitespace Changes', None, None, 2),
-            ('Whitespacefilter Off', None, 'No Whitespace Filtering', None, None, 0)],
+            ('Only Whitespace', STOCK_WHITESPACE, 'Only Whitespace Changes', None, 'Show only whitespace changes', 1),
+            ('Only Non-Whitespace', None, 'Only Non-Whitespace Changes', None, 'Show only non-whitespace changes', 2),
+            ('Whitespacefilter Off', None, 'No Whitespace Filtering', None, 'Disable whitespace filtering', 0)],
             on_change = lambda item, current: view.on_filter_changed())
         self.add_radio_actions([
-            ('Only CVS', STOCK_CVS, 'Only CVS-Header Changes', None, None, 1),
-            ('Only Non-CVS', None, 'Only Non-CVS-Header Changes', None, None, 2),
-            ('CVSHeaderfilter Off', None, 'No CVS-Header Filtering', None, None, 0)],
+            ('Only CVS', STOCK_CVS, 'Only CVS-Header Changes', None, 'Show only CVS-header changes', 1),
+            ('Only Non-CVS', None, 'Only Non-CVS-Header Changes', None, 'Show only non-CVS-header changes', 2),
+            ('CVSHeaderfilter Off', None, 'No CVS-Header Filtering', None, 'Disable CVS-header filtering', 0)],
             on_change = lambda item, current: view.on_filter_changed())
         self.add_radio_actions([
-            ('Only Unmodified', STOCK_UNMODIFIED, 'Only Unmodified Changes', None, None, 1),
-            ('Only Modified', None, 'Only Modified Changes', None, None, 2),
-            ('Modificationfilter Off', None, 'No Modification Filtering', None, None, 0)],
+            ('Only Unmodified', STOCK_UNMODIFIED, 'Only Unmodified Changes', None, 'Show only unmodified changes', 1),
+            ('Only Modified', None, 'Only Modified Changes', None, 'Show only modified changes', 2),
+            ('Modificationfilter Off', None, 'No Modification Filtering', None, 'Disable modification filtering', 0)],
             on_change = lambda item, current: view.on_filter_changed())
 
     def get_whitespace_condition(self):
