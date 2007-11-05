@@ -621,22 +621,18 @@ class EtcProposalsView(gtk.Window):
 
     def is_not_filtered(self, change):
         if not self.main_actiongroup.show_state(change.get_status()):
-            print "DEBUG: state filtered " + change.get_file_path()
             return False
         whitespace_cnd = self.main_actiongroup.get_whitespace_condition()
         if not whitespace_cnd is None:
             if not whitespace_cnd == change.is_whitespace_only():
-                print "DEBUG: ws filtered " + change.get_file_path()
                 return False
         cvs_cnd = self.main_actiongroup.get_cvs_condition()
         if not cvs_cnd is None:
             if not cvs_cnd == change.is_cvsheader():
-                print "DEBUG: cvs filtered " + change.get_file_path()
                 return False
         unmodified_cnd = self.main_actiongroup.get_unmodified_condition()
         if not unmodified_cnd is None:
             if not unmodified_cnd == change.is_unmodified():
-                print "DEBUG: unmod filtered " + change.get_file_path()
                 return False
         return True
 
