@@ -80,9 +80,9 @@ class UIManager(gtk.UIManager):
                     <menuitem action="Quit"/>
                 </menu>
                 <menu action="Editmenu">
-		    <menuitem action="Use All"/>
-		    <menuitem action="Zap All"/>
-		    <menuitem action="Undo All"/>
+            <menuitem action="Use All"/>
+            <menuitem action="Zap All"/>
+            <menuitem action="Undo All"/>
                 </menu>
                 <menu action="Viewmenu">
                     <menuitem action="Collapse"/>
@@ -123,6 +123,9 @@ class UIManager(gtk.UIManager):
                 <separator/>
                 <toolitem action="Refresh"/>
                 <separator/>
+                <toolitem action="Previous Page"/>
+                <toolitem action="Next Page"/>
+                <separator/>
                 <toolitem action="Collapse"/>
                 <toolitem action="Expand"/>
                 <separator/>
@@ -139,11 +142,11 @@ class UIManager(gtk.UIManager):
                 <toolitem action="Help"/>
                 <toolitem action="About"/>
             </toolbar>
-	    <popup name="TreeMenu">
-	    	<menuitem action="Use All"/>
-	    	<menuitem action="Zap All"/>
-	    	<menuitem action="Undo All"/>
-	    </popup>
+        <popup name="TreeMenu">
+            <menuitem action="Use All"/>
+            <menuitem action="Zap All"/>
+            <menuitem action="Undo All"/>
+        </popup>
         </ui>
         """
         self.insert_action_group(view.main_actiongroup, 0)
@@ -401,32 +404,70 @@ class ChangesView(gtk.VBox):
         self.controller = controller
         self.view = view
         self.changes_generator = lambda: []
+        self.changes_list = self.changes_generator()
+        self.start_change_index = 0
+        self.changes_per_page = 10
         self.collapsed_changes = set()
     
     def update_changes(self, changes_generator = None):
         self.hide()
-        for child in self.get_children():
-            labeltext = child.get_labeltext()
-            if not child.get_expanded():
-                self.collapsed_changes.add(labeltext)
-            elif labeltext in self.collapsed_changes:
-                self.collapsed_changes.remove(labeltext)
-            self.remove(child)
+        self.__remember_collapsed_changes()
+        self.__clear_page()
         if not changes_generator == None:
             self.changes_generator = changes_generator
-        for change in self.changes_generator():
-            if self.view.is_not_filtered(change):
-                changeview = ChangeView(change, self.controller)
-                if not changeview.get_labeltext() in self.collapsed_changes:
-                    changeview.set_expanded(True)
-                self.pack_start(changeview, False, False, 0)
+        self.changes_list = self.changes_generator()
+        self.start_change_index = 0
+        self.__fill_page()
         self.show()
+
+    def show_next_page(self):
+        self.hide()
+        self.__remember_collapsed_changes()
+        self.__clear_page()
+        self.start_change_index += self.changes_per_page
+        self.__fill_page()
+        self.show()
+
+    def has_next_page(self):
+        return self.start_change_index + self.changes_per_page < len(self.changes_list)
+
+    def show_previous_page(self):
+        self.hide()
+        self.__remember_collapsed_changes()
+        self.__clear_page()
+        self.start_change_index = max(0, self.start_change_index - self.changes_per_page)
+        self.__fill_page()
+        self.show()
+
+    def has_previous_page(self):
+        return self.start_change_index > 0
 
     def collapse_all(self):
         [child.set_expanded(False) for child in self.get_children()]
     
     def expand_all(self):
         [child.set_expanded(True) for child in self.get_children()]
+
+    def __remember_collapsed_changes(self):
+        for child in self.get_children():
+            labeltext = child.get_labeltext()
+            if not child.get_expanded():
+                self.collapsed_changes.add(labeltext)
+            elif labeltext in self.collapsed_changes:
+                self.collapsed_changes.remove(labeltext)
+
+    def __clear_page(self):
+        for child in self.get_children():
+            self.remove(child)
+
+    def __fill_page(self):
+        last_change_index = self.start_change_index + self.changes_per_page
+        last_change_index = min(len(self.changes_list), last_change_index)
+        for change in self.changes_list[self.start_change_index:last_change_index]:
+            changeview = ChangeView(change, self.controller)
+            if not changeview.get_labeltext() in self.collapsed_changes:
+                changeview.set_expanded(True)
+            self.pack_start(changeview, False, False, 0)
 
 
 class FilesystemTreeView(gtk.TreeView):
@@ -439,6 +480,7 @@ class FilesystemTreeView(gtk.TreeView):
         self.cell = gtk.CellRendererText()
         self.proposals = proposals
         self.controller = controller
+        self.view = view
         self.treestore.append(None, ['/'])
         self.fsrow = self.treestore[0]
         self.column.pack_start(self.cell, True)
@@ -447,6 +489,7 @@ class FilesystemTreeView(gtk.TreeView):
         self.set_headers_visible(False)
         self.connect_object('event', self.on_button_press, self.menu)
         self.refresh()
+        self.get_selection().connect('changed', self.view.on_selection_changed)
         self.show()
 
     def refresh(self):
@@ -463,8 +506,6 @@ class FilesystemTreeView(gtk.TreeView):
 
     def get_changegenerator_for_node(self, node):
         """returns a functor that returns a list of EtcProposalChanges belonging to a node."""
-        if len(node) == 1 and not (node == (0,)):
-            return None
         if node[0] == 0:
             (iter, path) = (self.fsrow.iter, '/')
             for i in node[1:]:
@@ -516,15 +557,8 @@ class PanedView(gtk.HPaned):
         tv_scrollwindow.set_size_request(200,600)
         self.add1(tv_scrollwindow)
         self.add2(cv_scrollwindow)
-        self.treeview.get_selection().set_select_function(self.on_tv_item_selected, None)
         self.show_all()
     
-    def on_tv_item_selected(self, selection, user_data):
-        changegenerator = self.treeview.get_changegenerator_for_node(selection)
-        if changegenerator == None:
-            return False
-        self.changesview.update_changes(changegenerator)         
-        return True
 
 
 class HelpDialog(gtk.MessageDialog):
@@ -593,13 +627,19 @@ class EtcProposalsView(gtk.Window):
         self.toolbar = self.__get_toolbar()
         self.toolbar.show()
         self.paned = PanedView(proposals, controller, self)
+        self.selected_node = None
         vbox.pack_start(self.menubar, False, False, 0)
         vbox.pack_start(self.toolbar, False, False, 0)
         vbox.pack_start(self.paned, True, True, 0)
         vbox.show()
         self.add(vbox)
         self.set_size_request(800,600)
+        self.selection_path = None
         self.show()
+
+    def update_changes(self, changegenerator = None):
+        self.paned.changesview.update_changes(changegenerator)
+        self.on_page_changed()
 
     def on_expand_all(self):
         self.paned.changesview.expand_all()
@@ -609,7 +649,7 @@ class EtcProposalsView(gtk.Window):
 
     def on_filter_changed(self):
         if not self.ignore_filterchanges:
-            self.paned.changesview.update_changes()
+            self.update_changes()
 
     def on_typefilter_off(self):
         self.ignore_filterchanges = True
@@ -619,6 +659,23 @@ class EtcProposalsView(gtk.Window):
         self.ignore_filterchanges = False
         self.on_filter_changed()
 
+    def on_next_page(self):
+        self.paned.changesview.show_next_page()
+        self.on_page_changed()
+
+    def on_previous_page(self):
+        self.paned.changesview.show_previous_page()
+        self.on_page_changed()
+
+    def on_page_changed(self):
+        previous = self.main_actiongroup.get_action('Previous Page')
+        next = self.main_actiongroup.get_action('Next Page')
+        previous.set_sensitive(self.paned.changesview.has_previous_page())
+        next.set_sensitive(self.paned.changesview.has_next_page())
+
+    def on_selection_changed(self, selection):
+        self.update_changes(lambda: self.get_filtered_selection())
+        
     def is_not_filtered(self, change):
         if not self.main_actiongroup.show_state(change.get_status()):
             return False
@@ -639,9 +696,9 @@ class EtcProposalsView(gtk.Window):
     def get_filtered_selection(self):
         tv = self.paned.treeview
         (model, iter) = tv.get_selection().get_selected()
-        return (change for change in
+        return [change for change in
             tv.get_changegenerator_for_node(model.get_path(iter))()
-            if self.is_not_filtered(change))
+            if self.is_not_filtered(change)]
         
     def __get_menubar(self):
         return self.uimanager.get_widget('/Menubar')
@@ -650,13 +707,12 @@ class EtcProposalsView(gtk.Window):
         toolbar = self.uimanager.get_widget('/Toolbar')
         space_item = gtk.ToolItem()
         space_item.set_expand(True)
-        toolbar.insert(space_item, 16)
-        toolbar.insert(gtk.SeparatorToolItem(),16)
+        toolbar.insert(space_item, 19)
+        toolbar.insert(gtk.SeparatorToolItem(),19)
         toolbar.show_all()
         return toolbar 
 
 
-#### MVC: Controller ####
 class MainActiongroup(gtk.ActionGroup):
     NUMERIC_TO_BOOL = {0: None, 1: True, 2: False}
     STATE_TO_ACTION = { 'use' : 'Show Use', 'zap' : 'Show Zap', 'undecided' : 'Show Undecided'}
@@ -678,6 +734,8 @@ class MainActiongroup(gtk.ActionGroup):
             ('Undo All', gtk.STOCK_UNDO, 'Undo All', None, 'undo all filtered changes in the current selection', lambda item: controller.on_undo_selection()),
             ('Help', gtk.STOCK_HELP, '_Help', None, 'A short help', lambda item: HelpDialog(view)),
             ('About', gtk.STOCK_ABOUT, '_About', None, 'About this tool', lambda item: AboutDialog(view)),
+            ('Previous Page', gtk.STOCK_GO_BACK, 'Previous Page', None, 'show the next page of changes', lambda item: view.on_previous_page()),
+            ('Next Page', gtk.STOCK_GO_FORWARD, 'Next Page', None, 'show the previous page of changes', lambda item:view.on_next_page()),
             ('Typefilter', None, 'Type Filter', None, None, None),
             ('Statusfilter', None, 'Status Filter', None, None, None),
             ('Whitespacefilter', STOCK_WHITESPACE, 'Whitespace Filter', None, None, None),
@@ -719,6 +777,7 @@ class MainActiongroup(gtk.ActionGroup):
         return self.get_action(MainActiongroup.STATE_TO_ACTION[state]).get_active()
 
 
+#### MVC: Controller ####
 class EtcProposalsController(object):
     """EtcProposalsController is the controller in the
     model-view-controller-combination (MVC). It glues the (data-)model
@@ -734,22 +793,23 @@ class EtcProposalsController(object):
 
     def undo_changes(self, changes):
         [change.undo() for change in changes]
-        self.view.paned.changesview.update_changes()
+        self.view.update_changes()
 
     def zap_changes(self, changes):
         [change.zap() for change in changes]
-        self.view.paned.changesview.update_changes()
+        self.view.update_changes()
 
     def use_changes(self, changes):
         [change.use() for change in changes]
-        self.view.paned.changesview.update_changes()
+        self.view.update_changes()
 
     def apply(self):
         self.proposals.apply()
         if len(self.proposals) == 0 and EtcProposalsConfigGtkDecorator().Fastexit():
             gtk.main_quit()
         self.view.paned.treeview.refresh()
-        self.view.paned.changesview.update_changes(lambda: [])
+        self.view.on_selection(None)
+        self.view.update_changes()
 
     def refresh(self):
         def refresh_callback(current_file):
@@ -760,7 +820,7 @@ class EtcProposalsController(object):
         self.proposals.refresh(refresh_callback)
         refresh_callback("Refreshing views.")
         self.view.paned.treeview.refresh()
-        self.view.paned.changesview.update_changes(lambda: [])
+        self.view.update_changes()
         wait_win.destroy()
 
     def on_undo_selection(self):
@@ -768,21 +828,21 @@ class EtcProposalsController(object):
         while len(changes):
             [change.undo() for change in changes]
             changes = self.__get_filtered_decided_selection()
-        self.view.paned.changesview.update_changes()
+        self.view.update_changes()
 
     def on_zap_selection(self):
         changes = self.__get_filtered_undecided_selection()
         while len(changes):
             [change.zap() for change in changes]
             changes = self.__get_filtered_undecided_selection()
-        self.view.paned.changesview.update_changes()
+        self.view.update_changes()
 
     def on_use_selection(self):
         changes = self.__get_filtered_undecided_selection()
         while len(changes):
             [change.use() for change in changes]
             changes = self.__get_filtered_undecided_selection()
-        self.view.paned.changesview.update_changes()
+        self.view.update_changes()
     
     def __get_filtered_undecided_selection(self):
         return [change for change in 
@@ -793,6 +853,7 @@ class EtcProposalsController(object):
         return [change for change in 
             self.view.get_filtered_selection()
             if not change.get_status() == 'undecided']
+
 
 def run_frontend():
     if not os.environ.has_key('DISPLAY'):
