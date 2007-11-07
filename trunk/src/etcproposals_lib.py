@@ -291,12 +291,6 @@ class EtcProposal(object):
         "identifies a proposal filename"
         return re.compile('^\._cfg[0-9]{4}_(.*)')
 
-    # deprecated old style statefile
-    @staticmethod
-    def state_regexp():
-        "identifies a proposal state filename"
-        return re.compile('^\._cfgstate[0-9]{4}_(.*)')
-
 
 class EtcProposalConfigFile(object):
     def __init__(self, path):
@@ -348,9 +342,8 @@ class EtcProposals(list):
 
     def clear_all_states(self):
         "this is pretty much 'undo all' but it also removes orphaned state files"
-        # removing deprecated old style statefile
-        for dir in PortageInterface.get_config_protect(Config.Backend()):
-            self._remove_statefiles(dir)
+        State.clear_orphaned_configfiles()
+        State.clear_orphaned_proposals()
         self.refresh()
 
     def clear_cache(self):
@@ -388,10 +381,12 @@ class EtcProposals(list):
 
     def get_file_changes(self, file_path):
         "returns a list of changes for a config file"
-        changes = list()
-        for proposal in self.get_file_proposals(file_path):
-            changes.extend(proposal.get_changes())
-        return changes
+    	return list(self.get_file_changes_gen(file_path))
+
+    def get_file_changes_gen(self, file_path):
+        "returns a generator of changes for a config file (get a new generator, if you modify changes)"
+        return (change for proposal in self.get_file_proposals(file_path)
+            for change in proposal.get_changes())
 
     def get_file_proposals(self, file_path):
         "returns a list of proposals for a config file"
@@ -400,11 +395,14 @@ class EtcProposals(list):
 
     def get_dir_changes(self, dir_path):
         "returns a list of changes for config files in a directory"
-        changes = list()
-        for proposal in self:
-            if proposal.get_file_path().startswith(dir_path):
-                changes.extend(proposal.get_changes())
-        return changes
+        return list(self.get_dir_changes_gen(dir_path))
+
+    def get_dir_changes_gen(self, dir_path):
+        "returns a generator of changes for config files in a directory (get a new generator, if you modify changes)"
+        matching_proposals = [proposal for proposal in self
+            if proposal.get_file_path().startswith(dir_path)]
+        return (change for proposal in matching_proposals 
+            for change in proposal.get_changes())
 
     def get_all_changes(self):
         "returns a list all changes"
@@ -465,13 +463,6 @@ class EtcProposals(list):
             self._create_proposal(os.path.join(path, file), current_file_callback)
             for (path, dirs, files) in os.walk(dir) for file in files
             if up_regexp.match(file) ))
-
-    # removing deprecated old style statefile
-    def _remove_statefiles(self, dir):
-        state_regexp = EtcProposal.state_regexp()
-        [os.unlink(os.path.join(path, file)) 
-            for (path, dirs, files) in os.walk(dir) for file in files
-            if state_regexp.match(file)]
 
     def _create_proposal(self, proposal_path, current_file_callback):
         if not current_file_callback is None: current_file_callback(proposal_path)
@@ -575,15 +566,16 @@ class EtcProposalsConfig(object):
     
     def MaxCachedFiles(self):
         try:
-            return int(self.parser.get('General', 'MaxCachedFiles'))
+            return self.parser.getint('General', 'MaxCachedFiles')
         except Exception, e:
             return 10
 
     def MaxChangesPerProposal(self):
         try:
-            return int(self.parser.get('General', 'MaxChangesPerProposal'))
+            return self.parser.getint('General', 'MaxChangesPerProposal')
         except Exception, e:
             return 100
+
     @staticmethod
     def FastexitOverride(override_value):
         EtcProposalsConfig.fastexit_override = override_value
@@ -606,7 +598,7 @@ class EtcProposalsState(shelve.Shelf):
     def clear_orphaned(self, current_proposals):
         self.clear_orphaned_proposals(current_proposals)
     
-    def clear_orphaned_proposals(self, current_proposals):
+    def clear_orphaned_proposals(self):
         stateproposalsfiles = set(self.get_proposals())
         fsproposalsfiles = set(current_proposals)
         for proposal in (stateproposalsfiles-fsproposalsfiles):

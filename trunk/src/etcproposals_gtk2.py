@@ -46,7 +46,11 @@ except ImportError:
 
 class EtcProposalsConfigGtkDecorator(EtcProposalsConfig):
     """stub to handle configuration settings for the Gtk GUI"""
-    pass
+    def MaxChangesPerPage(self):
+        try:
+            return self.parser.getint('Gtk2', 'MaxChangesPerPage')
+        except Exception, e:
+            return 10
 
 
 #### MVC: View ####
@@ -403,41 +407,27 @@ class ChangesView(gtk.VBox):
         gtk.VBox.__init__(self)
         self.controller = controller
         self.view = view
-        self.changes_generator = lambda: []
-        self.changes_list = self.changes_generator()
+        self.changes_list = []
         self.start_change_index = 0
-        self.changes_per_page = 10
+        self.changes_per_page = Config.MaxChangesPerPage()
         self.collapsed_changes = set()
     
-    def update_changes(self, changes_generator = None):
+    def update_changes(self, changes_generator):
         self.hide()
-        self.__remember_collapsed_changes()
-        self.__clear_page()
-        if not changes_generator == None:
-            self.changes_generator = changes_generator
-        self.changes_list = self.changes_generator()
         self.start_change_index = 0
-        self.__fill_page()
-        self.show()
+        self.changes_list = list(changes_generator)
+        self.__refill()
 
     def show_next_page(self):
-        self.hide()
-        self.__remember_collapsed_changes()
-        self.__clear_page()
         self.start_change_index += self.changes_per_page
-        self.__fill_page()
-        self.show()
+        self.__refill()
 
     def has_next_page(self):
         return self.start_change_index + self.changes_per_page < len(self.changes_list)
 
     def show_previous_page(self):
-        self.hide()
-        self.__remember_collapsed_changes()
-        self.__clear_page()
         self.start_change_index = max(0, self.start_change_index - self.changes_per_page)
-        self.__fill_page()
-        self.show()
+        self.__refill()
 
     def has_previous_page(self):
         return self.start_change_index > 0
@@ -447,6 +437,13 @@ class ChangesView(gtk.VBox):
     
     def expand_all(self):
         [child.set_expanded(True) for child in self.get_children()]
+
+    def __refill(self):
+        self.hide()
+        self.__remember_collapsed_changes()
+        self.__clear_page()
+        self.__fill_page()
+        self.show()
 
     def __remember_collapsed_changes(self):
         for child in self.get_children():
@@ -512,10 +509,10 @@ class FilesystemTreeView(gtk.TreeView):
                 iter=self.treestore.iter_nth_child(iter, i)
                 path=os.path.join(path, self.treestore[iter][0])
             if os.path.isdir(path):
-                return lambda: self.proposals.get_dir_changes(path)
+                return self.proposals.get_dir_changes_gen(path)
             else:
-                return lambda: self.proposals.get_file_changes(path)
-        return lambda: []
+                return self.proposals.get_file_changes_gen(path)
+        return (change for change in [])
     
     def on_button_press(self, widget, event):
         if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
@@ -527,15 +524,15 @@ class FilesystemTreeView(gtk.TreeView):
 
     def on_use_tv_menu_select(self, widget):
         (model, iter) = self.get_selection().get_selected()
-        self.controller.use_changes(self.get_changegenerator_for_node(model.get_path(iter))())
+        self.controller.use_changes(list(self.get_changegenerator_for_node(model.get_path(iter))))
 
     def on_zap_tv_menu_select(self, widget):
         (model, iter) = self.get_selection().get_selected()
-        self.controller.zap_changes(self.get_changegenerator_for_node(model.get_path(iter))())
+        self.controller.zap_changes(list(self.get_changegenerator_for_node(model.get_path(iter))))
 
     def on_undo_tv_menu_select(self, widget):
         (model, iter) = self.get_selection().get_selected()
-        self.controller.undo_changes(self.get_changegenerator_for_node(model.get_path(iter))())
+        self.controller.undo_changes(list(self.get_changegenerator_for_node(model.get_path(iter))))
 
 
 class PanedView(gtk.HPaned):
@@ -602,7 +599,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA''')
-        self.set_authors(['Björn Michaelsen', 'Jeremy Wickersheimer', 'Christian Glindkamp', 'Jakub Steiner', 'Andreas Nilsson'])
+        self.set_authors(['Björn Michaelsen (Backend, Readline, Gtk2)', 'Jeremy Wickersheimer (Qt4)', 'Christian Glindkamp (Gtk2)', 'Jakub Steiner (Artwork)', 'Andreas Nilsson (Artwork)'])
         self.show_all()
         self.connect("response", lambda *d: self.destroy())
 
@@ -638,6 +635,8 @@ class EtcProposalsView(gtk.Window):
         self.show()
 
     def update_changes(self, changegenerator = None):
+        if changegenerator is None:
+            changegenerator = self.get_filtered_selection()
         self.paned.changesview.update_changes(changegenerator)
         self.on_page_changed()
 
@@ -674,7 +673,7 @@ class EtcProposalsView(gtk.Window):
         next.set_sensitive(self.paned.changesview.has_next_page())
 
     def on_selection_changed(self, selection):
-        self.update_changes(lambda: self.get_filtered_selection())
+        self.update_changes()
         
     def is_not_filtered(self, change):
         if not self.main_actiongroup.show_state(change.get_status()):
@@ -696,9 +695,11 @@ class EtcProposalsView(gtk.Window):
     def get_filtered_selection(self):
         tv = self.paned.treeview
         (model, iter) = tv.get_selection().get_selected()
-        return [change for change in
-            tv.get_changegenerator_for_node(model.get_path(iter))()
-            if self.is_not_filtered(change)]
+        if iter is None:
+            return (change for change in [])
+        return (change for change in
+            tv.get_changegenerator_for_node(model.get_path(iter))
+            if self.is_not_filtered(change))
         
     def __get_menubar(self):
         return self.uimanager.get_widget('/Menubar')
@@ -823,37 +824,41 @@ class EtcProposalsController(object):
         self.view.update_changes()
         wait_win.destroy()
 
+
     def on_undo_selection(self):
-        changes = self.__get_filtered_decided_selection()
+        changes = list(self.__get_filtered_decided_selection())
         while len(changes):
             [change.undo() for change in changes]
-            changes = self.__get_filtered_decided_selection()
+            changes = list(self.__get_filtered_decided_selection())
         self.view.update_changes()
 
     def on_zap_selection(self):
-        changes = self.__get_filtered_undecided_selection()
+        changes = list(self.__get_filtered_undecided_selection())
         while len(changes):
             [change.zap() for change in changes]
-            changes = self.__get_filtered_undecided_selection()
+            changes = list(self.__get_filtered_undecided_selection())
         self.view.update_changes()
 
     def on_use_selection(self):
-        changes = self.__get_filtered_undecided_selection()
+        changes = list(self.__get_filtered_undecided_selection())
         while len(changes):
             [change.use() for change in changes]
-            changes = self.__get_filtered_undecided_selection()
         self.view.update_changes()
     
     def __get_filtered_undecided_selection(self):
-        return [change for change in 
+        return (change for change in 
             self.view.get_filtered_selection()
-            if change.get_status() == 'undecided']
+            if change.get_status() == 'undecided')
 
     def __get_filtered_decided_selection(self):
-        return [change for change in 
+        return (change for change in 
             self.view.get_filtered_selection()
-            if not change.get_status() == 'undecided']
+            if not change.get_status() == 'undecided')
 
+
+# Singletons
+
+Config = EtcProposalsConfigGtkDecorator()
 
 def run_frontend():
     if not os.environ.has_key('DISPLAY'):
