@@ -403,6 +403,17 @@ class ChangesView(gtk.VBox):
     """ChangesView implements the display a list of changes. It
     uses ChangeViews to display the changes. The changes it
     displays are provided by a functor."""
+    class ChangesCache(list):
+        def __init__(self, change_generator):
+            self.change_generator = change_generator
+
+        def assure_changes_up_to(self, max):
+            for idx in range(max-len(self)+1):
+                try:
+                    self.append(self.change_generator.next())
+                except StopIteration:
+                    break
+ 
     def __init__(self, controller, view):
         gtk.VBox.__init__(self)
         self.controller = controller
@@ -415,7 +426,7 @@ class ChangesView(gtk.VBox):
     def update_changes(self, changes_generator):
         self.hide()
         self.start_change_index = 0
-        self.changes_list = list(changes_generator)
+        self.changes_list = ChangesView.ChangesCache(changes_generator)
         self.__refill()
 
     def show_next_page(self):
@@ -438,6 +449,10 @@ class ChangesView(gtk.VBox):
     def expand_all(self):
         [child.set_expanded(True) for child in self.get_children()]
 
+    def __last_change_index(self):
+        last_change_index = self.start_change_index + self.changes_per_page
+        return min(len(self.changes_list), last_change_index)
+
     def __refill(self):
         self.hide()
         self.__remember_collapsed_changes()
@@ -458,8 +473,8 @@ class ChangesView(gtk.VBox):
             self.remove(child)
 
     def __fill_page(self):
-        last_change_index = self.start_change_index + self.changes_per_page
-        last_change_index = min(len(self.changes_list), last_change_index)
+        self.changes_list.assure_changes_up_to(self.start_change_index + self.changes_per_page + 1)
+        last_change_index = self.__last_change_index()
         for change in self.changes_list[self.start_change_index:last_change_index]:
             changeview = ChangeView(change, self.controller)
             if not changeview.get_labeltext() in self.collapsed_changes:
