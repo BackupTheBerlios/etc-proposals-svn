@@ -4,13 +4,13 @@ import pygtk
 pygtk.require('2.0')
 import gtk
 
-from etcproposals.etcproposals_gtk2 import ScanFSWindow
+from etcproposals.etcproposals_gtk2 import WaitWindow
 from etcproposals.etcproposals_gtk2 import ChangeLabel
 from etcproposals.etcproposals_gtk2 import ChangeContent
-from etcproposals.etcproposals_gtk2 import EtcProposalChangeView
-from etcproposals.etcproposals_gtk2 import EtcProposalsTreeView
-from etcproposals.etcproposals_gtk2 import EtcProposalsChangesView
-from etcproposals.etcproposals_gtk2 import EtcProposalsPanedView
+from etcproposals.etcproposals_gtk2 import ChangeView
+from etcproposals.etcproposals_gtk2 import FilesystemTreeView
+from etcproposals.etcproposals_gtk2 import ChangesView
+from etcproposals.etcproposals_gtk2 import PanedView
 from etcproposals.etcproposals_gtk2 import EtcProposalsView
 from etcproposals.etcproposals_gtk2 import EtcProposalsController
 
@@ -54,15 +54,13 @@ class EtcProposalChangeStub(object):
 class EtcProposalsStub(list):
     def get_files(self):
         return ['/etc/make.conf', '/etc/issue']
-    def get_whitespace_changes(self):
-        return [EtcProposalChangeStub(True)]
-    def get_cvsheader_changes(self):
-        return [EtcProposalChangeStub(True)]
-    def get_unmodified_changes(self):
-        return [EtcProposalChangeStub(False)]
     def get_all_changes(self):
         return [EtcProposalChangeStub(True), EtcProposalChangeStub(False)]
-    def warmup_cache(self):
+    def get_file_changes_gen(self, dir):
+        return [EtcProposalChangeStub(True), EtcProposalChangeStub(False)]
+    def get_dir_changes_gen(self, dir):
+        return [EtcProposalChangeStub(True), EtcProposalChangeStub(False)]
+    def refresh(self, callback):
         pass
     
 
@@ -105,10 +103,10 @@ class TestGtk(unittest.TestCase):
         gtk.main_quit()
 
 
-class TestScanFSWindow(TestGtk):
+class TestWaitWindow(TestGtk):
     def runTest(self):
         """Testing the wait window """
-        wait_win = ScanFSWindow()
+        wait_win = WaitWindow()
         wait_win.current_file = "/etc/fstab"
         gtk.main()
         wait_win.destroy()
@@ -141,7 +139,7 @@ class TestChangeView(TestGtk):
         """Testing GTK display of a change"""
         change = EtcProposalChangeStub()
         controller = EtcProposalsControllerStub()
-        changeGTK = EtcProposalChangeView(change, controller)
+        changeGTK = ChangeView(change, controller)
         self.testbox.pack_start(changeGTK, False, False, 1)
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
@@ -152,7 +150,7 @@ class TestTreeView(TestGtk):
         """Testing GTK display of proposals"""
         proposals = EtcProposalsStub()
         controller = EtcProposalsControllerStub()
-        tv = EtcProposalsTreeView(proposals, controller)
+        tv = FilesystemTreeView(proposals)
         self.testbox.pack_start(tv, False, False, 1)
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
@@ -161,13 +159,14 @@ class TestTreeView(TestGtk):
 class TestChangesView(TestGtk):
     def runTest(self):
         """Testing GTK display of changes"""
-        changes = list()
+        changegenerator = (change for change in [
+		    EtcProposalChangeStub(),
+		    EtcProposalChangeStub(),
+		    EtcProposalChangeStub()
+            ])
         controller = EtcProposalsControllerStub()
-        changes.append(EtcProposalChangeStub())
-        changes.append(EtcProposalChangeStub())
-        changes.append(EtcProposalChangeStub())
-        changesview = EtcProposalsChangesView(controller)
-        changesview.update_changes(lambda: changes)
+        changesview = ChangesView(controller)
+        changesview.update_changes(changegenerator)
         changesview.show_all()
         self.testbox.pack_start(changesview, True, True, 1)
         gtk.main()
@@ -179,7 +178,7 @@ class TestPanedView(TestGtk):
         """Testing GTK paned"""
         proposals = EtcProposalsStub()
         controller = EtcProposalsControllerStub()
-        view = EtcProposalsPanedView(proposals, controller)
+        view = PanedView(proposals, controller)
         self.testbox.pack_start(view, True, True, 1)
         gtk.main()
         self.failIf(self.Failed, 'Test failed.')
@@ -220,7 +219,7 @@ class TestController(TestGtk):
         TestGtk.gtk_failed(self)
 
 
-alltests = [TestScanFSWindow(), TestChangeLabel(), TestChangeContent(), TestChangeView(), TestTreeView(), TestChangesView(), TestPanedView(), TestView(), TestController()]
+alltests = [TestWaitWindow(), TestChangeLabel(), TestChangeContent(), TestChangeView(), TestTreeView(), TestChangesView(), TestPanedView(), TestController()]
 alltestssuite = unittest.TestSuite(alltests)
 
 if __name__ == '__main__':

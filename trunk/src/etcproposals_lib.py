@@ -357,8 +357,7 @@ class EtcProposals(list):
         "merges all finished proposals"
         finished_proposals = [proposal for proposal in self if proposal.is_finished()]
         for proposal in finished_proposals:        
-            if not current_file_callback is None:
-                current_file_callback(proposal.get_file_path)
+            if not current_file_callback is None: current_file_callback(proposal.get_file_path())
             proposal.apply()
         if update_unmodified:
             self.update_unmodified(finished_proposals)
