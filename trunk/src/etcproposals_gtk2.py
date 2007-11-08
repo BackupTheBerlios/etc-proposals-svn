@@ -158,11 +158,11 @@ class UIManager(gtk.UIManager):
         self.set_add_tearoffs(True)
 
 
-class ScanFSWindow(gtk.Window):
-    """ScanFSWindow ."""
+class WaitWindow(gtk.Window):
+    """WaitWindow ."""
     def __init__(self):
         gtk.Window.__init__(self)
-        self.set_title('etc-proposals - scanning configuration files')
+        self.set_title('etc-proposals - please wait')
         self.set_position(gtk.WIN_POS_CENTER)
         self.description_label = gtk.Label()
         self.current_file_label = gtk.Label()
@@ -174,13 +174,19 @@ class ScanFSWindow(gtk.Window):
         self.add(vbox)
         self.show_all()
     
-    def get_current_file(self):
-        return self.current_file_label.get_label()
+    def set_description(self, description):
+        return self.description_label.set_label(description)
 
     def set_current_file(self, current_file):
         self.current_file_label.set_label(current_file)
 
-    current_file = property(get_current_file, set_current_file)
+    def refreshing_views(self):
+        self.description = 'Refreshing Views.'
+        self.current_file = ''
+
+    current_file = property(fset = set_current_file)
+    description = property(fset = set_description)
+
 
 class ChangeLabel(gtk.Frame):
     """ChangeLabel is a widget showing all data of an
@@ -277,16 +283,16 @@ class ChangeLabel(gtk.Frame):
         def __on_zap_toggled(self): 
             if not self.updating:
                 if self.zapbutton.get_active():
-                    self.controller.zap_changes([self.change])
+                    self.controller.zap_change(self.change)
                 else:
-                    self.controller.undo_changes([self.change])
+                    self.controller.undo_change(self.change)
     
         def __on_use_toggled(self):
             if not self.updating:
                 if self.usebutton.get_active():
-                    self.controller.use_changes([self.change])
+                    self.controller.use_change(self.change)
                 else:
-                    self.controller.undo_changes([self.change])
+                    self.controller.undo_change(self.change)
 
     def __init__(self, change, controller):
         gtk.Frame.__init__(self)
@@ -536,18 +542,6 @@ class FilesystemTreeView(gtk.TreeView):
             widget.popup(None, None, None, event.button, event.time)
             return True
         return False
-
-    def on_use_tv_menu_select(self, widget):
-        (model, iter) = self.get_selection().get_selected()
-        self.controller.use_changes(list(self.get_changegenerator_for_node(model.get_path(iter))))
-
-    def on_zap_tv_menu_select(self, widget):
-        (model, iter) = self.get_selection().get_selected()
-        self.controller.zap_changes(list(self.get_changegenerator_for_node(model.get_path(iter))))
-
-    def on_undo_tv_menu_select(self, widget):
-        (model, iter) = self.get_selection().get_selected()
-        self.controller.undo_changes(list(self.get_changegenerator_for_node(model.get_path(iter))))
 
 
 class PanedView(gtk.HPaned):
@@ -807,58 +801,80 @@ class EtcProposalsController(object):
         self.view = EtcProposalsView(proposals, self)
         self.refresh()
 
-    def undo_changes(self, changes):
-        [change.undo() for change in changes]
+    def undo_change(self, change):
+        change.undo()
         self.view.update_changes()
 
-    def zap_changes(self, changes):
-        [change.zap() for change in changes]
+    def zap_change(self, change):
+        change.zap()
         self.view.update_changes()
 
-    def use_changes(self, changes):
-        [change.use() for change in changes]
+    def use_change(self, change):
+        change.use()
         self.view.update_changes()
 
     def apply(self):
-        self.proposals.apply()
+        def apply_callback(current_file):
+            wait_win.current_file = current_file
+            while gtk.events_pending():
+                gtk.main_iteration()
+        wait_win = WaitWindow()
+        wait_win.description = 'Applying changes'
+        self.proposals.apply(current_file_callback=apply_callback)
         if len(self.proposals) == 0 and EtcProposalsConfigGtkDecorator().Fastexit():
             gtk.main_quit()
+        wait_win.refreshing_views()
         self.view.paned.treeview.refresh()
-        self.view.on_selection(None)
         self.view.update_changes()
+        wait_win.destroy()
 
     def refresh(self):
         def refresh_callback(current_file):
             wait_win.current_file = current_file
             while gtk.events_pending():
                 gtk.main_iteration()
-        wait_win = ScanFSWindow()
+        wait_win = WaitWindow()
         self.proposals.refresh(refresh_callback)
-        refresh_callback("Refreshing views.")
+        wait_win.refreshing_views()
         self.view.paned.treeview.refresh()
         self.view.update_changes()
         wait_win.destroy()
 
 
     def on_undo_selection(self):
-        changes = list(self.__get_filtered_decided_selection())
-        while len(changes):
-            [change.undo() for change in changes]
-            changes = list(self.__get_filtered_decided_selection())
+        wait_win = WaitWindow()
+        wait_win.description = 'Undoing choices for changes'
+        self.__process_all_changes(
+            wait_win,
+            self.__get_filtered_undecided_selection,
+            lambda change: change.zap());
+        wait_win.refreshing_views()
         self.view.update_changes()
+        wait_win.destroy()
+
 
     def on_zap_selection(self):
+        wait_win = WaitWindow()
+        wait_win.description = 'Marking Changes for Zapping'
         changes = list(self.__get_filtered_undecided_selection())
-        while len(changes):
-            [change.zap() for change in changes]
-            changes = list(self.__get_filtered_undecided_selection())
+        self.__process_all_changes(
+            wait_win,
+            self.__get_filtered_undecided_selection,
+            lambda change: change.zap());
+        wait_win.refreshing_views()
         self.view.update_changes()
+        wait_win.destroy()
 
     def on_use_selection(self):
-        changes = list(self.__get_filtered_undecided_selection())
-        while len(changes):
-            [change.use() for change in changes]
+        wait_win = WaitWindow()
+        wait_win.description = 'Marking Changes for Using'
+        self.__process_all_changes(
+            wait_win,
+            self.__get_filtered_undecided_selection,
+            lambda change: change.use());
+        wait_win.refreshing_views()
         self.view.update_changes()
+        wait_win.destroy()
     
     def __get_filtered_undecided_selection(self):
         return (change for change in 
@@ -869,6 +885,16 @@ class EtcProposalsController(object):
         return (change for change in 
             self.view.get_filtered_selection()
             if not change.get_status() == 'undecided')
+
+    def __process_all_changes(self, wait_win, changessource, operation):
+        changes = list(changessource())
+        while len(changes):
+            for change in changes:
+                wait_win.current_file = change.get_file_path()
+                operation(change)
+                while gtk.events_pending():
+                    gtk.main_iteration()
+            changes = list(changessource())
 
 
 # Singletons

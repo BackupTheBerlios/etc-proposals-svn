@@ -254,12 +254,10 @@ class EtcProposal(object):
                 opcodes = [self._join_opcodes(opcodes)]
             self._changes = [self._create_change(opcode) for opcode in opcodes]
             if State.has_key(self._get_state_url()):
-                undecorated_changes = State[self._get_state_url()]
                 try:
+                    undecorated_changes = State[self._get_state_url()]
                     [change.copystatefrom(undecorated_changes.pop(0)) for change in self._changes]
-                except OpcodeMismatchException:
-                    pass
-                except IndexError:
+                except Exception:
                     pass
 
     def _join_opcodes(self, opcodes):
@@ -355,10 +353,13 @@ class EtcProposals(list):
         self._zapped_changes = None
         self._undecided_changes = None
         
-    def apply(self, update_unmodified=False):
+    def apply(self, update_unmodified = False, current_file_callback = None):
         "merges all finished proposals"
         finished_proposals = [proposal for proposal in self if proposal.is_finished()]
-        [proposal.apply() for proposal in finished_proposals]
+        for proposal in finished_proposals:        
+            if not current_file_callback is None:
+                current_file_callback(proposal.get_file_path)
+            proposal.apply()
         if update_unmodified:
             self.update_unmodified(finished_proposals)
         self.refresh()
@@ -381,7 +382,7 @@ class EtcProposals(list):
 
     def get_file_changes(self, file_path):
         "returns a list of changes for a config file"
-    	return list(self.get_file_changes_gen(file_path))
+        return list(self.get_file_changes_gen(file_path))
 
     def get_file_changes_gen(self, file_path):
         "returns a generator of changes for a config file (get a new generator, if you modify changes)"
