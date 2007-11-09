@@ -612,6 +612,7 @@ class EtcProposalsView(gtk.Window):
         gtk.Window.__init__(self)
         iconfactory = IconFactory()
         iconfactory.add_default()
+        self.ignore_filterchanges = False
         self.main_actiongroup = MainActiongroup(self)
         self.uimanager = UIManager()
         self.uimanager.insert_action_group(self.main_actiongroup, 0)
@@ -624,17 +625,118 @@ class EtcProposalsView(gtk.Window):
         self.toolbar = self.__get_toolbar()
         self.toolbar.show()
         self.popupmenu = self.uimanager.get_widget('/TreeMenu')
-        self.paned = PanedView(proposals, controller)
+        paned = PanedView(proposals, controller)
         self.selected_node = None
         vbox.pack_start(self.menubar, False, False, 0)
         vbox.pack_start(self.toolbar, False, False, 0)
-        vbox.pack_start(self.paned, True, True, 0)
+        vbox.pack_start(paned, True, True, 0)
         vbox.show()
         self.add(vbox)
         self.set_size_request(800,600)
         self.selection_path = None
+        self.treeview = paned.treeview
+        self.changesview = paned.changesview
+        self.__register_events()
         self.show()
         
+    def __register_events(self):
+        self.treeview.get_selection().connect('changed', self.on_selection_changed)
+        simple_actions = {
+            'Quit': lambda item: gtk.main_quit(),
+            'Collapse': lambda item: self.on_collapse_all(),
+            'Expand': lambda item: self.on_expand_all(),
+            'Help': lambda item: self.on_show_help(),
+            'About': lambda item: self.on_show_about(),
+            'Previous Page': lambda item: self.on_previous_page(),
+            'Next Page': lambda item: self.on_next_page(),
+            'Typefilter Off': lambda item: self.on_typefilter_off() }
+        toggle_actions = {
+            'Show Use': lambda item: self.on_filter_changed(),
+            'Show Zap': lambda item: self.on_filter_changed(),
+            'Show Undecided': lambda item: self.on_filter_changed() }
+        radio_actions = {
+            'Whitespacefilter Off': lambda item, current: self.on_filter_changed(),
+            'CVSHeaderfilter Off': lambda item, current: self.on_filter_changed(),
+            'Modificationfilter Off': lambda item, current: self.on_filter_changed() }
+        for (action, callback) in simple_actions.items():
+            self.main_actiongroup.get_action(action).connect('activate', callback)
+        for (action, callback) in toggle_actions.items():
+            self.main_actiongroup.get_action(action).connect('toggled', callback)
+        for (action, callback) in radio_actions.items():
+            self.main_actiongroup.get_action(action).connect('changed', callback)
+
+    def on_expand_all(self):
+        self.changesview.expand_all()
+    
+    def on_collapse_all(self):
+        self.changesview.collapse_all()
+
+    def on_next_page(self):
+        self.changesview.show_next_page()
+        self.on_page_changed()
+
+    def on_previous_page(self):
+        self.changesview.show_previous_page()
+        self.on_page_changed()
+    
+    def on_filter_changed(self):
+        if not self.ignore_filterchanges:
+            self.update_changes()
+
+    def on_typefilter_off(self):
+        self.ignore_filterchanges = True
+        self.main_actiongroup.get_action('Modificationfilter Off').set_active(True)
+        self.main_actiongroup.get_action('CVSHeaderfilter Off').set_active(True)
+        self.main_actiongroup.get_action('Whitespacefilter Off').set_active(True)
+        self.ignore_filterchanges = False
+        self.on_filter_changed()
+
+    def on_page_changed(self):
+        previous = self.main_actiongroup.get_action('Previous Page')
+        next = self.main_actiongroup.get_action('Next Page')
+        previous.set_sensitive(self.changesview.has_previous_page())
+        next.set_sensitive(self.changesview.has_next_page())
+
+    def on_selection_changed(self, selection):
+        self.update_changes()
+        
+    def on_show_about(self):
+        AboutDialog(self)
+
+    def on_show_help(self):
+        HelpDialog(self)
+
+    def update_changes(self, changegenerator = None):
+        if changegenerator is None:
+            changegenerator = self.get_filtered_selection()
+        self.changesview.update_changes(changegenerator)
+        self.on_page_changed()
+
+    def is_not_filtered(self, change):
+        if not self.main_actiongroup.show_state(change.get_status()):
+            return False
+        whitespace_cnd = self.main_actiongroup.get_whitespace_condition()
+        if not whitespace_cnd is None:
+            if not whitespace_cnd == change.is_whitespace_only():
+                return False
+        cvs_cnd = self.main_actiongroup.get_cvs_condition()
+        if not cvs_cnd is None:
+            if not cvs_cnd == change.is_cvsheader():
+                return False
+        unmodified_cnd = self.main_actiongroup.get_unmodified_condition()
+        if not unmodified_cnd is None:
+            if not unmodified_cnd == change.is_unmodified():
+                return False
+        return True
+
+    def get_filtered_selection(self):
+        (model, iter) = self.treeview.get_selection().get_selected()
+        if iter is None:
+            return (change for change in [])
+        return (change for change in
+            self.treeview.get_changegenerator_for_node(model.get_path(iter))
+            if self.is_not_filtered(change))
+
     def __get_toolbar(self):
         toolbar = self.uimanager.get_widget('/Toolbar')
         space_item = gtk.ToolItem()
@@ -715,60 +817,38 @@ class EtcProposalsController(object):
     instance itself when initiated."""
     def __init__(self, proposals):
         self.proposals = proposals
-        self.ignore_filterchanges = False
         if len(self.proposals) == 0 and EtcProposalsConfigGtkDecorator().Fastexit():
             raise SystemExit
         self.view = EtcProposalsView(proposals, self)
         self.main_actiongroup = self.view.main_actiongroup
-        self.changesview = self.view.paned.changesview
-        self.treeview = self.view.paned.treeview
+        self.changesview = self.view.changesview
+        self.treeview = self.view.treeview
         self.popupmenu = self.view.popupmenu
         self.__register_events()
         self.refresh()
 
     def __register_events(self):
         self.treeview.connect_object('event', self.treeview.on_button_press, self.popupmenu)
-        self.treeview.get_selection().connect('changed', self.on_selection_changed)
         simple_actions = {
-            'Quit': lambda item: gtk.main_quit(),
             'Apply': lambda item: self.apply(),
             'Refresh': lambda item: self.refresh(),
-            'Collapse': lambda item: self.on_collapse_all(),
-            'Expand': lambda item: self.on_expand_all(),
             'Use All': lambda item: self.on_use_selection(),
             'Zap All': lambda item: self.on_zap_selection(),
-            'Undo All': lambda item: self.on_undo_selection(),
-            'Help': lambda item: self.on_show_help(),
-            'About': lambda item: self.on_show_about(),
-            'Previous Page': lambda item: self.on_previous_page(),
-            'Next Page': lambda item: self.on_next_page(),
-            'Typefilter Off': lambda item: self.on_typefilter_off() }
-        toggle_actions = {
-            'Show Use': lambda item: self.on_filter_changed(),
-            'Show Zap': lambda item: self.on_filter_changed(),
-            'Show Undecided': lambda item: self.on_filter_changed() }
-        radio_actions = {
-            'Whitespacefilter Off': lambda item, current: self.on_filter_changed(),
-            'CVSHeaderfilter Off': lambda item, current: self.on_filter_changed(),
-            'Modificationfilter Off': lambda item, current: self.on_filter_changed() }
+            'Undo All': lambda item: self.on_undo_selection() }
         for (action, callback) in simple_actions.items():
             self.main_actiongroup.get_action(action).connect('activate', callback)
-        for (action, callback) in toggle_actions.items():
-            self.main_actiongroup.get_action(action).connect('toggled', callback)
-        for (action, callback) in radio_actions.items():
-            self.main_actiongroup.get_action(action).connect('changed', callback)
 
     def undo_change(self, change):
         change.undo()
-        self.update_changes()
+        self.view.update_changes()
 
     def zap_change(self, change):
         change.zap()
-        self.update_changes()
+        self.view.update_changes()
 
     def use_change(self, change):
         change.use()
-        self.update_changes()
+        self.view.update_changes()
 
     def apply(self):
         def apply_callback(current_file):
@@ -782,7 +862,7 @@ class EtcProposalsController(object):
             gtk.main_quit()
         wait_win.refreshing_views()
         self.treeview.refresh()
-        self.update_changes()
+        self.view.update_changes()
         wait_win.destroy()
 
     def refresh(self):
@@ -794,7 +874,7 @@ class EtcProposalsController(object):
         self.proposals.refresh(refresh_callback)
         wait_win.refreshing_views()
         self.treeview.refresh()
-        self.update_changes()
+        self.view.update_changes()
         wait_win.destroy()
 
     def on_undo_selection(self):
@@ -805,7 +885,7 @@ class EtcProposalsController(object):
             self.__get_filtered_decided_selection,
             lambda change: change.undo());
         wait_win.refreshing_views()
-        self.update_changes()
+        self.view.update_changes()
         wait_win.destroy()
 
     def on_zap_selection(self):
@@ -817,7 +897,7 @@ class EtcProposalsController(object):
             self.__get_filtered_undecided_selection,
             lambda change: change.zap());
         wait_win.refreshing_views()
-        self.update_changes()
+        self.view.update_changes()
         wait_win.destroy()
 
     def on_use_selection(self):
@@ -828,89 +908,17 @@ class EtcProposalsController(object):
             self.__get_filtered_undecided_selection,
             lambda change: change.use());
         wait_win.refreshing_views()
-        self.update_changes()
+        self.view.update_changes()
         wait_win.destroy()
     
-    def on_expand_all(self):
-        self.changesview.expand_all()
-    
-    def on_collapse_all(self):
-        self.changesview.collapse_all()
-
-    def on_next_page(self):
-        self.changesview.show_next_page()
-        self.on_page_changed()
-
-    def on_previous_page(self):
-        self.changesview.show_previous_page()
-        self.on_page_changed()
-    
-    def on_filter_changed(self):
-        if not self.ignore_filterchanges:
-            self.update_changes()
-
-    def on_typefilter_off(self):
-        self.ignore_filterchanges = True
-        self.main_actiongroup.get_action('Modificationfilter Off').set_active(True)
-        self.main_actiongroup.get_action('CVSHeaderfilter Off').set_active(True)
-        self.main_actiongroup.get_action('Whitespacefilter Off').set_active(True)
-        self.ignore_filterchanges = False
-        self.on_filter_changed()
-
-    def on_page_changed(self):
-        previous = self.main_actiongroup.get_action('Previous Page')
-        next = self.main_actiongroup.get_action('Next Page')
-        previous.set_sensitive(self.changesview.has_previous_page())
-        next.set_sensitive(self.changesview.has_next_page())
-
-    def on_selection_changed(self, selection):
-        self.update_changes()
-        
-    def on_show_about(self):
-        AboutDialog(self.view)
-
-    def on_show_help(self):
-        HelpDialog(self.view)
-
-    def update_changes(self, changegenerator = None):
-        if changegenerator is None:
-            changegenerator = self.get_filtered_selection()
-        self.changesview.update_changes(changegenerator)
-        self.on_page_changed()
-
-    def is_not_filtered(self, change):
-        if not self.main_actiongroup.show_state(change.get_status()):
-            return False
-        whitespace_cnd = self.main_actiongroup.get_whitespace_condition()
-        if not whitespace_cnd is None:
-            if not whitespace_cnd == change.is_whitespace_only():
-                return False
-        cvs_cnd = self.main_actiongroup.get_cvs_condition()
-        if not cvs_cnd is None:
-            if not cvs_cnd == change.is_cvsheader():
-                return False
-        unmodified_cnd = self.main_actiongroup.get_unmodified_condition()
-        if not unmodified_cnd is None:
-            if not unmodified_cnd == change.is_unmodified():
-                return False
-        return True
-
-    def get_filtered_selection(self):
-        (model, iter) = self.treeview.get_selection().get_selected()
-        if iter is None:
-            return (change for change in [])
-        return (change for change in
-            self.treeview.get_changegenerator_for_node(model.get_path(iter))
-            if self.is_not_filtered(change))
-
     def __get_filtered_undecided_selection(self):
         return (change for change in 
-            self.get_filtered_selection()
+            self.view.get_filtered_selection()
             if change.get_status() == 'undecided')
 
     def __get_filtered_decided_selection(self):
         return (change for change in 
-            self.get_filtered_selection()
+            self.view.get_filtered_selection()
             if not change.get_status() == 'undecided')
 
     def __process_all_changes(self, wait_win, changessource, operation):
