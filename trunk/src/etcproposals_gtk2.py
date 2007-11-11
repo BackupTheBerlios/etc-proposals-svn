@@ -251,9 +251,12 @@ class ChangeLabel(gtk.Frame):
         the status of the EtcProposalsChange using the toggle buttons. The
         ChangeStatus uses an EtcProposalsController to change the
         status."""
-        def __init__(self, change, controller):
+        __gsignals__ = {
+            'use-change' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+            'zap-change' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+            'undo-change' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()) }
+        def __init__(self, change):
             gtk.HBox.__init__(self)
-            self.controller = controller
             self.change = change
             self.updating = False
             self.usebutton = gtk.ToggleButton('Use')
@@ -282,23 +285,23 @@ class ChangeLabel(gtk.Frame):
         def __on_zap_toggled(self): 
             if not self.updating:
                 if self.zapbutton.props.active:
-                    self.controller.zap_change(self.change)
+                    self.emit('zap-change')
                 else:
-                    self.controller.undo_change(self.change)
+                    self.emit('undo-change')
     
         def __on_use_toggled(self):
             if not self.updating:
                 if self.usebutton.props.active:
-                    self.controller.use_change(self.change)
+                    self.emit('use-change')
                 else:
-                    self.controller.undo_change(self.change)
+                    self.emit('undo-change')
 
-    def __init__(self, change, controller):
+    def __init__(self, change):
         gtk.Frame.__init__(self)
         self.change = change
         self.title = ChangeLabel.ChangeTitle(change)
         self.type = ChangeLabel.ChangeType(change)
-        self.status = ChangeLabel.ChangeStatus(change, controller)
+        self.status = ChangeLabel.ChangeStatus(change)
         box = gtk.HBox()
         box.pack_start(self.status, False, False, 10)
         box.pack_start(self.title, True, True, 10)
@@ -386,18 +389,18 @@ class ChangeView(gtk.Expander):
     ChangeLabel and an ChangeContent. In all, it contains the following objects:
      - ChangeLabel
      - ChangeContent"""
-    def __init__(self, change, controller):
+    def __init__(self, change):
         gtk.Expander.__init__(self)
         self.change = change
-        label = gtk.Label(self.get_labeltext())
-        label.show()
-        self.props.label_widget = label
+        minilabel = gtk.Label(self.get_labeltext())
+        self.props.label_widget = minilabel
+        biglabel = ChangeLabel(change)
+        self.status = biglabel.status
         box = gtk.VBox()
-        box.pack_start(ChangeLabel(change, controller), False, False, 2)
+        box.pack_start(biglabel, False, False, 2)
         box.pack_start(ChangeContent(change), False, False, 2)
-        box.show_all()
         self.add(box)
-        self.show()
+        self.show_all()
     
     def get_labeltext(self):
         affected_lines = self.change.get_affected_lines()
@@ -420,9 +423,8 @@ class ChangesView(gtk.VBox):
                 except StopIteration:
                     break
  
-    def __init__(self, controller):
+    def __init__(self):
         gtk.VBox.__init__(self)
-        self.controller = controller
         self.changes_list = []
         self.start_change_index = 0
         self.changes_per_page = Config.MaxChangesPerPage()
@@ -483,10 +485,11 @@ class ChangesView(gtk.VBox):
         self.changes_list.assure_changes_up_to(self.start_change_index + self.changes_per_page + 1)
         last_change_index = self.__last_change_index()
         for change in self.changes_list[self.start_change_index:last_change_index]:
-            changeview = ChangeView(change, self.controller)
+            changeview = ChangeView(change)
             if not changeview.get_labeltext() in self.collapsed_changes:
                 changeview.props.expanded = True
             self.pack_start(changeview, False, False, 0)
+	    self.emit('new-changeview', changeview)
 
 
 class FilesystemTreeView(gtk.TreeView):
@@ -545,9 +548,9 @@ class PanedView(gtk.HPaned):
     """PanedView is a Panel containing an FilesystemTreeView for
     selecting sets of changes and an ChangesView to display
     them."""
-    def __init__(self, proposals, controller):
+    def __init__(self, proposals):
         gtk.HPaned.__init__(self)
-        self.changesview = ChangesView(controller)
+        self.changesview = ChangesView()
         self.treeview = FilesystemTreeView(proposals)
         tv_scrollwindow = gtk.ScrolledWindow()
         cv_scrollwindow = gtk.ScrolledWindow()
@@ -611,12 +614,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA'''
 class EtcProposalsView(gtk.Window):
     """EtcProposalsView is a the Window that displays all the changes. It
     contains a PanedView and an additional toolbar."""
-    def __init__(self, proposals, controller):
+    def __init__(self, proposals):
         gtk.Window.__init__(self)
         iconfactory = IconFactory()
         iconfactory.add_default()
         self.ignore_filterchanges = False
-        self.main_actiongroup = MainActiongroup(self)
+        self.main_actiongroup = MainActiongroup()
         self.uimanager = UIManager()
         self.uimanager.insert_action_group(self.main_actiongroup, 0)
         self.props.title = 'etc-proposals'
@@ -628,7 +631,7 @@ class EtcProposalsView(gtk.Window):
         self.toolbar = self.__get_toolbar()
         self.toolbar.show()
         self.popupmenu = self.uimanager.get_widget('/TreeMenu')
-        paned = PanedView(proposals, controller)
+        paned = PanedView(proposals)
         self.selected_node = None
         vbox.pack_start(self.menubar, False, False, 0)
         vbox.pack_start(self.toolbar, False, False, 0)
@@ -753,7 +756,7 @@ class MainActiongroup(gtk.ActionGroup):
     NUMERIC_TO_BOOL = {0: None, 1: True, 2: False}
     STATE_TO_ACTION = { 'use' : 'Show Use', 'zap' : 'Show Zap', 'undecided' : 'Show Undecided'}
     
-    def __init__(self, controller):
+    def __init__(self):
         gtk.ActionGroup.__init__(self, 'Main')
         self.add_actions([
             ('Filemenu', None, '_File', None, None),
@@ -821,7 +824,7 @@ class EtcProposalsController(object):
         self.proposals = proposals
         if len(self.proposals) == 0 and EtcProposalsConfigGtkDecorator().Fastexit():
             raise SystemExit
-        self.view = EtcProposalsView(proposals, self)
+        self.view = EtcProposalsView(proposals)
         self.main_actiongroup = self.view.main_actiongroup
         self.changesview = self.view.changesview
         self.treeview = self.view.treeview
@@ -831,7 +834,7 @@ class EtcProposalsController(object):
 
     def __register_events(self):
         self.treeview.connect_object('event', self.treeview.on_button_press, self.popupmenu)
-        self.changesview.connect('new-changeview', lambda change: sys.stdout.write(change))
+        self.changesview.connect('new-changeview', self.on_new_changeview)
         simple_actions = {
             'Apply': lambda item: self.apply(),
             'Refresh': lambda item: self.refresh(),
@@ -913,7 +916,12 @@ class EtcProposalsController(object):
         wait_win.refreshing_views()
         self.view.update_changes()
         wait_win.destroy()
-    
+
+    def on_new_changeview(self, changesview, changeview):
+        changeview.status.connect('use-change', lambda changeview: self.use_change(changeview.change))
+        changeview.status.connect('zap-change', lambda changeview: self.zap_change(changeview.change))
+        changeview.status.connect('undo-change', lambda changeview: self.undo_change(changeview.change))
+
     def __get_filtered_undecided_selection(self):
         return (change for change in 
             self.view.get_filtered_selection()
