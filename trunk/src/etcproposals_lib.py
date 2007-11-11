@@ -340,8 +340,7 @@ class EtcProposals(list):
 
     def clear_all_states(self):
         "this is pretty much 'undo all' but it also removes orphaned state files"
-        State.clear_orphaned_configfiles()
-        State.clear_orphaned_proposals()
+        State.clear_orphaned(self)
         self.refresh()
 
     def clear_cache(self):
@@ -361,6 +360,8 @@ class EtcProposals(list):
             proposal.apply()
         if update_unmodified:
             self.update_unmodified(finished_proposals)
+        self.clear_orphaned_proposals()
+        self.clear_orphaned_configfiles()
         self.refresh()
 
     def get_files(self):
@@ -596,9 +597,10 @@ class EtcProposalsState(shelve.Shelf):
         return (key for key in self.keys() if key.startswith('EtcProposal:'))
 
     def clear_orphaned(self, current_proposals):
+        self.clear_orphaned_configfiles()
         self.clear_orphaned_proposals(current_proposals)
     
-    def clear_orphaned_proposals(self):
+    def clear_orphaned_proposals(self, current_proposals):
         stateproposalsfiles = set(self.get_proposals())
         fsproposalsfiles = set(current_proposals)
         for proposal in (stateproposalsfiles-fsproposalsfiles):
