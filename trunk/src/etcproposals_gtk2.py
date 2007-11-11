@@ -33,10 +33,10 @@ EtcProposalsView (window)
 """
 from etcproposals.etcproposals_lib import *
 from etcproposals.etcproposals_lib import __version__ as __libversion__
-import os, os.path, difflib
+import os, os.path, difflib, sys
 
 try:
-    import gtk
+    import gtk, gobject
 except ImportError:
     raise FrontendFailedException('Could not find gtk-bindings.')
 
@@ -319,14 +319,14 @@ class ChangeContent(gtk.VBox):
         gtk.VBox.__init__(self)
         self.change = change
         self.header = gtk.Label() 
-        self.header.props.line_wrap = False
+        self.header.set_line_wrap(False)
         self.removetextview = gtk.TextView()
         self.inserttextview = gtk.TextView()
-        self.removetextview.modify_base(gtk.STATE_NORMAL, self.removetextview.props.colormap.alloc_color("#FFC4C4"))
-        self.inserttextview.modify_base(gtk.STATE_NORMAL, self.inserttextview.props.colormap.alloc_color("#C4FFC4"))
+        self.removetextview.modify_base(gtk.STATE_NORMAL, self.removetextview.get_colormap().alloc_color("#FFC4C4"))
+        self.inserttextview.modify_base(gtk.STATE_NORMAL, self.inserttextview.get_colormap().alloc_color("#C4FFC4"))
         for textview in [self.removetextview, self.inserttextview]:
             buffer = textview.props.buffer
-            textview.modify_text(gtk.STATE_NORMAL, textview.props.colormap.alloc_color("#000000"))
+            textview.modify_text(gtk.STATE_NORMAL, textview.get_colormap().alloc_color("#000000"))
             buffer.create_tag('^', background="#FFFFC4")
             buffer.create_tag('-', background="#FF4040")
             buffer.create_tag('+', background="#40FF40")
@@ -346,7 +346,7 @@ class ChangeContent(gtk.VBox):
             affected_lines[0],
             affected_lines[1],
             self.change.get_file_path())
-        self.header.props.text = headertext
+        self.header.set_text(headertext)
         for textview in [self.removetextview, self.inserttextview]:
             if not textview.parent == None:
                 self.remove(textview)
@@ -408,6 +408,7 @@ class ChangesView(gtk.VBox):
     """ChangesView implements the display a list of changes. It
     uses ChangeViews to display the changes. The changes it
     displays are provided by a functor."""
+    __gsignals__ = { 'new-changeview' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_OBJECT,)) }
     class ChangesCache(list):
         def __init__(self, change_generator):
             self.change_generator = change_generator
@@ -830,6 +831,7 @@ class EtcProposalsController(object):
 
     def __register_events(self):
         self.treeview.connect_object('event', self.treeview.on_button_press, self.popupmenu)
+        self.changesview.connect('new-changeview', lambda change: sys.stdout.write(change))
         simple_actions = {
             'Apply': lambda item: self.apply(),
             'Refresh': lambda item: self.refresh(),
