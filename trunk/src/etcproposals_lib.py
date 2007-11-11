@@ -360,8 +360,7 @@ class EtcProposals(list):
             proposal.apply()
         if update_unmodified:
             self.update_unmodified(finished_proposals)
-        self.clear_orphaned_proposals()
-        self.clear_orphaned_configfiles()
+        State.clear_orphaned(self)
         self.refresh()
 
     def get_files(self):

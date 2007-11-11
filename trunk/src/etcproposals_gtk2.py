@@ -154,18 +154,18 @@ class UIManager(gtk.UIManager):
         </ui>
         """
         self.add_ui_from_string(xml)
-        self.set_add_tearoffs(True)
+        self.props.add_tearoffs = True
 
 
 class WaitWindow(gtk.Window):
     """WaitWindow ."""
     def __init__(self):
         gtk.Window.__init__(self)
-        self.set_title('etc-proposals - please wait')
+        self.props.title = 'etc-proposals - please wait'
         self.set_position(gtk.WIN_POS_CENTER)
         self.description_label = gtk.Label()
         self.current_file_label = gtk.Label()
-        self.description_label.set_label("Scanning configuration files")
+        self.description_label.props.label = "Scanning configuration files"
         vbox = gtk.VBox()
         vbox.pack_start(self.description_label, True, False, 1)
         vbox.pack_start(self.current_file_label, True, False, 1)
@@ -174,10 +174,10 @@ class WaitWindow(gtk.Window):
         self.show_all()
     
     def set_description(self, description):
-        return self.description_label.set_label(description)
+        self.description_label.props.label = description
 
     def set_current_file(self, current_file):
-        self.current_file_label.set_label(current_file)
+        self.current_file_label.props.label = current_file
 
     def refreshing_views(self):
         self.description = 'Refreshing Views.'
@@ -214,9 +214,9 @@ class ChangeLabel(gtk.Frame):
         def update_change(self):
             for (label, status, text) in zip(self.labels, self.labelstatus, self.labeltexts()):
                 if status():
-                    label.set_label(text)
+                    label.props.label = text
                 else:
-                    label.set_label('')
+                    label.props.label = ''
         
         @staticmethod
         def labeltexts():
@@ -241,9 +241,9 @@ class ChangeLabel(gtk.Frame):
                 control.show()
     
         def update_change(self):
-            self.filenamelabel.set_label(self.change.get_file_path())
-            self.proposallabel.set_label('Proposal: %s' % self.change.get_revision())
-            self.lineslabel.set_label('Lines: %d-%d' % self.change.get_affected_lines())
+            self.filenamelabel.props.label = self.change.get_file_path()
+            self.proposallabel.props.label = 'Proposal: %s' % self.change.get_revision()
+            self.lineslabel.props.label = 'Lines: %d-%d' % self.change.get_affected_lines()
 
     class ChangeStatus(gtk.HBox):
         """ChangeStatus is a widget showing if a connected
@@ -258,8 +258,8 @@ class ChangeLabel(gtk.Frame):
             self.updating = False
             self.usebutton = gtk.ToggleButton('Use')
             self.zapbutton = gtk.ToggleButton('Zap')
-            self.usebutton.set_size_request(50,50)
-            self.zapbutton.set_size_request(50,50)
+            self.usebutton.set_size_request(50, 50)
+            self.zapbutton.set_size_request(50, 50)
             self.usebutton.connect('toggled', lambda b: self.__on_use_toggled())
             self.zapbutton.connect('toggled', lambda b: self.__on_zap_toggled())
             self.pack_start(self.zapbutton, True, False, 2)
@@ -275,20 +275,20 @@ class ChangeLabel(gtk.Frame):
                 else:
                     buttonstates = (False, True)
             self.updating = True;
-            self.usebutton.set_active(buttonstates[0])
-            self.zapbutton.set_active(buttonstates[1])
+            self.usebutton.props.active = buttonstates[0]
+            self.zapbutton.props.active = buttonstates[1]
             self.updating = False
 
         def __on_zap_toggled(self): 
             if not self.updating:
-                if self.zapbutton.get_active():
+                if self.zapbutton.props.active:
                     self.controller.zap_change(self.change)
                 else:
                     self.controller.undo_change(self.change)
     
         def __on_use_toggled(self):
             if not self.updating:
-                if self.usebutton.get_active():
+                if self.usebutton.props.active:
                     self.controller.use_change(self.change)
                 else:
                     self.controller.undo_change(self.change)
@@ -319,19 +319,19 @@ class ChangeContent(gtk.VBox):
         gtk.VBox.__init__(self)
         self.change = change
         self.header = gtk.Label() 
-        self.header.set_line_wrap(False)
+        self.header.props.line_wrap = False
         self.removetextview = gtk.TextView()
         self.inserttextview = gtk.TextView()
-        self.removetextview.modify_base(gtk.STATE_NORMAL, self.removetextview.get_colormap().alloc_color("#FFC4C4"))
-        self.inserttextview.modify_base(gtk.STATE_NORMAL, self.inserttextview.get_colormap().alloc_color("#C4FFC4"))
+        self.removetextview.modify_base(gtk.STATE_NORMAL, self.removetextview.props.colormap.alloc_color("#FFC4C4"))
+        self.inserttextview.modify_base(gtk.STATE_NORMAL, self.inserttextview.props.colormap.alloc_color("#C4FFC4"))
         for textview in [self.removetextview, self.inserttextview]:
-            buffer = textview.get_buffer()
-            textview.modify_text(gtk.STATE_NORMAL, textview.get_colormap().alloc_color("#000000"))
+            buffer = textview.props.buffer
+            textview.modify_text(gtk.STATE_NORMAL, textview.props.colormap.alloc_color("#000000"))
             buffer.create_tag('^', background="#FFFFC4")
             buffer.create_tag('-', background="#FF4040")
             buffer.create_tag('+', background="#40FF40")
-            textview.set_editable(False)
-            textview.set_cursor_visible(False)
+            textview.props.editable = False
+            textview.props.cursor_visible = False
             textview.show()
         self.header.show()
         self.pack_start(self.header, False, False, 2)
@@ -346,7 +346,7 @@ class ChangeContent(gtk.VBox):
             affected_lines[0],
             affected_lines[1],
             self.change.get_file_path())
-        self.header.set_text(headertext)
+        self.header.props.text = headertext
         for textview in [self.removetextview, self.inserttextview]:
             if not textview.parent == None:
                 self.remove(textview)
@@ -355,8 +355,8 @@ class ChangeContent(gtk.VBox):
         if action in ['insert', 'replace']:
             self.pack_start(self.inserttextview, False, False, 2)
         differ = difflib.Differ()
-        insertbuffer=self.inserttextview.get_buffer()
-        removebuffer=self.removetextview.get_buffer()
+        insertbuffer=self.inserttextview.props.buffer
+        removebuffer=self.removetextview.props.buffer
         lastbuffer=None
         for line in differ.compare(self.change.get_base_content(), self.change.get_proposed_content()):
             if line.startswith('+'):
@@ -391,7 +391,7 @@ class ChangeView(gtk.Expander):
         self.change = change
         label = gtk.Label(self.get_labeltext())
         label.show()
-        self.set_label_widget(label)
+        self.props.label_widget = label
         box = gtk.VBox()
         box.pack_start(ChangeLabel(change, controller), False, False, 2)
         box.pack_start(ChangeContent(change), False, False, 2)
@@ -448,10 +448,12 @@ class ChangesView(gtk.VBox):
         return self.start_change_index > 0
 
     def collapse_all(self):
-        [child.set_expanded(False) for child in self.get_children()]
+        for child in self.get_children():
+            child.props.expanded = False
     
     def expand_all(self):
-        [child.set_expanded(True) for child in self.get_children()]
+        for child in self.get_children():
+            child.props.expanded = True
 
     def __last_change_index(self):
         last_change_index = self.start_change_index + self.changes_per_page
@@ -467,7 +469,7 @@ class ChangesView(gtk.VBox):
     def __remember_collapsed_changes(self):
         for child in self.get_children():
             labeltext = child.get_labeltext()
-            if not child.get_expanded():
+            if not child.props.expanded:
                 self.collapsed_changes.add(labeltext)
             elif labeltext in self.collapsed_changes:
                 self.collapsed_changes.remove(labeltext)
@@ -482,7 +484,7 @@ class ChangesView(gtk.VBox):
         for change in self.changes_list[self.start_change_index:last_change_index]:
             changeview = ChangeView(change, self.controller)
             if not changeview.get_labeltext() in self.collapsed_changes:
-                changeview.set_expanded(True)
+                changeview.props.expanded = True
             self.pack_start(changeview, False, False, 0)
 
 
@@ -499,7 +501,7 @@ class FilesystemTreeView(gtk.TreeView):
         self.column.pack_start(self.cell, True)
         self.column.add_attribute(self.cell, 'text', 0)
         self.append_column(self.column)
-        self.set_headers_visible(False)
+        self.props.headers_visible = False
         self.refresh()
         self.show()
 
@@ -579,13 +581,13 @@ class AboutDialog(gtk.AboutDialog):
     """AboutDialog just is an About Dialog"""
     def __init__(self, parent):
         gtk.AboutDialog.__init__(self)
-        self.set_transient_for(parent)
-        self.set_name('Etc-Proposals')
-        self.set_version(__version__)
-        self.set_copyright('Copyright 2006-2007 Björn Michaelsen')
-        self.set_comments('etc-proposals is a tool for merging gentoo configuration files.\netcproposals_lib version:' + __libversion__)
-        self.set_website('http://etc-proposals.berlios.de')
-        self.set_license('''GNU General Public License, Version 2
+        self.props.transient_for = parent
+        self.props.name = 'Etc-Proposals'
+        self.props.version = __version__
+        self.props.copyright = 'Copyright 2006-2007 Björn Michaelsen'
+        self.props.comments = 'etc-proposals is a tool for merging gentoo configuration files.\netcproposals_lib version:' + __libversion__
+        self.props.website = 'http://etc-proposals.berlios.de'
+        self.props.license = '''GNU General Public License, Version 2
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License Version 2 as
@@ -598,9 +600,9 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA''')
-        self.set_authors(['Björn Michaelsen (Backend, Readline, Gtk2)', 'Jeremy Wickersheimer (Qt4)', 'Christian Glindkamp (Gtk2)'])
-        self.set_artists(['Björn Michaelsen', 'Jakub Steiner', 'Andreas Nilsson'])
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA'''
+        self.props.authors = ['Björn Michaelsen (Backend, Readline, Gtk2)', 'Jeremy Wickersheimer (Qt4)', 'Christian Glindkamp (Gtk2)']
+        self.props.artists = ['Björn Michaelsen', 'Jakub Steiner', 'Andreas Nilsson']
         self.show_all()
         self.connect("response", lambda *d: self.destroy())
 
@@ -616,7 +618,7 @@ class EtcProposalsView(gtk.Window):
         self.main_actiongroup = MainActiongroup(self)
         self.uimanager = UIManager()
         self.uimanager.insert_action_group(self.main_actiongroup, 0)
-        self.set_title('etc-proposals')
+        self.props.title = 'etc-proposals'
         self.set_position(gtk.WIN_POS_CENTER)
         self.connect('destroy', lambda *w: gtk.main_quit())
         vbox = gtk.VBox()
@@ -685,17 +687,16 @@ class EtcProposalsView(gtk.Window):
 
     def on_typefilter_off(self):
         self.ignore_filterchanges = True
-        self.main_actiongroup.get_action('Modificationfilter Off').set_active(True)
-        self.main_actiongroup.get_action('CVSHeaderfilter Off').set_active(True)
-        self.main_actiongroup.get_action('Whitespacefilter Off').set_active(True)
+        for actionname in ['Modificationfilter Off', 'CVSHeaderfilter Off', 'Whitespacefilter Off']:
+            self.main_actiongroup.get_action(actionname).props.active = True
         self.ignore_filterchanges = False
         self.on_filter_changed()
 
     def on_page_changed(self):
         previous = self.main_actiongroup.get_action('Previous Page')
         next = self.main_actiongroup.get_action('Next Page')
-        previous.set_sensitive(self.changesview.has_previous_page())
-        next.set_sensitive(self.changesview.has_next_page())
+        previous.props.sensitive = self.changesview.has_previous_page()
+        next.props.sensitive = self.changesview.has_next_page()
 
     def on_selection_changed(self, selection):
         self.update_changes()
