@@ -166,415 +166,7 @@ class EtcProposalsConfigShellDecorator(EtcProposalsConfig):
             return []
 
 
-class CmdLineCommand(object):
-    def __init__(self, cmdline):
-        self.cmdline = cmdline
-
-    def do_cmd(self, args):
-        pass
-
-    def help_cmd(self):
-        return self.__doc__
-
-    def complete_cmd(self, text, line, begidx, endidx):
-        pass
-
-    def complete_from_list(self, text, subcommandlist):
-        if text == '':
-            return subcommandlist
-        return [subcommand for subcommand in subcommandlist 
-            if subcommand.startswith(text)]
-
-
-class ListCommand(CmdLineCommand):
-    """SYNOPSIS:
-    list changes | proposals | files
-    list
-
-DESCRIPTION:
-    The list command lists all files, proposals or changes currently
-    available for update. It also shows, which changes were chosen to be
-    use or zapped.
-
-NOTE:
-    The list of changes might change, if you set a change to use or zap.
-    For example, if there are two update proposals for one file, proposing
-    to change the same line in the same way, 'use' on the first change
-    will make the second disappear (as it is not a change at all anymore)."""
-    def list_changes(self):
-        print 'proposed changes:'
-        for change in self.cmdline.changesets['all']():
-            print change.get_listing_description(self.cmdline.colorizer)
-        print
-
-    def list_proposals(self):
-        print 'update proposals:'
-        for proposal in self.cmdline.proposals:
-            print proposal.get_listing_description(self.cmdline.colorizer)
-        print
-    
-    def list_files(self):
-        print 'List of files with update proposals:'
-        for filename in self.cmdline.proposals.get_files():
-            print self.cmdline.colorizer.colorize('white', filename)
-        print
-
-    def complete_cmd(self, text, line, begidx, endidx):
-        return self.complete_from_list(text, ['changes', 'proposals', 'files'])
-
-    def do_cmd(self, args):
-        list_cmds = {'' : self.list_changes,
-                'changes' : self.list_changes,
-                'proposals' : self.list_proposals,
-                'files' : self.list_files}
-        try:
-            list_cmds[args.strip()]()
-        except KeyError:
-            print 'list: Sorry, I dont know "%s".' % args
-
-
-class NextCommand(CmdLineCommand):
-    """SYNOPSIS:
-    next change | proposal | file | dir
-    next
-    n change | proposal | file | dir
-    n
-
-DESCRIPTION:
-    The next command is used to iterate through the proposed changes.
-    If no argument is given, the command navigates to the next change."""
-
-    def skip_changes(self, changes_to_skip):
-            while self.cmdline.current_change in changes_to_skip:
-                self.cmdline.next_change()
-
-    def complete_cmd(self, text, line, begidx, endidx):
-        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir'])
-
-    def do_cmd(self, args):
-        next_cmds = {'' : self.cmdline.next_change,
-                'change' : self.cmdline.next_change,
-                'proposal' : lambda: self.skip_changes(self.cmdline.changesets['proposal']()),
-                'file' : lambda: self.skip_changes(self.cmdline.changesets['file']()),
-                'dir' : lambda: self.skip_changes(self.cmdline.changesets['dir']())}
-        try:
-            next_cmds[args.strip()]()
-        except KeyError:
-            print 'next: Sorry, I dont know "%s".' % args
-            return
-        except NotOnChangeException:
-            self.cmdline.next_change()
-        if self.cmdline.current_change:
-            self.show_change()
-        self.cmdline.update_prompt()
-
-
-class ShowCommand(CmdLineCommand):
-    """SYNOPSIS:
-    show change | proposal | file | dir | all | whitespace | cvsheader | unmodified
-    show
-
-DESCRIPTION:
-    The show command is used to use the current change/proposal, all 
-    proposals for the current file or dir or all dirs, which are not
-    If no argument is given, the command redisplays the current change."""
-    def show_changes(self, changes):
-        print '\n'.join([change.get_complete_description(self.cmdline.colorizer) for change in changes])
-
-    def complete_cmd(self, text, line, begidx, endidx):
-        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir', 'all', 'whitespace', 'cvsheader', 'unmodified'])
-
-    def do_cmd(self, args):
-        try:
-            self.show_changes(self.cmdline.changesets[args.strip()]())
-        except KeyError:
-            print 'show: Sorry, I dont know "%s".' % args
-        except NotOnChangeException:
-            print 'show: There is no change selected right now.'
-
-
-class ZapCommand(CmdLineCommand):
-    """SYNOPSIS:
-    zap change | proposal | file | dir | all | whitespace | cvsheader | unmodified
-    zap
-    z change | proposal | file | dir | all | whitespace | cvsheader | unmodified
-    z
-
-DESCRIPTION:
-    The zap command is used to discard the current change/proposal, all 
-    proposals for the current file or dir or all dirs, which are not
-    yet already marked 'use' or 'zap' and proceeds.
-    If no argument is given, the command zaps just the current change."""
-    def zap_changes(self, changes):
-        [change.zap() for change in changes if not change.touched]
-
-    def complete_cmd (self, text, line, begidx, endidx):
-        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir', 'all', 'whitespace', 'cvsheader', 'unmodified'])
-
-    def do_cmd(self, args):
-        try:
-            self.zap_changes(self.cmdline.changesets[args.strip()]())
-        except KeyError:
-            print 'zap: Sorry, I dont know "%s".' % args
-            return
-        except NotOnChangeException:
-            print 'zap: There is no change selected right now.'
-            return
-        self.cmdline.hop_on_and_show(args)
-
-
-class UseCommand(CmdLineCommand):
-    """SYNOPSIS:
-    use change | proposal | file | dir | all | whitespace | cvsheader | unmodified
-    use
-    u change | proposal | file | dir | all | whitespace | cvsheader | unmodified
-    u
-
-DESCRIPTION:
-    The use command is used to use the current change/proposal, all 
-    proposals for the current file or dir or all dirs, which are not
-    yet already marked 'zap' or 'use' and proceeds.
-    If no argument is given, the command uses just the current change."""
-    def use_changes(self, changes):
-        [change.use() for change in changes if not change.touched]
-
-    def complete_cmd(self, text, line, begidx, endidx):
-        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir', 'all', 'whitespace', 'cvsheader', 'unmodified'])
-
-    def do_cmd(self, args):
-        try:
-            self.use_changes(self.cmdline.changesets[args.strip()]())
-        except KeyError:
-            print 'use: Sorry, I dont know "%s".' % args
-            return
-        except NotOnChangeException:
-            print 'use: There is no change selected right now.'
-            return
-        self.hop_on_and_show(args)
-
-
-class UndoCommand(CmdLineCommand):
-    """SYNOPSIS:
-    undo change | proposal | file | dir | all |whitespace | cvsheader | unmodified
-
-DESCRIPTION:
-    The undo command resets the selections made to 'use' or 'zap' the
-    current change/proposal, all proposals for the current file or dir or
-    all changes in all dirchanges in all dirs. 
-    If no argument is given, the command just undos the current change."""
-    def undo_changes(self, changes):
-        [change.undo() for change in changes]
-
-    def complete_cmd(self, text, line, begidx, endidx):
-        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir', 'all', 'whitespace', 'cvsheader', 'unmodified'])
-    
-    def do_cmd(self, args):
-        try:
-            self.undo_changes(self.cmdline.changesets[args.strip()]())
-        except KeyError:
-            print 'undo: Sorry, I dont know "%s".' % args
-            return
-        except NotOnChangeException:
-            print 'undo: Sorry, no change to undo selected.'
-        self.cmdline.update_prompt()
-
-
-class ReloadCommand(CmdLineCommand):
-    """SYNOPSIS:
-    reload
-
-DESCRIPTION:
-    The reload command rescans the filesystems for update proposals.
-    The current selections about using or zapping changes are retained,
-    if possible."""
-
-    def do_cmd(self, args):
-        if args.strip() == '':
-            self.cmdline.reload()
-        else:
-            print 'reload: Sorry, I dont know "%s".' % args
-            return
-
-
-class DiffCommand(CmdLineCommand):
-    """SYNOPSIS:
-    diff change | proposal
-    diff
-
-DESCRIPTION:
-    The diff command shows the differences for this change or proposal
-    in an external diff tool. It selects the tool by reading the DIFF
-    enviroment variable"""
-    def external_diff_on_stringlists(self, a, b, a_name, b_name):
-        (fd_a, filename_a) = tempfile.mkstemp('', a_name + '___')
-        (fd_b, filename_b) = tempfile.mkstemp('', b_name + '___')
-        os.write(fd_a, ''.join(a))
-        os.write(fd_b, ''.join(b))
-        os.close(fd_a)
-        os.close(fd_b)
-        os.system(self.cmdline.config.DiffCommand() % {
-            'file1' : filename_a,
-            'file2' : filename_b})
-        for file in [filename_a, filename_b]:
-            try:
-                os.unlink(file)
-            except OSError:
-                pass
-
-    def diff_change(self):
-        file_path = self.cmdline.current_change.get_file_path()
-        self.external_diff_on_stringlists(
-                self.cmdline.current_change.get_base_content(),
-                self.cmdline.current_change.get_proposed_content(),
-                file_path + '_BASE',
-                file_path + '_PROPOSAL')
-
-    def diff_proposal(self):
-        proposal = self.cmdline.current_change.proposal
-        self.external_diff_on_stringlists(
-                proposal.get_base_content(),
-                proposal.get_proposed_content(),
-                proposal.get_file_path() + '_BASE',
-                proposal.get_file_path() + '_PROPOSAL')
-
-    def complete_cmd(self, text, line, begidx, endidx):
-        return self.complete_from_list(text, ['change', 'proposal'])
-
-    def do_cmd(self, args):
-        if self.cmdline.current_change is None:
-            print 'diff: There is no change selected right now.'
-            return
-        diff_cmds = {'' : self.diff_change,
-                'change' : self.diff_change,
-                'proposal' : self.diff_proposal}
-        try:
-            diff_cmds[args.strip()]()
-        except KeyError:
-            print 'diff: Sorry, I dont know "%s".' % args
-            return
-
-
-class EditCommand(CmdLineCommand):
-    """SYNOPSIS:
-    edit
-
-DESCRIPTION:
-    The edit command allows the user to edit the current file. It starts
-    an editor with the current file at the start of the current
-    change, if possible. When the editor is finished etc-proposals rescans
-    the filesystem for proposals and normal use of etc-proposals can
-    continue.
-
-NOTE:
-    etc-proposals uses the EDITOR enviroment variable to choose the editor
-    it starts."""
-    def edit(self):
-        linenumber = self.cmdline.current_change.get_affected_lines()[0]
-        filepath = self.cmdline.current_change.get_file_path()
-        os.system(self.cmdline.config.EditCommand() % {'linenumber' :  linenumber, 'filename' : filepath})
-
-    def do_cmd(self, args):
-        if self.cmdline.current_change is None:
-            print 'edit: There is no change selected right now.'
-            return
-        self.edit()
-        self.cmdline.reload()
-        self.cmdline.next_change()
-        self.cmdline.update_prompt()
-
-
-class GotoCommand(CmdLineCommand):
-    """SYNOPSIS:
-    goto <change> 
-
-DESCRIPTION:
-    The goto command is used to jump to a change in the changelist.
-    Using tabcompletion makes it actually useful."""
-    def goto_change(self, changepromptname):
-        search_iter = self.cmdline.proposals.get_all_changes().__iter__()
-        try:
-            current_search_item = search_iter.next()
-            while current_search_item.get_id() != changepromptname:
-                current_search_item = search_iter.next()
-        except StopIteration:
-            raise UnknownChangeException
-        self.cmdline.current_change = current_search_item
-        self.cmdline.change_iter = search_iter
-
-    def complete_cmd(self, text, line, begidx, endidx):
-        try:
-            part_to_complete = re.match('goto\s*(.*)',line).groups()[0]
-            len_to_complete = len(part_to_complete)
-            changenames = (change.get_id()
-                for change in self.proposals.get_all_changes())
-            matches =  self.complete_from_list(part_to_complete, changenames)
-            return [ text + match[len_to_complete:] for match in matches]
-        except Exception:
-            return []
-
-    def do_cmd(self, args):
-        try:
-            print args
-            self.goto_change(args.strip())
-            self.cmdline.update_prompt()
-            self.show_change()
-        except UnknownChangeException:
-            print 'goto: There is no change "%s"' % args
-
-
-class ApplyCommand(CmdLineCommand):
-    """SYNOPSIS:
-    apply
-DESCRIPTION:
-    The apply command merges the changes into the configuration files.
-    It only merges proposals, were all changes have been decided upon.
-    The merged proposals are removed from the filesystem after they
-    have been merged. Its a good idea to check the decisions with the
-    'list changes' command before calling 'apply'.
-
-NOTE:
-    You dont need to decide on all proposed changes, but if you what to
-    merge a change, all other changes from that proposal need to be set
-    to either 'zap' or 'use'. If you just want one change from a proposal,
-    use the command 'use' on it and then use the command 'zap proposal' to
-    discard all other changes from that proposal."""
-    def do_cmd(self, args):
-        self.proposals.apply(True)
-        self.cmdline.current_change = None
-        self.cmdline.change_iter = self.proposals.get_all_changes().__iter__()
-        self.cmdline.update_prompt()
-        if len(self.proposals) == 0 and EtcProposalsConfigShellDecorator().Fastexit():
-            print "No proposes left. Exiting."
-            raise SystemExit
-
-
-class QuitCommand(CmdLineCommand):
-    """SYNOPSIS:
-    quit
-    Ctrl-d
-
-DESCRIPTION:
-    Quits etc-proposals."""
-    def do_quit(self, args):
-        raise SystemExit
-
-class CmdLineWithExternalCommands(type):
-    def __init__(cls, name, bases, dict):
-        def help_cmd(commandclass, self):
-            command = commandclass(self)
-            return command.do_help
-
-        super(CmdLineWithExternalCommands, cls).__init__(name, bases, dict)
-        for commandclass in cls.COMMANDS:
-            commandname = commandclass.__name__[:-7].lower()
-            cls.__dict__["help_" + commandname] = lambda self: help_cmd(commandclass, self)
-
-    
-class EtcProposalsCmdLine(cmd.Cmd, object):
-    __metaclass__ = CmdLineWithExternalCommands
-    COMMANDS = [ EditCommand, QuitCommand, ApplyCommand, GotoCommand,
-        UndoCommand, UseCommand, ZapCommand, ListCommand, ReloadCommand,
-        DiffCommand ]
+class EtcProposalsCmdLine(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.colorizer = CmdLineColorizer()
@@ -590,29 +182,11 @@ class EtcProposalsCmdLine(cmd.Cmd, object):
         type 'n' to start iterating through proposed changes.
 """ % (__version__, __libversion__)
     
-    def setup_changesets(self):
-        self.changesets = {'' : lambda: [self.current_change],
-                'change' : lambda: [self.current_change],
-                'proposal' : self.get_current_proposal_changes,
-                'file' : self.get_current_file_changes,
-                'dir' : self.get_current_dir_changes,
-                'all' : self.proposals.get_all_changes,
-                'whitespace' : self.proposals.get_whitespace_changes,
-                'cvsheader' : self.proposals.get_cvsheader_changes,
-                'unmodified' : self.proposals.get_unmodified_changes}
-
     def preloop(self):
         print self.intro
         for command in self.config.StartupCommands():
             self.onecmd(command)
         self.intro = ''
-
-    def reload(self):
-        self.proposals = EtcProposalsShellDecorator(self)
-        self.setup_changesets()
-        self.current_change = None
-        self.change_iter = self.proposals.get_all_changes().__iter__()
-        self.update_prompt()
 
     def help_quickstart(self):
         """etc-proposals Quickstart
@@ -642,6 +216,476 @@ VOCABULARY:
                 currently used configuration file."""
         print self.help_quickstart.__doc__
 
+    def list_changes(self):
+        print 'proposed changes:'
+        for change in self.proposals.get_all_changes():
+            print change.get_listing_description(self.colorizer)
+        print
+
+    def list_proposals(self):
+        print 'update proposals:'
+        for proposal in self.proposals:
+            print proposal.get_listing_description(self.colorizer)
+        print
+    
+    def list_files(self):
+        print 'List of files with update proposals:'
+        for filename in self.proposals.get_files():
+            print self.colorizer.colorize('white', filename)
+        print
+
+    def complete_list(self, text, line, begidx, endidx):
+        return self.complete_from_list(text, ['changes', 'proposals', 'files'])
+
+    def help_list(self):
+        print self.do_list.__doc__
+
+    def do_list(self, args):
+        """SYNOPSIS:
+    list changes | proposals | files
+    list
+
+DESCRIPTION:
+    The list command lists all files, proposals or changes currently
+    available for update. It also shows, which changes were chosen to be
+    use or zapped.
+
+NOTE:
+    The list of changes might change, if you set a change to use or zap.
+    For example, if there are two update proposals for one file, proposing
+    to change the same line in the same way, 'use' on the first change
+    will make the second disappear (as it is not a change at all anymore)."""
+        list_cmds = {'' : self.list_changes,
+                'changes' : self.list_changes,
+                'proposals' : self.list_proposals,
+                'files' : self.list_files}
+        try:
+            list_cmds[args.strip()]()
+        except KeyError:
+            print 'list: Sorry, I dont know "%s".' % args
+
+    def next_change(self):
+        try:
+            self.current_change = self.change_iter.next()
+            while self.current_change.touched:
+                self.current_change = self.change_iter.next()
+        except StopIteration:
+            self.reached_end_of_changelist()
+
+    def skip_changes(self, changes_to_skip):
+            while self.current_change in changes_to_skip:
+                self.next_change()
+
+    def help_n(self):
+        self.help_next()
+
+    def do_n(self, args):
+        self.do_next(args)
+
+    def complete_next(self, text, line, begidx, endidx):
+        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir'])
+
+    def help_next(self):
+        print self.do_next.__doc__
+
+    def do_next(self, args):
+        """SYNOPSIS:
+    next change | proposal | file | dir
+    next
+    n change | proposal | file | dir
+    n
+
+DESCRIPTION:
+    The next command is used to iterate through the proposed changes.
+    If no argument is given, the command navigates to the next change."""
+        next_cmds = {'' : self.next_change,
+                'change' : self.next_change,
+                'proposal' : lambda: self.skip_changes(self.get_current_proposal_changes()),
+                'file' : lambda: self.skip_changes(self.get_current_file_changes()),
+                'dir' : lambda: self.skip_changes(self.get_current_dir_changes())}
+        try:
+            next_cmds[args.strip()]()
+        except KeyError:
+            print 'next: Sorry, I dont know "%s".' % args
+            return
+        except NotOnChangeException:
+            self.next_change()
+        if self.current_change:
+            self.show_change()
+        self.update_prompt()
+
+    def show_changes(self, changes):
+        print '\n'.join([change.get_complete_description(self.colorizer) for change in changes])
+
+    def show_change(self):
+        self.assure_on_change()
+        self.show_changes([self.current_change]) 
+
+    def complete_show(self, text, line, begidx, endidx):
+        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir', 'all', 'whitespace', 'cvsheader', 'unmodified'])
+
+    def help_show(self):
+        print self.do_show.__doc__
+
+    def do_show(self, args):
+        """SYNOPSIS:
+    show change | proposal | file | dir | all | whitespace | cvsheader | unmodified
+    show
+
+DESCRIPTION:
+    The show command is used to use the current change/proposal, all 
+    proposals for the current file or dir or all dirs, which are not
+    If no argument is given, the command redisplays the current change."""
+        show_cmds = {'' : self.show_change,
+                'change' : self.show_change,
+                'proposal' : lambda: self.show_changes(self.get_current_proposal_changes()),
+                'file' : lambda: self.show_changes(self.get_current_file_changes()),
+                'dir' : lambda: self.show_changes(self.get_current_dir_changes()),
+                'all' : lambda: self.show_changes(self.proposals.get_all_changes()),
+                'whitespace' : lambda: self.show_changes(self.proposals.get_whitespace_changes()),
+                'cvsheader' : lambda: self.show_changes(self.proposals.get_cvsheader_changes()),
+                'unmodified' : lambda: self.show_changes(self.proposals.get_unmodified_changes())}
+        try:
+            show_cmds[args.strip()]()
+        except KeyError:
+            print 'show: Sorry, I dont know "%s".' % args
+        except NotOnChangeException:
+            print 'show: There is no change selected right now.'
+
+    def zap_change(self):
+        self.assure_on_change()
+        self.current_change.zap()
+
+    def zap_changes(self, changes):
+        [change.zap() for change in changes if not change.touched]
+
+    def help_z(self):
+        self.help_zap()
+
+    def do_z(self, args):
+        self.do_zap(args)
+
+    def complete_zap (self, text, line, begidx, endidx):
+        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir', 'all', 'whitespace', 'cvsheader', 'unmodified'])
+
+    def help_zap(self):
+        print self.do_zap.__doc__
+
+    def do_zap(self, args):
+        """SYNOPSIS:
+    zap change | proposal | file | dir | all | whitespace | cvsheader | unmodified
+    zap
+    z change | proposal | file | dir | all | whitespace | cvsheader | unmodified
+    z
+
+DESCRIPTION:
+    The zap command is used to discard the current change/proposal, all 
+    proposals for the current file or dir or all dirs, which are not
+    yet already marked 'use' or 'zap' and proceeds.
+    If no argument is given, the command zaps just the current change."""
+        zap_cmds = { '' : self.zap_change,
+                'change' : self.zap_change,
+                'proposal' : lambda: self.zap_changes(self.get_current_proposal_changes()),
+                'file' : lambda: self.zap_changes(self.get_current_file_changes()),
+                'dir' : lambda: self.zap_changes(self.get_current_dir_changes()),
+                'all' : lambda: self.zap_changes(self.proposals.get_all_changes()),
+                'whitespace' : lambda: self.zap_changes(self.proposals.get_whitespace_changes()),
+                'cvsheader' : lambda: self.zap_changes(self.proposals.get_cvsheader_changes()),
+                'unmodified' : lambda: self.zap_changes(self.proposals.get_unmodified_changes())}
+        try:
+            zap_cmds[args.strip()]()
+        except KeyError:
+            print 'zap: Sorry, I dont know "%s".' % args
+            return
+        except NotOnChangeException:
+            print 'zap: There is no change selected right now.'
+            return
+        self.hop_on_and_show(args)
+    
+    def use_change(self):
+        self.assure_on_change()
+        self.current_change.use()
+
+    def use_changes(self, changes):
+        [change.use() for change in changes if not change.touched]
+
+    def help_u(self):
+        self.help_use()
+
+    def do_u(self, args):
+        self.do_use(args)
+
+    def complete_use (self, text, line, begidx, endidx):
+        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir', 'all', 'whitespace', 'cvsheader', 'unmodified'])
+
+    def help_use(self):
+        print self.do_use.__doc__
+
+    def do_use(self, args):
+        """SYNOPSIS:
+    use change | proposal | file | dir | all | whitespace | cvsheader | unmodified
+    use
+    u change | proposal | file | dir | all | whitespace | cvsheader | unmodified
+    u
+
+DESCRIPTION:
+    The use command is used to use the current change/proposal, all 
+    proposals for the current file or dir or all dirs, which are not
+    yet already marked 'zap' or 'use' and proceeds.
+    If no argument is given, the command uses just the current change."""
+        use_cmds = {'' : self.use_change,
+                'change' : self.use_change,
+                'proposal' : lambda: self.use_changes(self.get_current_proposal_changes()),
+                'file' : lambda: self.use_changes(self.get_current_file_changes()),
+                'dir' : lambda: self.use_changes(self.get_current_dir_changes()),
+                'all' : lambda: self.use_changes(self.proposals.get_all_changes()),
+                'whitespace' : lambda: self.use_changes(self.proposals.get_whitespace_changes()),
+                'cvsheader' : lambda: self.use_changes(self.proposals.get_cvsheader_changes()),
+                'unmodified' : lambda: self.use_changes(self.proposals.get_unmodified_changes())}
+        try:
+            use_cmds[args.strip()]()
+        except KeyError:
+            print 'use: Sorry, I dont know "%s".' % args
+            return
+        except NotOnChangeException:
+            print 'use: There is no change selected right now.'
+            return
+        self.hop_on_and_show(args)
+    
+    def undo_change(self):
+        self.assure_on_change()
+        self.current_change.undo()
+
+    def undo_changes(self, changes):
+        [change.undo() for change in changes]
+
+    def complete_undo(self, text, line, begidx, endidx):
+        return self.complete_from_list(text, ['change', 'proposal', 'file', 'dir', 'all', 'whitespace', 'cvsheader', 'unmodified'])
+    
+    def help_undo(self):
+        print self.do_undo.__doc__
+
+    def do_undo(self, args):
+        """SYNOPSIS:
+    undo change | proposal | file | dir | all |whitespace | cvsheader | unmodified
+
+DESCRIPTION:
+    The undo command resets the selections made to 'use' or 'zap' the
+    current change/proposal, all proposals for the current file or dir or
+    all changes in all dirchanges in all dirs. 
+    If no argument is given, the command just undos the current change."""
+        undo_cmds = {'' : self.undo_change,
+                'change' : self.undo_change,
+                'proposal' : lambda: self.undo_changes(self.get_current_proposal_changes()),
+                'file' : lambda: self.undo_changes(self.get_current_file_changes()),
+                'dir' : lambda: self.undo_changes(self.get_current_dir_changes()),
+                'all' : lambda: self.proposals.clear_all_states(),
+                'whitespace' : lambda: self.undo_changes(self.proposals.get_whitespace_changes()),
+                'cvsheader' : lambda: self.undo_changes(self.proposals.get_cvsheader_changes()),
+                'unmodified' : lambda: self.undo_changes(self.proposals.get_unmodified_changes())} 
+        try:
+            undo_cmds[args.strip()]()
+        except KeyError:
+            print 'undo: Sorry, I dont know "%s".' % args
+            return
+        except NotOnChangeException:
+            print 'undo: Sorry, no change to undo selected.'
+        self.update_prompt()
+
+    def reload(self):
+        self.proposals = EtcProposalsShellDecorator(self)
+        self.current_change = None
+        self.change_iter = self.proposals.get_all_changes().__iter__()
+        self.update_prompt()
+
+    def help_reload(self):
+        print self.do_reload.__doc__
+
+    def do_reload(self, args):
+        """SYNOPSIS:
+    reload
+
+DESCRIPTION:
+    The reload command rescans the filesystems for update proposals.
+    The current selections about using or zapping changes are retained,
+    if possible."""
+        if args.strip() == '':
+            self.reload()
+        else:
+            print 'reload: Sorry, I dont know "%s".' % args
+            return
+        
+    def external_diff_on_stringlists(self, a, b, a_name, b_name):
+        (fd_a, filename_a) = tempfile.mkstemp('', a_name + '___')
+        (fd_b, filename_b) = tempfile.mkstemp('', b_name + '___')
+        os.write(fd_a, ''.join(a))
+        os.write(fd_b, ''.join(b))
+        os.close(fd_a)
+        os.close(fd_b)
+        os.system(self.config.DiffCommand() % {
+            'file1' : filename_a,
+            'file2' : filename_b})
+        for file in [filename_a, filename_b]:
+            try:
+                os.unlink(file)
+            except OSError:
+                pass
+
+    def diff_change(self):
+        file_path = self.current_change.get_file_path()
+        self.external_diff_on_stringlists(
+                self.current_change.get_base_content(),
+                self.current_change.get_proposed_content(),
+                file_path + '_BASE',
+                file_path + '_PROPOSAL')
+
+    def diff_proposal(self):
+        proposal = self.current_change.proposal
+        self.external_diff_on_stringlists(
+                proposal.get_base_content(),
+                proposal.get_proposed_content(),
+                proposal.get_file_path() + '_BASE',
+                proposal.get_file_path() + '_PROPOSAL')
+
+    def complete_diff(self, text, line, begidx, endidx):
+        return self.complete_from_list(text, ['change', 'proposal'])
+
+    def help_diff(self):
+        print self.do_diff.__doc__
+
+    def do_diff(self, args):
+        """SYNOPSIS:
+    diff change | proposal
+    diff
+
+DESCRIPTION:
+    The diff command shows the differences for this change or proposal
+    in an external diff tool. It selects the tool by reading the DIFF
+    enviroment variable"""
+        if self.current_change is None:
+            print 'diff: There is no change selected right now.'
+            return
+        diff_cmds = {'' : self.diff_change,
+                'change' : self.diff_change,
+                'proposal' : self.diff_proposal}
+        try:
+            diff_cmds[args.strip()]()
+        except KeyError:
+            print 'diff: Sorry, I dont know "%s".' % args
+            return
+
+    def edit(self):
+        linenumber = self.current_change.get_affected_lines()[0]
+        filepath = self.current_change.get_file_path()
+        os.system(self.config.EditCommand() % {'linenumber' :  linenumber, 'filename' : filepath})
+
+    def help_edit(self):
+        print self.do_edit.__doc__
+    
+    def do_edit(self, args):
+        """SYNOPSIS:
+    edit
+
+DESCRIPTION:
+    The edit command allows the user to edit the current file. It starts
+    an editor with the current file at the start of the current
+    change, if possible. When the editor is finished etc-proposals rescans
+    the filesystem for proposals and normal use of etc-proposals can
+    continue.
+
+NOTE:
+    etc-proposals uses the EDITOR enviroment variable to choose the editor
+    it starts."""
+        if self.current_change is None:
+            print 'edit: There is no change selected right now.'
+            return
+        self.edit()
+        self.reload()
+        self.next_change()
+        self.update_prompt()
+
+    def goto_change(self, changepromptname):
+        search_iter = self.proposals.get_all_changes().__iter__()
+        try:
+            current_search_item = search_iter.next()
+            while current_search_item.get_id() != changepromptname:
+                current_search_item = search_iter.next()
+        except StopIteration:
+            raise UnknownChangeException
+        self.current_change = current_search_item
+        self.change_iter = search_iter
+
+    def complete_goto(self, text, line, begidx, endidx):
+        try:
+            part_to_complete = re.match('goto\s*(.*)',line).groups()[0]
+            len_to_complete = len(part_to_complete)
+            changenames = (change.get_id()
+                for change in self.proposals.get_all_changes())
+            matches =  self.complete_from_list(part_to_complete, changenames)
+            return [ text + match[len_to_complete:] for match in matches]
+        except Exception:
+            return []
+
+    def help_goto(self):
+        print self.do_goto.__doc__
+
+    def do_goto(self, args):
+        """SYNOPSIS:
+    goto <change> 
+
+DESCRIPTION:
+    The goto command is used to jump to a change in the changelist.
+    Using tabcompletion makes it actually useful."""
+        try:
+            print args
+            self.goto_change(args.strip())
+            self.update_prompt()
+            self.show_change()
+        except UnknownChangeException:
+            print 'goto: There is no change "%s"' % args
+
+    def help_apply(self):
+        print self.do_apply.__doc__
+
+    def do_apply(self, args):
+        """SYNOPSIS:
+    apply
+
+DESCRIPTION:
+    The apply command merges the changes into the configuration files.
+    It only merges proposals, were all changes have been decided upon.
+    The merged proposals are removed from the filesystem after they
+    have been merged. Its a good idea to check the decisions with the
+    'list changes' command before calling 'apply'.
+
+NOTE:
+    You dont need to decide on all proposed changes, but if you what to
+    merge a change, all other changes from that proposal need to be set
+    to either 'zap' or 'use'. If you just want one change from a proposal,
+    use the command 'use' on it and then use the command 'zap proposal' to
+    discard all other changes from that proposal."""
+        self.proposals.apply(True)
+        self.current_change = None
+        self.change_iter = self.proposals.get_all_changes().__iter__()
+        self.update_prompt()
+        if len(self.proposals) == 0 and EtcProposalsConfigShellDecorator().Fastexit():
+            print "No proposes left. Exiting."
+            raise SystemExit
+
+    def do_EOF(self, args):
+        self.do_quit(args)
+
+    def help_quit(self):
+        print self.do_quit.__doc__
+    def do_quit(self, args):
+        """SYNOPSIS:
+    quit
+    Ctrl-d
+
+DESCRIPTION:
+    Quits etc-proposals."""
+        raise SystemExit
+
     # current change state
     def assure_on_change(self):
         if self.current_change == None:
@@ -660,14 +704,6 @@ VOCABULARY:
         self.assure_on_change()
         dirpath = os.path.dirname(self.current_change.get_file_path())
         return self.proposals.get_dir_changes(dirpath)
-
-    def next_change(self):
-        try:
-            self.current_change = self.change_iter.next()
-            while self.current_change.touched:
-                self.current_change = self.change_iter.next()
-        except StopIteration:
-            self.cmdline.reached_end_of_changelist()
 
     def reached_end_of_changelist(self):
         self.current_change = None
@@ -692,6 +728,13 @@ VOCABULARY:
             self.show_change()
         except NotOnChangeException:
             pass
+
+    def complete_from_list(self, text, subcommandlist):
+        if text == '':
+            return subcommandlist
+        return [subcommand for subcommand in subcommandlist 
+            if subcommand.startswith(text)]
+       
 
 def run_frontend():
     etc_cli = EtcProposalsCmdLine()
