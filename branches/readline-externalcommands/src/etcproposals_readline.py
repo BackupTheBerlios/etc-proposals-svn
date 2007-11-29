@@ -169,7 +169,6 @@ class EtcProposalsConfigShellDecorator(EtcProposalsConfig):
 class CmdLineCommand(object):
     def __init__(self, cmdline):
         self.cmdline = cmdline
-        self.commandname = self.__class__.__name__[:-7]
 
     def do_cmd(self, args):
         pass
@@ -559,8 +558,20 @@ DESCRIPTION:
     def do_quit(self, args):
         raise SystemExit
 
+class CmdLineWithExternalCommands(type):
+    def __init__(cls, name, bases, dict):
+        def help_cmd(commandclass, self):
+            command = commandclass(self)
+            return command.do_help
 
-class EtcProposalsCmdLine(cmd.Cmd):
+        super(CmdLineWithExternalCommands, cls).__init__(name, bases, dict)
+        for commandclass in cls.COMMANDS:
+            commandname = commandclass.__name__[:-7].lower()
+            cls.__dict__["help_" + commandname] = lambda self: help_cmd(commandclass, self)
+
+    
+class EtcProposalsCmdLine(cmd.Cmd, object):
+    __metaclass__ = CmdLineWithExternalCommands
     COMMANDS = [ EditCommand, QuitCommand, ApplyCommand, GotoCommand,
         UndoCommand, UseCommand, ZapCommand, ListCommand, ReloadCommand,
         DiffCommand ]
@@ -570,7 +581,6 @@ class EtcProposalsCmdLine(cmd.Cmd):
         self.config = EtcProposalsConfigShellDecorator()
         if not self.config.Colorize():
             self.colorizer.use_colors = False;
-        self.add_commands()
         self.reload()
         self.intro = """Welcome to etc-proposals, a shell for gentoo configuration updates
         shell version: %s
@@ -580,13 +590,6 @@ class EtcProposalsCmdLine(cmd.Cmd):
         type 'n' to start iterating through proposed changes.
 """ % (__version__, __libversion__)
     
-    def add_commands(self):
-        for commandclass in EtcProposalsCmdLine.COMMANDS:
-            command = commandclass(self)
-            self.__dict__["do_" + command.commandname] = command.do_cmd
-            self.__dict__["help_" + command.commandname] = command.help_cmd
-            self.__dict__["complete_" + command.commandname] = command.complete_cmd
-
     def setup_changesets(self):
         self.changesets = {'' : lambda: [self.current_change],
                 'change' : lambda: [self.current_change],
