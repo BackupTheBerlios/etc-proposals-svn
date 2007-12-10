@@ -2,6 +2,12 @@ data/etc-proposals.conf
 data/etcproposals-cvs.svg
 data/etcproposals-unmodified.svg
 data/etcproposals-whitespace.svg
+data/qt4_about.svgz
+data/qt4_add.svgz
+data/qt4_exit.svgz
+data/qt4_help.png
+data/qt4_ok.png
+data/qt4_reload.svgz
 scripts/etc-proposals
 setup.py
 src/etcproposals_gtk2.py

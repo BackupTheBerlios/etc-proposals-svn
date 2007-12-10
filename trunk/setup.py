@@ -19,5 +19,16 @@ setup(
     scripts = ['scripts/etc-proposals'],
     data_files = [
         ('/etc/' , ['data/etc-proposals.conf']),
-        ('/usr/share/etcproposals/', ['data/etcproposals-cvs.svg', 'data/etcproposals-whitespace.svg', 'data/etcproposals-unmodified.svg'])]
+        ('/usr/share/etcproposals/', 
+		[
+		'data/etcproposals-cvs.svg',
+		'data/etcproposals-whitespace.svg',
+		'data/etcproposals-unmodified.svg',
+		'data/qt4_about.svgz',
+		'data/qt4_add.svgz',
+		'data/qt4_exit.svgz',
+		'data/qt4_help.png',
+		'data/qt4_ok.png',
+		'data/qt4_reload.svgz'
+		])]
 )
