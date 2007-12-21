@@ -42,20 +42,24 @@ except ImportError:
     raise FrontendFailedException('Could not find qt4-bindings.')
 
 
-class KdelibsUtils(object):
-    try:
-        ICONDIR_PATHS = get_command_output_iterator(['kde-config','--path', 'icon']).next().rstrip('\n').split(':')
-    except OSError:
-        raise FrontendFailedException('Could not find kde-config in path.')
-    THEME = 'crystalsvg'
-    ICONSIZE = '22x22'
-    IMAGEFORMAT = 'png'
+    ICON_PATH = '/usr/share/etcproposals'
+    ICON_EXT = '.svg'
+    def __init__(self):
+        gtk.IconFactory.__init__(self)
+        for icon_id in [STOCK_CVS, STOCK_WHITESPACE, STOCK_UNMODIFIED]:
+            source = gtk.IconSource()
+            source.set_filename(os.path.join(IconFactory.ICON_PATH, icon_id.lower() + IconFactory.ICON_EXT))
+            iconset = gtk.IconSet()
+            iconset.add_source(source)
+            self.add(icon_id, iconset)
+class IconUtils(object):
+    ICONDIR_PATH = '/usr/share/etcproposals'
+    IMAGEFORMATS = ['svg', 'png']
 
     @staticmethod
-    def get_iconpath(category, iconname):
-        pathend = os.path.join(KdelibsUtils.THEME, KdelibsUtils.ICONSIZE, category, iconname + '.' + KdelibsUtils.IMAGEFORMAT)
-        for pathstart in KdelibsUtils.ICONDIR_PATHS:
-            path = os.path.join(pathstart, pathend)
+    def get_iconpath(iconname):
+        for format in IconUtils.IMAGEFORMATS:
+            path = os.path.join(IconUtils.ICONDIR_PATH, 'qt4_' + iconname + '.' + format)
             if os.access(path, os.R_OK):
                 return path
         raise LookupError, 'Icon %s not found.' % iconname
@@ -486,38 +490,38 @@ class EtcProposalsView(qt.QMainWindow):
     def initActions(self):
         #Exit
         self.exitAct = qt.QAction("E&xit", self)
-        self.exitAct.setIcon(qt.QIcon(KdelibsUtils.get_iconpath('actions', 'exit')))
+        self.exitAct.setIcon(qt.QIcon(IconUtils.get_iconpath('exit')))
         self.exitAct.setShortcut("Ctrl+Q")
         self.exitAct.setStatusTip("Exit the application")
         self.connect(self.exitAct, qt.SIGNAL("triggered()"), self.slotExit)
         #Apply
         self.applyAct = qt.QAction("A&pply", self)
-        self.applyAct.setIcon(qt.QIcon(KdelibsUtils.get_iconpath('actions', 'button_ok')))
+        self.applyAct.setIcon(qt.QIcon(IconUtils.get_iconpath('ok')))
         self.applyAct.setStatusTip("Apply selected changes")
         self.connect(self.applyAct, qt.SIGNAL("triggered()"), self.slotApply)
         #Refresh
         self.refreshAct = qt.QAction("R&efresh", self)
-        self.refreshAct.setIcon(qt.QIcon(KdelibsUtils.get_iconpath('actions', 'reload')))
+        self.refreshAct.setIcon(qt.QIcon(IconUtils.get_iconpath('reload')))
         self.refreshAct.setStatusTip("Refresh proposals")
         self.connect(self.refreshAct, qt.SIGNAL("triggered()"), self.slotRefresh)
         #Collapse
         self.collapseAct = qt.QAction("C&ollapse", self)
-        self.collapseAct.setIcon(qt.QIcon(KdelibsUtils.get_iconpath('actions', 'add')))
+        self.collapseAct.setIcon(qt.QIcon(IconUtils.get_iconpath('add')))
         self.collapseAct.setStatusTip("Collapse all displayed changes")
         self.connect(self.collapseAct, qt.SIGNAL("triggered()"), self.slotCollapse)
         #Expand
         self.expandAct = qt.QAction("E&xpand", self)
-        self.expandAct.setIcon(qt.QIcon(KdelibsUtils.get_iconpath('actions', 'add')))
+        self.expandAct.setIcon(qt.QIcon(IconUtils.get_iconpath('add')))
         self.expandAct.setStatusTip("Expand all displayed changes")
         self.connect(self.expandAct, qt.SIGNAL("triggered()"), self.slotExpand)
         #Help
         self.helpAct = qt.QAction("H&elp", self)
-        self.helpAct.setIcon(qt.QIcon(KdelibsUtils.get_iconpath('actions', 'help')))
+        self.helpAct.setIcon(qt.QIcon(IconUtils.get_iconpath('help')))
         self.helpAct.setStatusTip("A short help")
         self.connect(self.helpAct, qt.SIGNAL("triggered()"), self.slotHelp)
         #About
         self.aboutAct = qt.QAction("A&bout", self)
-        self.aboutAct.setIcon(qt.QIcon(KdelibsUtils.get_iconpath('actions', 'about_kde')))
+        self.aboutAct.setIcon(qt.QIcon(IconUtils.get_iconpath('about')))
         self.aboutAct.setStatusTip("About this tool")
         self.connect(self.aboutAct, qt.SIGNAL("triggered()"), self.slotAbout)
 

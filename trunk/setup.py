@@ -24,11 +24,11 @@ setup(
 		'data/etcproposals-cvs.svg',
 		'data/etcproposals-whitespace.svg',
 		'data/etcproposals-unmodified.svg',
-		'data/qt4_about.svgz',
-		'data/qt4_add.svgz',
-		'data/qt4_exit.svgz',
+		'data/qt4_about.svg',
+		'data/qt4_add.svg',
+		'data/qt4_exit.svg',
 		'data/qt4_help.png',
 		'data/qt4_ok.png',
-		'data/qt4_reload.svgz'
+		'data/qt4_reload.svg'
 		])]
 )
