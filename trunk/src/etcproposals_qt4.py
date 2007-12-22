@@ -77,11 +77,6 @@ class EtcProposalsQt4Decorator(EtcProposals):
         self.get_undecided_changes()
 
 
-class EtcProposalsConfigQt4Decorator(EtcProposalsConfig):
-    """stub to handle configuration settings for the Qt4 GUI"""
-    pass
-
-
 class ChangeLabel(qt.QFrame):
     """ChangeLabel is a widget showing all data of an
     EtcProposalsChange but the content. It contains an ChangeStatus,
@@ -618,7 +613,7 @@ class EtcProposalsController(object):
     instance itself when initiated."""
     def __init__(self, proposals):
         self.proposals = proposals
-        if len(self.proposals) == 0 and EtcProposalsConfigQt4Decorator().Fastexit():
+        if len(self.proposals) == 0 and Config.Fastexit:
             raise SystemExit
         self.proposals.warmup_cache()
         self.view = EtcProposalsView(proposals, self)
@@ -640,7 +635,7 @@ class EtcProposalsController(object):
 
     def apply(self):
         self.proposals.apply()
-        if len(self.proposals) == 0 and EtcProposalsConfigQt4Decorator().Fastexit():
+        if len(self.proposals) == 0 and Config.Fastexit:
             # TODO: clean exit of Qt4 main loop
             raise SystemExit
         self.proposals.warmup_cache()

@@ -8,7 +8,7 @@
 # Author: Björn Michaelsen 
 
 from os import getuid, system
-from etcproposals.etcproposals_lib import EtcProposalsConfig, EtcProposals
+from etcproposals.etcproposals_lib import Config, EtcProposals
 from etcproposals.etcproposals_lib import FrontendFailedException
 from etcproposals.etcproposals_info import *
 from getopt import getopt, GetoptError
@@ -35,9 +35,9 @@ def getopts():
         if len(opt) == 0:
             continue
         if opt[0] == '--frontend':
-            EtcProposalsConfig.PreferedFrontendsOverride([opt[1]])
+            Config.PreferedFrontends = [opt[1]]
         elif opt[0] == '--fastexit':
-            EtcProposalsConfig.FastexitOverride(True)
+            Config.Fastexit = True
         elif opt[0] == '--help':
             show_help('')
         elif opt[0] == '--version':
@@ -55,7 +55,7 @@ if __name__ == '__main__':
         getopts()
     except GetoptError, e:
         show_help(e.__str__())
-    frontends = EtcProposalsConfig().PreferedFrontends()
+    frontends = Config.PreferedFrontends
     frontends.reverse()
     frontend_succeeded = False
     while not frontend_succeeded:

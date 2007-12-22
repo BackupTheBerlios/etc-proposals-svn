@@ -44,13 +44,15 @@ except ImportError:
 
 # see etcproposals_lib
 
-class EtcProposalsConfigGtkDecorator(EtcProposalsConfig):
+class EtcProposalsGtk2Config(object):
     """stub to handle configuration settings for the Gtk GUI"""
-    def MaxChangesPerPage(self):
+    def __init__(self):
         try:
-            return self.parser.getint('Gtk2', 'MaxChangesPerPage')
-        except Exception, e:
-            return 10
+            self.__max_changes_per_page = Config.parser.getint('Gtk2', 'MaxChangesPerPage')
+        except Exception:
+            self.__max_changes_per_page = 10
+    	
+    MaxChangesPerPage = property(lambda self: self.__max_changes_per_page)
 
 
 #### MVC: View ####
@@ -427,7 +429,7 @@ class ChangesView(gtk.VBox):
         gtk.VBox.__init__(self)
         self.changes_list = []
         self.start_change_index = 0
-        self.changes_per_page = Config.MaxChangesPerPage()
+        self.changes_per_page = Gtk2Config.MaxChangesPerPage
         self.collapsed_changes = set()
     
     def update_changes(self, changes_generator):
@@ -822,7 +824,7 @@ class EtcProposalsController(object):
     instance itself when initiated."""
     def __init__(self, proposals):
         self.proposals = proposals
-        if len(self.proposals) == 0 and EtcProposalsConfigGtkDecorator().Fastexit():
+        if len(self.proposals) == 0 and Config.Fastexit:
             raise SystemExit
         self.view = EtcProposalsView(proposals)
         self.main_actiongroup = self.view.main_actiongroup
@@ -864,7 +866,7 @@ class EtcProposalsController(object):
         wait_win = WaitWindow()
         wait_win.description = 'Applying changes'
         self.proposals.apply(current_file_callback=apply_callback)
-        if len(self.proposals) == 0 and EtcProposalsConfigGtkDecorator().Fastexit():
+        if len(self.proposals) == 0 and Config.Fastexit:
             gtk.main_quit()
         wait_win.refreshing_views()
         self.treeview.refresh()
@@ -945,7 +947,7 @@ class EtcProposalsController(object):
 
 # Singletons
 
-Config = EtcProposalsConfigGtkDecorator()
+Gtk2Config = EtcProposalsGtk2Config()
 
 def run_frontend():
     if not os.environ.has_key('DISPLAY'):

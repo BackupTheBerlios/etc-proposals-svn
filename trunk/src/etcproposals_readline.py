@@ -128,50 +128,47 @@ class EtcProposalsShellDecorator(EtcProposals):
         return EtcProposalShellDecorator(proposal_path, self)
 
 
-class EtcProposalsConfigShellDecorator(EtcProposalsConfig):
-    def Colorize(self):
+class EtcProposalsShellConfig(object):
+    def __init__(self):
         try:
-            return self.parser.getboolean('Shell', 'Colorize')
+            self.__colorize = Config.parser.getboolean('Shell', 'Colorize')
         except Exception:
-            return False
-
-    def EditCommand(self):
+            self.__colorize = False
         try:
-            return self.parser.get('Shell', 'EditCommand', True)
-        except Exception, e:
-            print e
-        if not os.environ.has_key('EDITOR'):
-            editor = 'nano'
-        else:
-            editor = os.environ['EDITOR']
-        if editor.count('nano') > 0:
-            return '%s +%%(linenumber)d,0 "%%(filename)s"' % os.environ['EDITOR']
-        elif editor.count('vi') > 0:
-            return '%s -c %%(linenumber)d "%%(filename)s"' % os.environ['EDITOR']
-        elif editor.count('emacs') > 0:
-            return '%s +%%(linenumber)d "%%(filename)s"' % os.environ['EDITOR']
-        else:
-            return '%s "%%(filename)s"' % os.environ['EDITOR']
-
-    def DiffCommand(self):
-        try:
-            return self.parser.get('Shell', 'DiffCommand', True)
+            self.__startup_commands = Config.parser.get('Shell', 'StartupCommands').split(';')
         except Exception:
-            return 'diff -u "%(file1)s" "%(file2)s"'
-
-    def StartupCommands(self):
+            self.__startup_commands = []
         try:
-            return self.parser.get('Shell', 'StartupCommands').split(';')
+            self.__diff_command = Config.parser.get('Shell', 'DiffCommand', True)
         except Exception:
-            return []
+            self.__diff_command = 'diff -u "%(file1)s" "%(file2)s"'
+        try:
+            self.__edit_command = Config.parser.get('Shell', 'EditCommand', True)
+        except Exception:
+            if not os.environ.has_key('EDITOR'):
+                editor = 'nano'
+            else:
+                editor = os.environ['EDITOR']
+            if editor.count('nano') > 0:
+                self.__edit_command = '%s +%%(linenumber)d,0 "%%(filename)s"' % os.environ['EDITOR']
+            elif editor.count('vi') > 0:
+                self.__edit_command = '%s -c %%(linenumber)d "%%(filename)s"' % os.environ['EDITOR']
+            elif editor.count('emacs') > 0:
+                self.__edit_command = '%s +%%(linenumber)d "%%(filename)s"' % os.environ['EDITOR']
+            else:
+                self.__edit_command = '%s "%%(filename)s"' % os.environ['EDITOR']
+
+    Colorize = property(lambda self: self.__colorize)
+    StartupCommands = property(lambda self: self.__startup_commands)
+    DiffCommand = property(lambda self: self.__diff_command)
+    EditCommand = property(lambda self: self.__edit_command)
 
 
 class EtcProposalsCmdLine(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.colorizer = CmdLineColorizer()
-        self.config = EtcProposalsConfigShellDecorator()
-        if not self.config.Colorize():
+        if not ShellConfig.Colorize:
             self.colorizer.use_colors = False;
         self.reload()
         self.intro = """Welcome to etc-proposals, a shell for gentoo configuration updates
@@ -184,7 +181,7 @@ class EtcProposalsCmdLine(cmd.Cmd):
     
     def preloop(self):
         print self.intro
-        for command in self.config.StartupCommands():
+        for command in ShellConfig.StartupCommands:
             self.onecmd(command)
         self.intro = ''
 
@@ -522,7 +519,7 @@ DESCRIPTION:
         os.write(fd_b, ''.join(b))
         os.close(fd_a)
         os.close(fd_b)
-        os.system(self.config.DiffCommand() % {
+        os.system(ShellConfig.DiffCommand % {
             'file1' : filename_a,
             'file2' : filename_b})
         for file in [filename_a, filename_b]:
@@ -577,7 +574,7 @@ DESCRIPTION:
     def edit(self):
         linenumber = self.current_change.get_affected_lines()[0]
         filepath = self.current_change.get_file_path()
-        os.system(self.config.EditCommand() % {'linenumber' :  linenumber, 'filename' : filepath})
+        os.system(ShellConfig.EditCommand % {'linenumber' :  linenumber, 'filename' : filepath})
 
     def help_edit(self):
         print self.do_edit.__doc__
@@ -668,7 +665,7 @@ NOTE:
         self.current_change = None
         self.change_iter = self.proposals.get_all_changes().__iter__()
         self.update_prompt()
-        if len(self.proposals) == 0 and EtcProposalsConfigShellDecorator().Fastexit():
+        if len(self.proposals) == 0 and EtcProposalsConfigShellDecorator().Fastexit:
             print "No proposes left. Exiting."
             raise SystemExit
 
@@ -735,6 +732,10 @@ DESCRIPTION:
         return [subcommand for subcommand in subcommandlist 
             if subcommand.startswith(text)]
        
+
+# Singletons
+
+ShellConfig = EtcProposalsShellConfig()
 
 def run_frontend():
     etc_cli = EtcProposalsCmdLine()

@@ -250,7 +250,7 @@ class EtcProposal(object):
     def _refresh_changes_cache(self):
         if self._changes is None:
             opcodes = self._get_opcodes()
-            if len(opcodes) > Config.MaxChangesPerProposal():
+            if len(opcodes) > Config.MaxChangesPerProposal:
                 opcodes = [self._join_opcodes(opcodes)]
             self._changes = [self._create_change(opcode) for opcode in opcodes]
             if State.has_key(self._get_state_url()):
@@ -334,7 +334,7 @@ class EtcProposals(list):
         "clears and repopulates the list from the filesystem"
         self.clear_cache()
         del self[:] 
-        for dir in PortageInterface.get_config_protect(Config.Backend()):
+        for dir in PortageInterface.get_config_protect(Config.Backend):
             self._add_update_proposals(dir, current_file_callback)
         self.sort()
 
@@ -501,7 +501,7 @@ class EtcProposals(list):
         allpkgparts = PortageInterface.get_fileinfo_from_vdb(
             [os.path.join(path, file)
             for configbasedir in PortageInterface.get_config_protect(
-                Config.Backend())
+                Config.Backend)
             for (path, dir, files) in os.walk(configbasedir)
             for file in files])
         return len([EtcProposalConfigFile(pkgpart.path).update_unmodified(pkgpart.md5) for pkgpart in allpkgparts.values()])
@@ -531,59 +531,35 @@ class EtcProposalFileCache(object):
         
 
 class EtcProposalsConfig(object):
-    fastexit_override = None
-    prefered_frontends_override = None
-
     def __init__(self):
         configlocations = ['.', '/etc']
         self.parser = ConfigParser.ConfigParser()
         self.parser.read([os.path.join(configlocation, 'etc-proposals.conf')
             for configlocation in configlocations])
+        self.__prefered_frontends = self.get_optional_value('General', 'PreferedFrontends', '').split(',')
+        self.__backend = self.get_optional_value('General', 'Backend', 'portage')
+        self.__fastexit = self.get_optional_value('General', 'Fastexit', False)
+        self.__max_cached_files = self.get_optional_value('General', 'MaxCachedFiles', 10)
+        self.__max_changes_per_proposal = self.get_optional_value('General', 'MaxChangesPerProposal', 100)
 
-    def PreferedFrontends(self):
-        try:
-            if EtcProposalsConfig.prefered_frontends_override != None:
-                return EtcProposalsConfig.prefered_frontends_override
-            else:
-                return self.parser.get('General', 'PreferedFrontends').split(',')
-        except Exception, e:
-            return []
-    
-    def Backend(self):
-        try:
-            return self.parser.get('General', 'Backend')
-        except Exception, e:
-            return 'portage'
+    def __set_fastexit(self, value): self.__fastexit = value
+    def __set_prefered_frontends(self, value): self.__prefered_frontends = value
 
-    def Fastexit(self):
+    def get_optional_value(self, section, option, default):
         try:
-            if EtcProposalsConfig.fastexit_override != None:
-                return EtcProposalsConfig.fastexit_override
-            else:
-                return (self.parser.get('General', 'Fastexit') == 'True')
-        except Exception, e:
-            return False
-    
-    def MaxCachedFiles(self):
-        try:
-            return self.parser.getint('General', 'MaxCachedFiles')
-        except Exception, e:
-            return 10
+            return self.parser.get(section, option)
+        except Exception:
+            return default
 
-    def MaxChangesPerProposal(self):
-        try:
-            return self.parser.getint('General', 'MaxChangesPerProposal')
-        except Exception, e:
-            return 100
+    def get_required_value(self, section, option):
+        return self.parser.get(section, option)
 
-    @staticmethod
-    def FastexitOverride(override_value):
-        EtcProposalsConfig.fastexit_override = override_value
-    
-    @staticmethod
-    def PreferedFrontendsOverride(override_value):
-        EtcProposalsConfig.prefered_frontends_override = override_value
-        
+    PreferedFrontends = property(lambda self: self.__prefered_frontends, __set_prefered_frontends)
+    Fastexit = property(lambda self: self.__fastexit, __set_fastexit)
+
+    Backend = property(lambda self: self.__backend)
+    MaxCachedFiles = property(lambda self: self.__max_cached_files)
+    MaxChangesPerProposal = property(lambda self: self.__max_changes_per_proposal)
 
 class EtcProposalsState(shelve.Shelf):
     def __init__(self):
@@ -615,7 +591,7 @@ class EtcProposalsState(shelve.Shelf):
             del self[key]
         
 
-__all__ = ['EtcProposalChange', 'EtcProposal', 'EtcProposals', 'EtcProposalsConfig', 'FrontendFailedException']
+__all__ = ['EtcProposalChange', 'EtcProposal', 'EtcProposals', 'Config', 'FrontendFailedException']
 
 if __name__ == '__main__':
     raise SystemExit, 'This module is not executable.' 
@@ -624,5 +600,5 @@ if __name__ == '__main__':
 # Singletons
 
 Config = EtcProposalsConfig()
-FileCache = EtcProposalFileCache(Config.MaxCachedFiles())
+FileCache = EtcProposalFileCache(Config.MaxCachedFiles)
 State = EtcProposalsState()
