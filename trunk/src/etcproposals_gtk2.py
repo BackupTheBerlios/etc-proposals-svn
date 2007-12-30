@@ -624,6 +624,7 @@ class EtcProposalsView(gtk.Window):
         self.main_actiongroup = MainActiongroup()
         self.uimanager = UIManager()
         self.uimanager.insert_action_group(self.main_actiongroup, 0)
+        self.main_actiongroup.attach_accelgroup_to_window(self)
         self.props.title = 'etc-proposals'
         self.set_position(gtk.WIN_POS_CENTER)
         self.connect('destroy', lambda *w: gtk.main_quit())
@@ -760,21 +761,22 @@ class MainActiongroup(gtk.ActionGroup):
     
     def __init__(self):
         gtk.ActionGroup.__init__(self, 'Main')
+        self.accel_group = gtk.AccelGroup()
         self.add_actions([
             ('Filemenu', None, '_File', None, None),
             ('Editmenu', None, '_Edit', None, None),
             ('Viewmenu', None, '_View', None, None),
             ('Helpmenu', None, '_Help', None, None),
-            ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit without applying changes'),
-            ('Apply', gtk.STOCK_APPLY, '_Apply', None, 'Apply changes'),
-            ('Refresh', gtk.STOCK_REFRESH, '_Refresh', None, 'Refresh proposals'),
-            ('Collapse', gtk.STOCK_REMOVE, '_Collapse Changes', None, 'Collapse all displayed changes'),
-            ('Expand', gtk.STOCK_ADD, '_Expand Changes', None, 'Expand all displayed changes'),
-            ('Use All', gtk.STOCK_OK, 'Use All Undecided', None, 'use all filtered changes in the current selection'),
-            ('Zap All', gtk.STOCK_CANCEL, 'Zap All Undecided', None, 'zap all filtered changes in the current selection'),
-            ('Undo All', gtk.STOCK_UNDO, 'Undo All', None, 'undo all filtered changes in the current selection'),
-            ('Help', gtk.STOCK_HELP, '_Help', None, 'A short help'),
-            ('About', gtk.STOCK_ABOUT, '_About', None, 'About this tool'),
+            ('Quit', gtk.STOCK_QUIT, 'Quit', '<Alt>F4', 'Quit without applying changes'),
+            ('Apply', gtk.STOCK_APPLY, 'Apply', None, 'Apply changes'),
+            ('Refresh', gtk.STOCK_REFRESH, 'Refresh', 'F5', 'Refresh proposals'),
+            ('Collapse', gtk.STOCK_REMOVE, 'Collapse Changes', None, 'Collapse all displayed changes'),
+            ('Expand', gtk.STOCK_ADD, 'Expand Changes', None, 'Expand all displayed changes'),
+            ('Use All', gtk.STOCK_OK, 'Use All Undecided', '<Control>u', 'use all filtered changes in the current selection'),
+            ('Zap All', gtk.STOCK_CANCEL, 'Zap All Undecided', '<Control><Shift>z', 'zap all filtered changes in the current selection'),
+            ('Undo All', gtk.STOCK_UNDO, 'Undo All', '<Control>z', 'undo all filtered changes in the current selection'),
+            ('Help', gtk.STOCK_HELP, 'Help', 'F1', 'A short help'),
+            ('About', gtk.STOCK_ABOUT, 'About', None, 'About this tool'),
             ('Previous Page', gtk.STOCK_GO_BACK, 'Previous Page', None, 'show the next page of changes'),
             ('Next Page', gtk.STOCK_GO_FORWARD, 'Next Page', None, 'show the previous page of changes'),
             ('Typefilter', None, 'Type Filter', None, None),
@@ -801,6 +803,13 @@ class MainActiongroup(gtk.ActionGroup):
             ('Only Unmodified', STOCK_UNMODIFIED, 'Only Unmodified Changes', None, 'Show only unmodified changes', 1),
             ('Only Modified', None, 'Only Modified Changes', None, 'Show only modified changes', 2),
             ('Modificationfilter Off', None, 'No Modification Filtering', None, 'Disable modification filtering', 0)])
+        for action in self.list_actions():
+            action.set_accel_group(self.accel_group)
+
+    def attach_accelgroup_to_window(self, window):
+        window.add_accel_group(self.accel_group)
+        for action in self.list_actions():
+            action.connect_accelerator()
 
     def get_whitespace_condition(self):
         return MainActiongroup.NUMERIC_TO_BOOL[self.get_action('Only Whitespace').get_current_value()]
