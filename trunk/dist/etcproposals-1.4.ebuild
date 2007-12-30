@@ -20,6 +20,7 @@ RDEPEND="${DEPEND}"
 src_install(){
 	distutils_src_install
 	dosbin "${D}"/usr/bin/etc-proposals
+	rm -rf "${D}"/usr/bin
 }
 
 pkg_postinst() {
