@@ -1,4 +1,4 @@
-# Copyright 2007-2007 Gentoo Foundation
+# Copyright 2007-2008 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Header: $
 
@@ -11,7 +11,7 @@ SRC_URI="mirror://berlios/etc-proposals/${P}.tar.gz"
 IUSE="gtk qt4"
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="~amd64 ~x86"
+KEYWORDS="~amd64 ~ppc ~x86"
 
 DEPEND="gtk? ( >=dev-python/pygtk-2.10 )
 		qt4? ( >=dev-python/PyQt4-4.1.1 )"

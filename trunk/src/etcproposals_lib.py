@@ -6,7 +6,7 @@
 # etc-proposals - a tool to integrate modified configs, post-emerge
 
 __author__ = 'Björn Michaelsen' 
-__version__ = '1.4'
+__version__ = '1.4.1'
 __date__ = '2007-10-08'
 
 import ConfigParser, anydbm, shelve, difflib, os, os.path, re, shutil, md5
