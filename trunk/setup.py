@@ -6,7 +6,7 @@ from distutils.dir_util import mkpath
 
 mkpath('/etc/')
 setup(
-    name = 'etcproposals',
+    name = 'etc-proposals',
     url = 'http://etc-proposals.berlios.de',
     author = 'Björn Michaelsen, Jeremy Wickersheimer, Christian Glindkamp',
     author_email = 'bjoern.michaelsen@gmail.de',
