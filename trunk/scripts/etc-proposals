@@ -18,15 +18,28 @@ def init_state_db():
     print "%s file states updated." % EtcProposals.scan_all_files() 
     raise SystemExit
 
+def enable_fastexit():
+    Config.Fastexit = True
+
 def set_frontend(option, opt_str, value, parser):
     Config.PreferedFrontends = [value]
 
 def getopts():
     parser = OptionParser(version=VERSIONS.prettify())
-    parser.add_option('--init-db', help='scans all config files and compares to vdb', action='callback', callback=lambda option, opt_str, value, parser: init_state_db())
-    parser.add_option('--fastexit', help='automatically exit if there are no files to update', action='store_true', dest='Fastexit')
-    parser.add_option('--frontend', help='select one frontend (gtk2,qt4,readline)', action='callback', callback=set_frontend, type='string')
-    (Config, args) = parser.parse_args()
+    parser.add_option('--init-db',
+        help='scans all config files and compares to vdb',
+        action='callback',
+        callback=lambda option, opt_str, value, parser: init_state_db())
+    parser.add_option('--fastexit',
+        help='automatically exit if there are no files to update',
+        action='callback',
+        callback=lambda option, opt_str, value, parser: enable_fastexit())
+    parser.add_option('--frontend',
+        help='select one frontend (gtk2,qt4,readline)',
+        action='callback',
+        callback=set_frontend,
+        type='string')
+    (config, args) = parser.parse_args()
     if len(args) > 0: raise Exception('Unknown options: %s' % ' '.join(args))
 
 if __name__ == '__main__':
