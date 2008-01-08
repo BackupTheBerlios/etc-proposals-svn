@@ -6,7 +6,7 @@ inherit distutils
 
 DESCRIPTION="a set of tools for updating gentoo config files"
 HOMEPAGE="http://developer.berlios.de/projects/etc-proposals/"
-SRC_URI="mirror://berlios/etc-proposals/${P}.tar.gz"
+SRC_URI="mirror://berlios/${PN}/${P}.tar.gz"
 
 IUSE="gtk qt4"
 LICENSE="GPL-2"
