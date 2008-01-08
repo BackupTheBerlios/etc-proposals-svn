@@ -7,7 +7,7 @@
 
 __author__ = 'Björn Michaelsen' 
 __version__ = '1.4.2'
-__date__ = '2007-06-06'
+__date__ = '2007-01-08'
 
 import cmd, difflib, os, os.path, re, tempfile
 from etcproposals.etcproposals_lib import *
@@ -178,7 +178,12 @@ class EtcProposalsCmdLine(cmd.Cmd):
         Type '?' or 'help' to get help or
         type 'n' to start iterating through proposed changes.
 """ % (__version__, __libversion__)
-    
+   
+    def check_fastexit(self):
+        if len(self.proposals) == 0 and Config.Fastexit:
+            print "No proposes left. Exiting."
+            raise SystemExit
+
     def preloop(self):
         print self.intro
         for command in ShellConfig.StartupCommands:
@@ -665,9 +670,7 @@ NOTE:
         self.current_change = None
         self.change_iter = self.proposals.get_all_changes().__iter__()
         self.update_prompt()
-        if len(self.proposals) == 0 and Config.Fastexit:
-            print "No proposes left. Exiting."
-            raise SystemExit
+        self.check_fastexit()
 
     def do_EOF(self, args):
         self.do_quit(args)
@@ -739,6 +742,7 @@ ShellConfig = EtcProposalsShellConfig()
 
 def run_frontend():
     etc_cli = EtcProposalsCmdLine()
+    etc_cli.check_fastexit()
     etc_cli.cmdloop()
 
 if __name__ == '__main__':

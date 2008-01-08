@@ -7,7 +7,7 @@
 
 __author__ = 'Björn Michaelsen, Christian Glindkamp' 
 __version__ = '1.4'
-__date__ = '2007-10-25'
+__date__ = '2007-12-30'
 __doc__ = """
 etcproposals_gtk is a gtk-frontend to integrate modified configs, post-emerge.
 Its implemented using the MVC (model-view-controller) design pattern.

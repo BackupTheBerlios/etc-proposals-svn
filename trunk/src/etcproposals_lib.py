@@ -6,8 +6,8 @@
 # etc-proposals - a tool to integrate modified configs, post-emerge
 
 __author__ = 'Björn Michaelsen' 
-__version__ = '1.4.1'
-__date__ = '2007-10-08'
+__version__ = '1.4.2'
+__date__ = '2008-01-08'
 
 import ConfigParser, anydbm, shelve, difflib, os, os.path, re, shutil, md5
 from etcproposals.portage_stubs import PortageInterface
@@ -538,7 +538,7 @@ class EtcProposalsConfig(object):
             for configlocation in configlocations])
         self.__prefered_frontends = self.get_optional_value('General', 'PreferedFrontends', '').split(',')
         self.__backend = self.get_optional_value('General', 'Backend', 'portage')
-        self.__fastexit = self.get_optional_value('General', 'Fastexit', False)
+        self.__fastexit = self.get_optional_value('General', 'Fastexit', 'False').lower() == 'true'
         self.__max_cached_files = self.get_optional_value('General', 'MaxCachedFiles', 10)
         self.__max_changes_per_proposal = self.get_optional_value('General', 'MaxChangesPerProposal', 100)
 
