@@ -6,7 +6,7 @@
 # etc-proposals - a little shell to integrate modified configs, post-emerge
 
 __author__ = 'Björn Michaelsen' 
-__version__ = '1.3'
+__version__ = '1.4.2'
 __date__ = '2007-06-06'
 
 import cmd, difflib, os, os.path, re, tempfile
@@ -665,7 +665,7 @@ NOTE:
         self.current_change = None
         self.change_iter = self.proposals.get_all_changes().__iter__()
         self.update_prompt()
-        if len(self.proposals) == 0 and EtcProposalsConfigShellDecorator().Fastexit:
+        if len(self.proposals) == 0 and Config.Fastexit:
             print "No proposes left. Exiting."
             raise SystemExit
 
