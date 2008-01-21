@@ -1,0 +1,71 @@
+#!/usr/bin/python
+#! -*- coding: utf-8 -*-
+# Copyright 2006 Björn Michaelsen
+# Distributed under the terms of the GNU General Public License v2
+
+# etc-proposals - a tool to integrate modified configs, post-emerge
+#
+# Author: Björn Michaelsen 
+
+from os import getuid, system
+from etcproposals.etcproposals_lib import Config, EtcProposals
+from etcproposals.etcproposals_lib import FrontendFailedException
+from etcproposals.etcproposals_info import *
+from optparse import OptionParser
+from sys import argv
+
+def init_state_db():
+    print "%s file states updated." % EtcProposals.scan_all_files() 
+    raise SystemExit
+
+def set_frontend(option, opt_str, value, parser):
+    Config.PreferedFrontends = [value]
+
+def getopts():
+    parser = OptionParser(version=VERSIONS.prettify())
+    parser.add_option('--init-db', help='scans all config files and compares to vdb', action='callback', callback=lambda option, opt_str, value, parser: init_state_db())
+    parser.add_option('--fastexit', help='automatically exit if there are no files to update', action='store_true', dest='Fastexit')
+    parser.add_option('--frontend', help='select one frontend (gtk2,qt4,readline)', action='callback', callback=set_frontend, type='string')
+    (Config, args) = parser.parse_args()
+    if len(args) > 0: raise Exception('Unknown options: %s' % ' '.join(args))
+
+if __name__ == '__main__':
+    if getuid() != 0:
+        print 'etc-proposals: You have to be root to run this tool.'
+        raise SystemExit
+    try:
+        getopts()
+    except Exception, e:
+        print e.__str__()
+        OPTIONS.prettify()
+        raise SystemExit
+    frontends = Config.PreferedFrontends
+    frontends.reverse()
+    frontend_succeeded = False
+    while not frontend_succeeded:
+        try:
+            frontend = frontends.pop()
+        except IndexError:
+            print 'Every configured frontend failed to start.'
+            raise SystemExit
+        if frontend == 'gtk2' or frontend == 'gtk':
+            try:
+                import etcproposals.etcproposals_gtk2
+                etcproposals.etcproposals_gtk2.run_frontend()
+                frontend_succeeded = True
+            except FrontendFailedException, e:
+                print 'gtk2 frontend failed to start: ' + str(e)
+        elif frontend == 'qt4':
+            try:
+                import etcproposals.etcproposals_qt4
+                etcproposals.etcproposals_qt4.run_frontend()
+                frontend_succeeded = True
+            except FrontendFailedException, e:
+                print 'qt4 frontend failed to start: ' + str(e)
+        elif frontend == 'shell' or frontend == 'readline':
+            try:
+                import etcproposals.etcproposals_readline
+                etcproposals.etcproposals_readline.run_frontend()
+                frontend_succeeded = True
+            except FrontendFailedException, e:
+                print 'readline frontend failed to start: ' + str(e)
