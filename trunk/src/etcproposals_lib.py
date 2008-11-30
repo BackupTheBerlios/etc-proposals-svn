@@ -6,10 +6,10 @@
 # etc-proposals - a tool to integrate modified configs, post-emerge
 
 __author__ = 'Björn Michaelsen' 
-__version__ = '1.4.2'
-__date__ = '2008-01-08'
+__version__ = '1.4.3'
+__date__ = '2008-11-30'
 
-import ConfigParser, anydbm, shelve, difflib, os, os.path, re, shutil, md5
+import ConfigParser, anydbm, shelve, difflib, os, os.path, re, shutil, hashlib
 from etcproposals.portage_stubs import PortageInterface
     
 STATEFILE = '/var/state/etcproposals.state'
@@ -296,7 +296,7 @@ class EtcProposalConfigFile(object):
 
     def md5hexdigest(self):
         "calculates the md5sum of the file in the fs"
-        return md5.md5(open(self.path).read()).hexdigest()
+        return hashlib.md5(open(self.path).read()).hexdigest()
     
     def is_unmodified(self):
         "True, if the file in the fs has the same md5 as recorded"

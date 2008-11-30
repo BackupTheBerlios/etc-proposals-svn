@@ -4,7 +4,7 @@
 # based on gentoo portage 2.1.1, Copyright 1998-2007 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
-import re, string, os, md5
+import re, string, os
 from etcproposals.etcproposals_tools import get_command_output_iterator
 
 # portage constants
